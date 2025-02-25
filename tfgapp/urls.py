@@ -16,9 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from tfgapp import views
+from app import views
 
 urlpatterns = [
-    path('hola', views.index),
     path('admin/', admin.site.urls),
 ]
