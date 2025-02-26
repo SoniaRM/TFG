@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detalle del Ingrediente</title>
+</head>
+<body>
+    <h1>Detalle del Ingrediente</h1>
+    <p>Nombre: {{ ingrediente.nombre }}</p>
+    <p>Frecuencia: {{ ingrediente.frec }}</p>
+    
+    <form method="post" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" name="delete">Eliminar</button>
+    </form>
+    <a href="{% url 'editar_ingrediente' ingrediente.pk %}">Editar</a>
+    <a href="{% url 'listado_ingredientes' %}">Volver a la lista</a>
+</body>
+</html>
