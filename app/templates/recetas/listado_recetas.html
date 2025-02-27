@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de Recetas</title>
+</head>
+<body>
+    <h1>Listado de Recetas</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Tipo de Comida</th>
+                <th>Proteínas</th>
+                <th>Ingredientes</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for receta in recetas %}
+            <tr>
+                <td>{{ receta.nombre }}</td>
+                <td>{{ receta.tipo_comida }}</td>
+                <td>{{ receta.proteinas }}</td>
+                <td>
+                    <ul>
+                        {% for ingrediente in receta.ingredientes.all %}
+                            <li>{{ ingrediente.nombre }} (Frecuencia: {{ ingrediente.frec }})</li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>
+                    <a href="{% url 'detalle_receta' receta.pk %}">Ver</a>
+                    <a href="{% url 'editar_receta' receta.pk %}">Editar</a>
+                    <form method="post" action="{% url 'detalle_receta' receta.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" name="delete">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{% url 'crear_receta' %}">Crear Nueva Receta</a>
+</body>
+</html>

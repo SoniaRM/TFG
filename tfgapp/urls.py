@@ -20,11 +20,17 @@ from app import views
 
 urlpatterns = [
     #path('admin/', admin.site.urls),
+    #RECETAS
     path('', views.listado_recetas, name='listado_recetas'),
     path('recetas/', views.listado_recetas, name='listado_recetas'),
+    path('recetas/<int:pk>/', views.detalle_receta, name='detalle_receta'),
+    path('recetas/crear/', views.crear_receta, name='crear_receta'),
+    path('recetas/editar/<int:pk>/', views.editar_receta, name='editar_receta'),  # Nueva ruta para editar recetas
+
+    #INGREDIENTES
     path('ingredientes/', views.listado_ingredientes, name='listado_ingredientes'),
+    path('ingredientes/<int:pk>/', views.detalle_ingrediente, name='detalle_ingrediente'),
     path('ingredientes/crear/', views.crear_ingrediente, name='crear_ingrediente'),
     path('ingredientes/editar/<int:pk>/', views.editar_ingrediente, name='editar_ingrediente'),
-    path('ingredientes/<int:pk>/', views.detalle_ingrediente, name='detalle_ingrediente'),
 
 ]

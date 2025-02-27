@@ -1,6 +1,6 @@
 TIPOCOMIDA = [
-    "DESAYUNO",
-    "ALMUERZO",
-    "MERIENDA",
-    "CENA"
+    ("DESAYUNO", "Desayuno"),
+    ("ALMUERZO", "Almuerzo"),
+    ("MERIENDA", "Merienda"),
+    ("CENA", "Cena"),
 ]

@@ -8,14 +8,13 @@ class Ingrediente(models.Model):
     frec = models.IntegerField()
 
     def __str__(self):
-        return self
+        return self.nombre
 
 class Receta(models.Model):
     nombre = models.CharField(max_length=100)
-    tipo_comida = models.CharField(max_length=20, choices=TipoComida.TIPOCOMIDA)
+    tipo_comida = models.CharField(max_length=10, choices=TipoComida.TIPOCOMIDA)
     proteinas = models.IntegerField()
     ingredientes = models.ManyToManyField(Ingrediente, related_name='recetas')
-
 
     def __str__(self):
         return self.nombre
