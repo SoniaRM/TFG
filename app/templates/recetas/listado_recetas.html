@@ -21,7 +21,13 @@
             {% for receta in recetas %}
             <tr>
                 <td>{{ receta.nombre }}</td>
-                <td>{{ receta.tipo_comida }}</td>
+                <td>
+                    <ul>
+                        {% for tipo_comida in receta.tipo_comida.all %}
+                            <li>{{ tipo_comida.nombre }}</li>
+                        {% endfor %}
+                    </ul>
+                </td>
                 <td>{{ receta.proteinas }}</td>
                 <td>
                     <ul>

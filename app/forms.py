@@ -1,5 +1,5 @@
 from django import forms
-from .models import Receta, Ingrediente
+from .models import Receta, Ingrediente, TipoComida
 
 class RecetaForm(forms.ModelForm):
     nombre = forms.CharField(max_length=100)
@@ -8,6 +8,10 @@ class RecetaForm(forms.ModelForm):
     class Meta:
         model = Receta
         fields = ['nombre', 'tipo_comida', 'proteinas', 'ingredientes']
+        widgets = {
+            'tipo_comida': forms.CheckboxSelectMultiple,
+            'ingredientes': forms.CheckboxSelectMultiple,
+        }
 
 class IngredienteForm(forms.ModelForm):
     nombre = forms.CharField(max_length=100)

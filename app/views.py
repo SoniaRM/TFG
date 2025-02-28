@@ -1,6 +1,5 @@
 from django.shortcuts import render, redirect
 from .models import Receta, Ingrediente 
-from .components import TipoComida
 from .forms import RecetaForm, IngredienteForm
 
 from django.shortcuts import get_object_or_404
@@ -38,7 +37,7 @@ def editar_receta(request, pk):
             return redirect('listado_recetas')
     else:
         form = RecetaForm(instance=receta)
-    return render(request, 'recetas/editar_receta.html', {'form': form})
+    return render(request, 'recetas/editar_receta.html', {'form': form, 'receta': receta})
 
 #INGREDIENTES
 def listado_ingredientes(request):
