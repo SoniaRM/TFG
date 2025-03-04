@@ -22,8 +22,8 @@ class Ingrediente(models.Model):
         max_length=100,
         validators=[
             RegexValidator(
-                regex=r'^[a-zA-Z]+$',  # Defining the regex as a raw string
-                message='El nombre solo puede contener letras y espacios.',
+                regex=r'^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$',  # Allowing letters, spaces, and vowels with accents
+                message='El nombre solo puede contener letras, espacios y vocales con tilde.',
                 code='invalid_nombre'
             )
         ]
@@ -33,13 +33,19 @@ class Ingrediente(models.Model):
     def __str__(self):
         return self.nombre
 
+    def delete(self, *args, **kwargs):
+        # Elimina todas las recetas que contienen este ingrediente
+        self.recetas.all().delete()
+        # Llama al método delete original para borrar el ingrediente
+        super().delete(*args, **kwargs)
+
 class Receta(models.Model):
     nombre = models.CharField(
         max_length=100,
         validators=[
             RegexValidator(
-                regex=r'^[a-zA-Z]+$',  # Defining the regex as a raw string
-                message='El nombre solo puede contener letras y espacios.',
+                regex=r'^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$',  # Allowing letters, spaces, and vowels with accents
+                message='El nombre solo puede contener letras, espacios y vocales con tilde.',
                 code='invalid_nombre'
             )
         ]
