@@ -1,9 +1,8 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Detalle de la Receta</title>
-</head>
-<body>
+{% extends 'navbar.html' %}
+
+{% block title %}Detalle Receta{% endblock %}
+
+{% block content %}
     <h1>Detalle de la Receta</h1>
     <p>Nombre: {{ receta.nombre }}</p>
     <p>Tipo de Comida: {{ receta.tipo_comida }}</p>
@@ -21,5 +20,4 @@
     </form>
     <a href="{% url 'editar_receta' receta.pk %}">Editar</a>
     <a href="{% url 'listado_recetas' %}">Volver a la lista</a>
-</body>
-</html>
+{% endblock %}

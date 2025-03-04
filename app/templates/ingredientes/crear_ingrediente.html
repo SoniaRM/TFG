@@ -1,9 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Crear Ingrediente</title>
-</head>
-<body>
+{% extends 'navbar.html' %}
+{% block title %}Crear ingrediente{% endblock %}
+
+{% block content %}
     <h1>Crear Ingrediente</h1>
     <form method="post">
         {% csrf_token %} <!-- Token de protección contra CSRF -->
@@ -11,4 +9,4 @@
         <button type="submit">Guardar</button>
     </form>
 </body>
-</html>
+{% endblock %}

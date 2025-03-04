@@ -1,16 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App</title>
-</head>
-<body>
+{% extends 'navbar.html' %}
+
+{% block title %}Listado de Ingredientes{% endblock %}
+
+{% block content %}
+
     <h1>Listado de Ingredientes</h1>
-    <ul>
-        {% for ingrediente in ingredientes %}
-            <li>{{ ingrediente.nombre }} - {{ ingrediente.frec }}</li>
-        {% endfor %}
-    </ul>
-</body>
-</html>
+    <table border="1">
+        <tbody>
+            {% for ingrediente in ingredientes %}
+            <tr>
+                <td>{{ ingrediente.nombre }} - {{ ingrediente.frec }}</td>
+                <td>
+                    <a href="{% url 'detalle_ingrediente' ingrediente.pk %}">Ver</a>
+                    <a href="{% url 'editar_ingrediente' ingrediente.pk %}">Editar</a>
+                    <form method="post" action="{% url 'detalle_ingrediente' ingrediente.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" name="delete">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+
+            {% endfor %}
+        </tbody>
+
+    </table>
+
+    <a href="{% url 'crear_ingrediente' %}">Crear Nuevo Ingrediente</a>
+
+{% endblock %}

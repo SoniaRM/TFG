@@ -8,7 +8,6 @@
 .container-nav{
     background-color: white;
     width: 100%;
-    height: 100vh;
 }
 
 nav {
@@ -58,4 +57,7 @@ nav ul li a::after {
     opacity: 1;
 }
 
-
+/* ✅ Estilos para la pestaña activa */
+nav ul li.activo a::after {
+    background: #FFB29A;  /* Color más oscuro */
+}

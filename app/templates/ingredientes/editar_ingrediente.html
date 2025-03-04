@@ -1,14 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Editar Ingrediente</title>
-</head>
-<body>
+{% extends 'navbar.html' %}
+
+{% block title %}Editar ingrediente{% endblock %}
+
+{% block content %}
     <h1>Editar Ingrediente</h1>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit">Guardar</button>
     </form>
-</body>
-</html>
+    <a href="{% url 'detalle_ingrediente' ingrediente.pk %}">Cancelar</a>
+
+{% endblock %}

@@ -70,5 +70,5 @@ def editar_ingrediente(request, pk):
             return redirect('listado_ingredientes')  
     else:
         form = IngredienteForm(instance=ingrediente)
-    return render(request, 'ingredientes/editar_ingrediente.html', {'form': form})
+    return render(request, 'ingredientes/editar_ingrediente.html', {'form': form, 'ingrediente': ingrediente})
 
