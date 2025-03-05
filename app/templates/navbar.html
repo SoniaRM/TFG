@@ -21,6 +21,9 @@
                 <li class="{% if request.resolver_match.url_name == 'listado_ingredientes' or request.resolver_match.url_name == 'detalle_ingrediente' or request.resolver_match.url_name == 'crear_ingrediente' or request.resolver_match.url_name == 'editar_ingrediente' %}activo{% endif %}">
                     <a href="{% url 'listado_ingredientes' %}">Ingredientes</a>
                 </li>
+                <li class="{% if request.resolver_match.url_name == 'calendario_semanal' %}activo{% endif %}">
+                    <a href="{% url 'calendario_semanal' %}">Calendario</a>
+                </li>
 
             </ul>
         </nav>
