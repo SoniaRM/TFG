@@ -1,8 +1,13 @@
 from django.shortcuts import render, redirect
-from .models import Receta, Ingrediente 
+from .models import Receta, Ingrediente, TipoComida, Calendario, Calendario_Receta
 from .forms import RecetaForm, IngredienteForm
 
 from django.shortcuts import get_object_or_404
+
+from django.http import JsonResponse
+from datetime import datetime
+from django.views.decorators.csrf import csrf_exempt
+from datetime import date, timedelta
 
 
 
@@ -72,3 +77,81 @@ def editar_ingrediente(request, pk):
         form = IngredienteForm(instance=ingrediente)
     return render(request, 'ingredientes/editar_ingrediente.html', {'form': form, 'ingrediente': ingrediente})
 
+#CALENDARIO
+'''
+def calendario_eventos(request):
+    """Devuelve las recetas planificadas en formato JSON para FullCalendar."""
+    eventos = []
+    
+    for cr in Calendario_Receta.objects.select_related("calendario", "receta", "tipo_comida").all():
+        eventos.append({
+            "title": f"{cr.receta.nombre} ({cr.tipo_comida.nombre})",
+            "start": cr.calendario.fecha.strftime("%Y-%m-%d"),
+            "color": get_color_tipo_comida(cr.tipo_comida.nombre),  # Color basado en tipo de comida
+        })
+    
+    return JsonResponse(eventos, safe=False)
+
+def get_color_tipo_comida(tipo):
+    """Asigna un color según el tipo de comida."""
+    colores = {
+        "Desayuno": "#FFD700",  # Amarillo
+        "Almuerzo": "#FF4500",  # Naranja
+        "Merienda": "#32CD32",  # Verde
+        "Cena": "#4682B4",  # Azul
+    }
+    return colores.get(tipo, "#808080")  # Gris por defecto
+
+def vista_calendario(request):
+    """Renderiza la página del calendario."""
+    recetas = Receta.objects.all()
+    tipos_comida = TipoComida.objects.all()
+    
+    return render(request, "calendario/calendario.html", {
+        "recetas": recetas,
+        "tipos_comida": tipos_comida
+    })
+
+@csrf_exempt
+def agregar_receta_calendario(request):
+    """Agrega una receta al calendario desde el formulario AJAX."""
+    if request.method == "POST":
+        fecha = request.POST.get("fecha")
+        receta_id = request.POST.get("receta_id")
+        tipo_comida_id = request.POST.get("tipo_comida_id")
+
+        calendario, _ = Calendario.objects.get_or_create(fecha=fecha)
+        receta = Receta.objects.get(id=receta_id)
+        tipo_comida = TipoComida.objects.get(id=tipo_comida_id)
+
+        Calendario_Receta.objects.create(calendario=calendario, receta=receta, tipo_comida=tipo_comida)
+
+        return JsonResponse({"mensaje": "Receta agregada al calendario"}, status=200)
+
+    return JsonResponse({"error": "Método no permitido"}, status=400)
+'''
+def calendario_semanal(request):
+    # Determina el lunes de la semana actual (o el día que quieras como inicio)
+    hoy = date.today()
+    lunes = hoy - timedelta(days=hoy.weekday())  # weekday=0 es lunes
+
+    # Generamos la lista de 7 días (lunes a domingo)
+    dias = [lunes + timedelta(days=i) for i in range(7)]
+
+    # Obtenemos todos los registros de Calendario en ese rango de fechas
+    calendarios = Calendario.objects.filter(fecha__range=[dias[0], dias[-1]]) \
+                                    .prefetch_related('calendario_recetas__receta',
+                                                      'calendario_recetas__tipo_comida')
+
+    # Creamos un diccionario { fecha: [Calendario_Receta, ...], ... }
+    dia_data = {d: [] for d in dias}
+    for calendario in calendarios:
+        # calendario.fecha es un objeto date
+        for cr in calendario.calendario_recetas.all():
+            dia_data[calendario.fecha].append(cr)
+
+    context = {
+        'dias': dias,        # lista ordenada con los 7 días
+        'dia_data': dia_data # diccionario con la info de recetas por día
+    }
+    return render(request, 'calendario/semanal.html', context)

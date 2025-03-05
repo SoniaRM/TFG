@@ -56,4 +56,37 @@ class Receta(models.Model):
 
     def __str__(self):
         return self.nombre
+        
+class Calendario(models.Model):
+    fecha = models.DateField(unique=True)  # Cada día debe ser único
+    objetivo_proteico = models.IntegerField(validators=[MinValueValidator(0)], default=100)
 
+    def __str__(self):
+        return f"Planificación del {self.fecha}"
+
+    def calcular_proteinas_restantes(self):
+        """Calcula cuántas proteínas faltan para alcanzar el objetivo diario."""
+        proteinas_consumidas = sum(
+            cr.receta.proteinas for cr in self.calendario_recetas.all()
+        )
+        return max(0, self.objetivo_proteico - proteinas_consumidas)
+
+    def asignar_receta(self, receta, tipo_comida):
+        """Asigna una receta a una fecha con su tipo de comida."""
+        Calendario_Receta.objects.create(calendario=self, receta=receta, tipo_comida=tipo_comida)
+
+    def eliminar_receta(self, receta, tipo_comida):
+        """Elimina una receta específica de un tipo de comida en una fecha."""
+        Calendario_Receta.objects.filter(calendario=self, receta=receta, tipo_comida=tipo_comida).delete()
+
+class Calendario_Receta(models.Model):
+    """Tabla intermedia que conecta Calendario con Receta y TipoComida."""
+    calendario = models.ForeignKey(Calendario, on_delete=models.CASCADE, related_name="calendario_recetas")
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name="recetas_calendario")
+    tipo_comida = models.ForeignKey(TipoComida, on_delete=models.CASCADE, related_name="tipo_comida_calendario")
+
+    class Meta:
+        unique_together = ("calendario", "receta", "tipo_comida")
+
+    def __str__(self):
+        return f"{self.receta} en {self.tipo_comida} el {self.calendario.fecha}"

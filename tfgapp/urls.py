@@ -33,4 +33,11 @@ urlpatterns = [
     path('ingredientes/crear/', views.crear_ingrediente, name='crear_ingrediente'),
     path('ingredientes/editar/<int:pk>/', views.editar_ingrediente, name='editar_ingrediente'),
 
+    #CALENDARIO
+    #path("api/calendario_eventos/", views.calendario_eventos, name="calendario_eventos"), #Lista de las recetas añadidas al calendario y con tipoComida
+    #path("calendario/", views.vista_calendario, name="vista_calendario"), #Vista del calendario
+    #path("api/agregar_receta_calendario/", views.agregar_receta_calendario, name="agregar_receta_calendario"), #Añadir receta al calendario
+
+    path("calendario_semanal/", views.calendario_semanal, name="calendario_semanal"),
+
 ]

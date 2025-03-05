@@ -1,0 +1,57 @@
+{% load dict_extras %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calendario Semanal</title>
+  <style>
+    .week-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .day-column {
+      flex: 1;
+      background-color: #fff8f0;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .day-header {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .meal-item {
+      background-color: #fff;
+      padding: 5px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Calendario Semanal</h1>
+
+  <div class="week-container">
+    {% for day in dias %}
+      <div class="day-column">
+        <div class="day-header">
+          <!-- Mostrar el día de la semana y la fecha -->
+          {{ day|date:"D" }}<br>
+          {{ day|date:"d/m" }}
+        </div>
+
+        <!-- Mostrar cada receta asignada a este día -->
+        {% for cr in dia_data|dictkey:day %}
+          <div class="meal-item">
+            {{ cr.receta.nombre }}<br>
+            <small>({{ cr.tipo_comida.nombre }})</small>
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+</body>
+</html>
