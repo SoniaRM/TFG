@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+{% load static %}
+<link rel="shortcut icon" href="{% static 'imagenes/favicon.jpg' %}" type="image/x-icon">
+
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Navbar{% endblock %}</title>
+    
+    <!-- Cargar CSS -->
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+</head>
+<body>
+    <div class="container-nav">
+        <nav>
+            <ul>
+                <li class="{% if request.resolver_match.url_name == 'listado_recetas' or request.resolver_match.url_name == 'detalle_receta' or request.resolver_match.url_name == 'crear_receta' or request.resolver_match.url_name == 'editar_receta' %}activo{% endif %}">
+                    <a href="{% url 'listado_recetas' %}">Recetas</a>
+                </li>
+                <li class="{% if request.resolver_match.url_name == 'listado_ingredientes' or request.resolver_match.url_name == 'detalle_ingrediente' or request.resolver_match.url_name == 'crear_ingrediente' or request.resolver_match.url_name == 'editar_ingrediente' %}activo{% endif %}">
+                    <a href="{% url 'listado_ingredientes' %}">Ingredientes</a>
+                </li>
+
+            </ul>
+        </nav>
+    </div>
+    {% block content %}{% endblock %}
+
+</body>
+</html>
