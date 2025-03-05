@@ -13,37 +13,60 @@
     }
     .day-column {
       flex: 1;
-      background-color: #fff8f0;
+      background-color: #FFEFE2;
       padding: 10px;
-      border-radius: 10px;
+      border-radius: 15px;
     }
     .day-header {
-      text-align: center;
+      background-color: #FFD9C2;
+      border-radius: 10px;
+      padding: 5px;
       font-weight: bold;
       margin-bottom: 10px;
+      text-align: center;
     }
     .meal-item {
-      background-color: #fff;
-      padding: 5px;
-      margin-bottom: 5px;
-      border-radius: 5px;
+      background-color: #FFFFFF;
+      padding: 8px;
+      margin-bottom: 8px;
+      border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .navigation a {
+      text-decoration: none;
+      font-weight: bold;
+      color: #333;
+      padding: 5px 10px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
     }
   </style>
 </head>
 <body>
   <h1>Calendario Semanal</h1>
 
+  <!-- Flechas para cambiar la semana -->
+  <div class="navigation">
+    <a href="{{ prev_week_url }}">← Anterior</a>
+    <a href="{% url 'calendario_semanal' %}">Hoy</a>
+    <a href="{{ next_week_url }}">Siguiente →</a>
+  </div>
+
   <div class="week-container">
     {% for day in dias %}
       <div class="day-column">
         <div class="day-header">
-          <!-- Mostrar el día de la semana y la fecha -->
+          <!-- Día de la semana (ej: Mon, Tue) y la fecha (ej: 06/03) -->
           {{ day|date:"D" }}<br>
           {{ day|date:"d/m" }}
         </div>
 
-        <!-- Mostrar cada receta asignada a este día -->
+        <!-- Mostrar cada receta del día -->
         {% for cr in dia_data|dictkey:day %}
           <div class="meal-item">
             {{ cr.receta.nombre }}<br>

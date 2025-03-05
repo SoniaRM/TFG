@@ -131,27 +131,46 @@ def agregar_receta_calendario(request):
     return JsonResponse({"error": "Método no permitido"}, status=400)
 '''
 def calendario_semanal(request):
-    # Determina el lunes de la semana actual (o el día que quieras como inicio)
-    hoy = date.today()
-    lunes = hoy - timedelta(days=hoy.weekday())  # weekday=0 es lunes
+    """
+    Muestra un calendario de 7 días (semana).
+    Permite navegar entre semanas usando un parámetro GET 'start' en formato YYYY-MM-DD.
+    """
+    # 1) Leemos el parámetro GET 'start' que indicará el lunes (o día inicial) de la semana.
+    start_date_str = request.GET.get('start', None)
 
-    # Generamos la lista de 7 días (lunes a domingo)
-    dias = [lunes + timedelta(days=i) for i in range(7)]
+    # 2) Si no hay parámetro o es inválido, tomamos el lunes de la semana actual.
+    if start_date_str:
+        try:
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        except ValueError:
+            # Si la cadena no es una fecha válida, fallback a la semana actual
+            start_date = date.today() - timedelta(days=date.today().weekday())
+    else:
+        start_date = date.today() - timedelta(days=date.today().weekday())
 
-    # Obtenemos todos los registros de Calendario en ese rango de fechas
+    # 3) Generamos la lista de 7 días de la semana
+    dias = [start_date + timedelta(days=i) for i in range(7)]
+
+    # 4) Obtenemos todos los objetos Calendario que caigan en esos 7 días
     calendarios = Calendario.objects.filter(fecha__range=[dias[0], dias[-1]]) \
                                     .prefetch_related('calendario_recetas__receta',
                                                       'calendario_recetas__tipo_comida')
 
-    # Creamos un diccionario { fecha: [Calendario_Receta, ...], ... }
+    # 5) Creamos un diccionario con la info de recetas para cada día
     dia_data = {d: [] for d in dias}
     for calendario in calendarios:
-        # calendario.fecha es un objeto date
         for cr in calendario.calendario_recetas.all():
             dia_data[calendario.fecha].append(cr)
 
+    # 6) Calculamos las fechas de la semana anterior y siguiente
+    prev_week_date = start_date - timedelta(days=7)
+    next_week_date = start_date + timedelta(days=7)
+
+    # 7) Pasamos al contexto la info necesaria
     context = {
-        'dias': dias,        # lista ordenada con los 7 días
-        'dia_data': dia_data # diccionario con la info de recetas por día
+        'dias': dias,
+        'dia_data': dia_data,
+        'prev_week_url': f'?start={prev_week_date}',  # Query string para ir a la semana anterior
+        'next_week_url': f'?start={next_week_date}',  # Query string para ir a la semana siguiente
     }
     return render(request, 'calendario/semanal.html', context)
