@@ -1,21 +1,40 @@
 {% extends 'navbar.html' %}
 
-{% block title %}Calendario semanal{% endblock %}
-
-{% load dict_extras %}
+{% load dict_extras %} 
 {% block content %}
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <title>Calendario Semanal</title>
+  <!-- CSS de Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+
   <style>
+    .navigation {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .navigation a {
+      text-decoration: none;
+      font-weight: bold;
+      color: #333;
+      padding: 5px 10px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+    }
+
     .week-container {
       display: flex;
       justify-content: space-between;
       gap: 10px;
     }
+
     .day-column {
       flex: 1;
       background-color: #FFEFE2;
@@ -30,32 +49,54 @@
       margin-bottom: 10px;
       text-align: center;
     }
+
+    .meal-block {
+      background-color: #FFF8F5;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      padding: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .meal-block:hover {
+      background-color: #FFE0D6;
+    }
+    .meal-block h4 {
+      margin: 0 0 5px;
+    }
+
     .meal-item {
       background-color: #FFFFFF;
       padding: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    .navigation {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
+
+    /* Estilos para la lista de recetas en el modal */
+    .recipe-list {
+      max-height: 300px;
+      overflow-y: auto;
     }
-    .navigation a {
-      text-decoration: none;
-      font-weight: bold;
-      color: #333;
-      padding: 5px 10px;
-      border: 2px solid #ccc;
+    .recipe-button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 5px;
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
       border-radius: 5px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .recipe-button:hover {
+      background-color: #e2e6ea;
     }
   </style>
 </head>
 <body>
   <h1>Calendario Semanal</h1>
 
-  <!-- Flechas para cambiar la semana -->
   <div class="navigation">
     <a href="{{ prev_week_url }}">← Anterior</a>
     <a href="{% url 'calendario_semanal' %}">Hoy</a>
@@ -66,21 +107,121 @@
     {% for day in dias %}
       <div class="day-column">
         <div class="day-header">
-          <!-- Día de la semana (ej: Mon, Tue) y la fecha (ej: 06/03) -->
           {{ day|date:"D" }}<br>
           {{ day|date:"d/m" }}
         </div>
 
-        <!-- Mostrar cada receta del día -->
-        {% for cr in dia_data|dictkey:day %}
-          <div class="meal-item">
-            {{ cr.receta.nombre }}<br>
-            <small>({{ cr.tipo_comida.nombre }})</small>
-          </div>
+        {% for meal in meal_order %}
+        <div class="meal-block" data-meal="{{ meal }}" data-fecha="{{ day|date:'Y-m-d' }}">
+          <h4>{{ meal }}</h4>
+          {% for cr in dia_data|dictkey:day %}
+            {% if cr.tipo_comida.nombre == meal %}
+              <div class="meal-item">
+                {{ cr.receta.nombre }}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
         {% endfor %}
       </div>
     {% endfor %}
   </div>
+
+  <!-- Modal para seleccionar receta -->
+  <div class="modal fade" id="seleccionarRecetaModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            Selecciona receta para <span id="modalMealType"></span> del <span id="modalFecha"></span>
+          </h5>
+          <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="recipeList" class="recipe-list">
+            <!-- Las recetas aparecerán aquí -->
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mealMapping = {{ meal_mapping|safe }};
+
+      document.body.addEventListener("click", function (event) {
+        var mealBlock = event.target.closest(".meal-block");
+        if (!mealBlock) return;
+
+        var mealType = mealBlock.dataset.meal;
+        var fecha = mealBlock.dataset.fecha;
+
+        document.getElementById("modalMealType").textContent = mealType;
+        document.getElementById("modalFecha").textContent = fecha;
+
+        document.getElementById("seleccionarRecetaModal").dataset.meal = mealType;
+        document.getElementById("seleccionarRecetaModal").dataset.fecha = fecha;
+
+        var recipeList = document.getElementById("recipeList");
+        recipeList.innerHTML = "";
+
+        fetch(`/api/recetas_por_tipo/?tipo=${mealType}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.length === 0) {
+              recipeList.innerHTML = "<p>No hay recetas disponibles.</p>";
+              return;
+            }
+
+            data.forEach(receta => {
+              var button = document.createElement("button");
+              button.classList.add("recipe-button");
+              button.textContent = receta.nombre;
+              button.dataset.recetaId = receta.id;
+              recipeList.appendChild(button);
+            });
+          })
+          .catch(() => alert("Error al cargar las recetas"));
+
+        var modal = new bootstrap.Modal(document.getElementById("seleccionarRecetaModal"));
+        modal.show();
+      });
+
+      document.getElementById("recipeList").addEventListener("click", function (event) {
+        var recetaButton = event.target.closest(".recipe-button");
+        if (!recetaButton) return;
+
+        var recetaId = recetaButton.dataset.recetaId;
+        var mealType = document.getElementById("seleccionarRecetaModal").dataset.meal;
+        var fecha = document.getElementById("seleccionarRecetaModal").dataset.fecha;
+        var tipoComidaId = mealMapping[mealType];
+
+        fetch("/api/agregar_receta_calendario/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: new URLSearchParams({
+            fecha: fecha,
+            receta_id: recetaId,
+            tipo_comida_id: tipoComidaId
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.mensaje || "Receta agregada exitosamente.");
+          location.reload();
+        })
+        .catch(() => alert("Error al agregar la receta."));
+      });
+    });
+  </script>
 </body>
 </html>
+
 {% endblock %}

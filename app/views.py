@@ -166,11 +166,71 @@ def calendario_semanal(request):
     prev_week_date = start_date - timedelta(days=7)
     next_week_date = start_date + timedelta(days=7)
 
+    # Lista de tipos de comida en orden
+    meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+
+    #Para los 4 cuadrados del calendario y que se puedan pinchar
+    tipos_comida = TipoComida.objects.all()
+    # Crea un diccionario {nombre: id} para facilitar la búsqueda en JS
+    meal_mapping = {tc.nombre: tc.id for tc in tipos_comida}
+
     # 7) Pasamos al contexto la info necesaria
     context = {
         'dias': dias,
         'dia_data': dia_data,
         'prev_week_url': f'?start={prev_week_date}',  # Query string para ir a la semana anterior
         'next_week_url': f'?start={next_week_date}',  # Query string para ir a la semana siguiente
+        'meal_order': meal_order,  # <-- Importante
+        'meal_mapping': meal_mapping,  # Este diccionario se usará en JS
+
     }
     return render(request, 'calendario/semanal.html', context)
+
+#Añadir receta al calendario desde el calendario
+#Filtrar las recetas por tipo Comida
+
+def recetas_por_tipo(request):
+    """
+    Devuelve las recetas que tienen asignado un TipoComida específico.
+    Se espera recibir un parámetro GET "tipo" (por ejemplo, "Desayuno").
+    """
+    tipo = request.GET.get('tipo')
+    recetas = Receta.objects.filter(tipo_comida__nombre=tipo).distinct()
+    print(tipo)
+    data = [{"id": receta.id, "nombre": receta.nombre} for receta in recetas]
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def agregar_receta_calendario(request):
+    """Vista para agregar una receta a una fecha específica en el calendario."""
+    if request.method == "POST":
+        try:
+            data = request.POST
+            fecha = data.get("fecha")
+            receta_id = data.get("receta_id")
+            tipo_comida_id = data.get("tipo_comida_id")
+
+            # Verifica que los datos sean válidos
+            if not fecha or not receta_id or not tipo_comida_id:
+                return JsonResponse({"error": "Faltan datos en la solicitud"}, status=400)
+
+            # Obtener objetos desde la base de datos
+            receta = get_object_or_404(Receta, id=receta_id)
+            tipo_comida = get_object_or_404(TipoComida, id=tipo_comida_id)
+
+            # Obtener o crear la instancia de calendario para esa fecha
+            calendario, created = Calendario.objects.get_or_create(fecha=fecha)
+
+            # Verificar si la receta ya está asignada para evitar duplicados
+            if Calendario_Receta.objects.filter(calendario=calendario, receta=receta, tipo_comida=tipo_comida).exists():
+                return JsonResponse({"error": "Esta receta ya está agregada en este día y tipo de comida."}, status=400)
+
+            # Crear la relación en la tabla intermedia
+            Calendario_Receta.objects.create(calendario=calendario, receta=receta, tipo_comida=tipo_comida)
+
+            return JsonResponse({"mensaje": "Receta agregada exitosamente."}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)

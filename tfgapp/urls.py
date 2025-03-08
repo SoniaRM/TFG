@@ -39,5 +39,8 @@ urlpatterns = [
     #path("api/agregar_receta_calendario/", views.agregar_receta_calendario, name="agregar_receta_calendario"), #Añadir receta al calendario
 
     path("calendario_semanal/", views.calendario_semanal, name="calendario_semanal"),
+    path("api/recetas_por_tipo/", views.recetas_por_tipo, name="recetas_por_tipo"),
+    path("api/agregar_receta_calendario/", views.agregar_receta_calendario, name="agregar_receta_calendario"),
+
 
 ]
