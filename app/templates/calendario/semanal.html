@@ -217,8 +217,8 @@
           addedRecipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
         });
 
-      // 2️⃣ Cargar recetas disponibles para añadir
-      fetch(`/api/recetas_por_tipo/?tipo=${mealType}`)
+      // Cargar recetas disponibles para añadir (excluyendo las que ya están en el calendario)
+      fetch(`/api/recetas_por_tipo/?tipo=${mealType}&fecha=${fecha}`)
         .then(response => response.json())
         .then(data => {
           recipeList.innerHTML = "";

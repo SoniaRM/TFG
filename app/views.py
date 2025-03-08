@@ -189,16 +189,34 @@ def calendario_semanal(request):
 #Añadir receta al calendario desde el calendario
 #Filtrar las recetas por tipo Comida
 
+@csrf_exempt
 def recetas_por_tipo(request):
     """
-    Devuelve las recetas que tienen asignado un TipoComida específico.
-    Se espera recibir un parámetro GET "tipo" (por ejemplo, "Desayuno").
+    Devuelve las recetas disponibles para agregar al calendario,
+    excluyendo las que ya han sido añadidas en la fecha y tipo de comida seleccionados.
     """
-    tipo = request.GET.get('tipo')
-    recetas = Receta.objects.filter(tipo_comida__nombre=tipo).distinct()
-    print(tipo)
-    data = [{"id": receta.id, "nombre": receta.nombre} for receta in recetas]
+    tipo = request.GET.get("tipo")
+    fecha = request.GET.get("fecha")
+
+    if not tipo or not fecha:
+        return JsonResponse({"error": "Faltan parámetros."}, status=400)
+
+    # Obtener todas las recetas del tipo de comida seleccionado
+    recetas_disponibles = Receta.objects.filter(tipo_comida__nombre=tipo).distinct()
+
+    # Obtener las recetas que ya están en el calendario en esa fecha y tipo de comida
+    recetas_ya_agregadas = Receta.objects.filter(
+        recetas_calendario__calendario__fecha=fecha,
+        recetas_calendario__tipo_comida__nombre=tipo
+    ).distinct()
+
+    # Excluir las recetas ya añadidas
+    recetas_filtradas = recetas_disponibles.exclude(id__in=recetas_ya_agregadas.values_list('id', flat=True))
+
+    # Devolver la lista en formato JSON
+    data = [{"id": receta.id, "nombre": receta.nombre} for receta in recetas_filtradas]
     return JsonResponse(data, safe=False)
+
 
 @csrf_exempt
 def agregar_receta_calendario(request):
