@@ -127,100 +127,173 @@
     {% endfor %}
   </div>
 
-  <!-- Modal para seleccionar receta -->
-  <div class="modal fade" id="seleccionarRecetaModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">
-            Selecciona receta para <span id="modalMealType"></span> del <span id="modalFecha"></span>
-          </h5>
-          <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
+<!-- Modal para seleccionar receta -->
+<div class="modal fade" id="seleccionarRecetaModal" tabindex="-1" aria-labelledby="seleccionarRecetaModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Gestión de recetas para <span id="modalMealType"></span> del <span id="modalFecha"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Sección 1: Recetas ya añadidas con opción de eliminar -->
+        <h6>Recetas añadidas:</h6>
+        <div id="addedRecipeList" class="recipe-list mb-3">
+          <p class="text-muted">Cargando...</p>
         </div>
-        <div class="modal-body">
-          <div id="recipeList" class="recipe-list">
-            <!-- Las recetas aparecerán aquí -->
-          </div>
+
+        <hr>
+
+        <!-- Sección 2: Lista de recetas disponibles para añadir -->
+        <h6>Añadir nueva receta:</h6>
+        <div id="recipeList" class="recipe-list">
+          <p class="text-muted">Cargando...</p>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
       </div>
     </div>
   </div>
+</div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      var mealMapping = {{ meal_mapping|safe }};
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var mealMapping = {{ meal_mapping|safe }};
 
-      document.body.addEventListener("click", function (event) {
-        var mealBlock = event.target.closest(".meal-block");
-        if (!mealBlock) return;
+    document.body.addEventListener("click", function (event) {
+      var mealBlock = event.target.closest(".meal-block");
+      if (!mealBlock) return;
 
-        var mealType = mealBlock.dataset.meal;
-        var fecha = mealBlock.dataset.fecha;
+      var mealType = mealBlock.dataset.meal;
+      var fecha = mealBlock.dataset.fecha;
 
-        document.getElementById("modalMealType").textContent = mealType;
-        document.getElementById("modalFecha").textContent = fecha;
+      document.getElementById("modalMealType").textContent = mealType;
+      document.getElementById("modalFecha").textContent = fecha;
 
-        document.getElementById("seleccionarRecetaModal").dataset.meal = mealType;
-        document.getElementById("seleccionarRecetaModal").dataset.fecha = fecha;
+      document.getElementById("seleccionarRecetaModal").dataset.meal = mealType;
+      document.getElementById("seleccionarRecetaModal").dataset.fecha = fecha;
 
-        var recipeList = document.getElementById("recipeList");
-        recipeList.innerHTML = "";
+      var addedRecipeList = document.getElementById("addedRecipeList");
+      var recipeList = document.getElementById("recipeList");
 
-        fetch(`/api/recetas_por_tipo/?tipo=${mealType}`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.length === 0) {
-              recipeList.innerHTML = "<p>No hay recetas disponibles.</p>";
-              return;
-            }
+      addedRecipeList.innerHTML = "<p class='text-muted'>Cargando...</p>";
+      recipeList.innerHTML = "<p class='text-muted'>Cargando...</p>";
 
-            data.forEach(receta => {
-              var button = document.createElement("button");
-              button.classList.add("recipe-button");
-              button.textContent = receta.nombre;
-              button.dataset.recetaId = receta.id;
-              recipeList.appendChild(button);
-            });
-          })
-          .catch(() => alert("Error al cargar las recetas"));
-
-        var modal = new bootstrap.Modal(document.getElementById("seleccionarRecetaModal"));
-        modal.show();
-      });
-
-      document.getElementById("recipeList").addEventListener("click", function (event) {
-        var recetaButton = event.target.closest(".recipe-button");
-        if (!recetaButton) return;
-
-        var recetaId = recetaButton.dataset.recetaId;
-        var mealType = document.getElementById("seleccionarRecetaModal").dataset.meal;
-        var fecha = document.getElementById("seleccionarRecetaModal").dataset.fecha;
-        var tipoComidaId = mealMapping[mealType];
-
-        fetch("/api/agregar_receta_calendario/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": "{{ csrf_token }}"
-          },
-          body: new URLSearchParams({
-            fecha: fecha,
-            receta_id: recetaId,
-            tipo_comida_id: tipoComidaId
-          })
-        })
+      // 1️⃣ Cargar recetas ya añadidas
+      fetch(`/api/recetas_en_calendario/?tipo=${mealType}&fecha=${fecha}`)
         .then(response => response.json())
         .then(data => {
-          alert(data.mensaje || "Receta agregada exitosamente.");
-          location.reload();
+          addedRecipeList.innerHTML = "";
+          if (data.length === 0) {
+            addedRecipeList.innerHTML = "<p class='text-muted'>No hay recetas añadidas.</p>";
+            return;
+          }
+
+          data.forEach(receta => {
+            var div = document.createElement("div");
+            div.classList.add("d-flex", "justify-content-between", "align-items-center", "mb-2");
+
+            var span = document.createElement("span");
+            span.textContent = receta.nombre;
+
+            var button = document.createElement("button");
+            button.classList.add("btn", "btn-danger", "btn-sm");
+            button.textContent = "Eliminar";
+            button.dataset.recetaId = receta.id;
+
+            button.addEventListener("click", function () {
+              eliminarRecetaCalendario(receta.id, mealType, fecha);
+            });
+
+            div.appendChild(span);
+            div.appendChild(button);
+            addedRecipeList.appendChild(div);
+          });
         })
-        .catch(() => alert("Error al agregar la receta."));
-      });
+        .catch(() => {
+          addedRecipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
+        });
+
+      // 2️⃣ Cargar recetas disponibles para añadir
+      fetch(`/api/recetas_por_tipo/?tipo=${mealType}`)
+        .then(response => response.json())
+        .then(data => {
+          recipeList.innerHTML = "";
+          if (data.length === 0) {
+            recipeList.innerHTML = "<p class='text-muted'>No hay recetas disponibles.</p>";
+            return;
+          }
+
+          data.forEach(receta => {
+            var button = document.createElement("button");
+            button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
+            button.textContent = receta.nombre;
+            button.dataset.recetaId = receta.id;
+
+            button.addEventListener("click", function () {
+              agregarRecetaCalendario(receta.id, mealType, fecha);
+            });
+
+            recipeList.appendChild(button);
+          });
+        })
+        .catch(() => {
+          recipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
+        });
+
+      var modalElement = document.getElementById("seleccionarRecetaModal");
+      var modal = new bootstrap.Modal(modalElement);
+      modal.show();
     });
-  </script>
+
+    function agregarRecetaCalendario(recetaId, mealType, fecha) {
+      var tipoComidaId = mealMapping[mealType];
+
+      fetch("/api/agregar_receta_calendario/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: new URLSearchParams({
+          fecha: fecha,
+          receta_id: recetaId,
+          tipo_comida_id: tipoComidaId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.mensaje || "Receta agregada exitosamente.");
+        location.reload();
+      })
+      .catch(() => alert("Error al agregar la receta."));
+    }
+
+    function eliminarRecetaCalendario(recetaId, mealType, fecha) {
+      fetch("/api/eliminar_receta_calendario/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: new URLSearchParams({
+          fecha: fecha,
+          receta_id: recetaId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert(data.mensaje || "Receta eliminada correctamente.");
+        location.reload();
+      })
+      .catch(() => alert("Error al eliminar la receta."));
+    }
+  });
+</script>
+
 </body>
 </html>
 

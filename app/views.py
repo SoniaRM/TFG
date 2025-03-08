@@ -234,3 +234,26 @@ def agregar_receta_calendario(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Método no permitido"}, status=405)
+
+@csrf_exempt
+def recetas_en_calendario(request):
+    """Devuelve las recetas ya añadidas al calendario para un día y tipo de comida."""
+    fecha = request.GET.get("fecha")
+    tipo = request.GET.get("tipo")
+
+    calendario = Calendario.objects.filter(fecha=fecha).first()
+    if not calendario:
+        return JsonResponse([], safe=False)
+
+    recetas = Calendario_Receta.objects.filter(calendario=calendario, tipo_comida__nombre=tipo)
+    data = [{"id": cr.receta.id, "nombre": cr.receta.nombre} for cr in recetas]
+    return JsonResponse(data, safe=False)
+
+@csrf_exempt
+def eliminar_receta_calendario(request):
+    """Elimina una receta del calendario."""
+    fecha = request.POST.get("fecha")
+    receta_id = request.POST.get("receta_id")
+
+    Calendario_Receta.objects.filter(calendario__fecha=fecha, receta__id=receta_id).delete()
+    return JsonResponse({"mensaje": "Receta eliminada del calendario."}, status=200)
