@@ -270,8 +270,43 @@ def recetas_en_calendario(request):
 @csrf_exempt
 def eliminar_receta_calendario(request):
     """Elimina una receta del calendario."""
-    fecha = request.POST.get("fecha")
-    receta_id = request.POST.get("receta_id")
+    if request.method == "POST":
+        fecha = request.POST.get("fecha")
+        receta_id = request.POST.get("receta_id")
 
-    Calendario_Receta.objects.filter(calendario__fecha=fecha, receta__id=receta_id).delete()
-    return JsonResponse({"mensaje": "Receta eliminada del calendario."}, status=200)
+        if not fecha or not receta_id:
+            return JsonResponse({"error": "Faltan parámetros."}, status=400)
+
+        # Eliminar la receta de la fecha y tipo de comida correspondiente
+        eliminados, _ = Calendario_Receta.objects.filter(
+            calendario__fecha=fecha, receta__id=receta_id
+        ).delete()
+
+        if eliminados:
+            return JsonResponse({"mensaje": "Receta eliminada correctamente."}, status=200)
+        else:
+            return JsonResponse({"error": "No se encontró la receta en el calendario."}, status=404)
+
+    return JsonResponse({"error": "Método no permitido"}, status=405)
+
+
+
+def actualizar_calendario_dia(request):
+    """
+    Devuelve las recetas actualizadas de un día específico en formato JSON.
+    """
+    fecha = request.GET.get("fecha")
+    if not fecha:
+        return JsonResponse({"error": "Fecha no proporcionada."}, status=400)
+
+    calendario = Calendario.objects.filter(fecha=fecha).first()
+    if not calendario:
+        return JsonResponse({"recetas": {}}, status=200)
+
+    recetas_por_tipo = {}
+    for cr in Calendario_Receta.objects.filter(calendario=calendario):
+        if cr.tipo_comida.nombre not in recetas_por_tipo:
+            recetas_por_tipo[cr.tipo_comida.nombre] = []
+        recetas_por_tipo[cr.tipo_comida.nombre].append(cr.receta.nombre)
+
+    return JsonResponse({"recetas": recetas_por_tipo})

@@ -43,6 +43,7 @@ urlpatterns = [
     path("api/agregar_receta_calendario/", views.agregar_receta_calendario, name="agregar_receta_calendario"),
     path("api/recetas_en_calendario/", views.recetas_en_calendario, name="recetas_en_calendario"),
     path("api/eliminar_receta_calendario/", views.eliminar_receta_calendario, name="eliminar_receta_calendario"),
+    path("api/calendario_dia/", views.actualizar_calendario_dia, name="actualizar_calendario_dia"),
 
 
 ]
