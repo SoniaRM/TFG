@@ -2,8 +2,9 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from django.db import  transaction, IntegrityError, connection
 from django.urls import reverse
-from .models import Receta, Ingrediente, TipoComida
+from .models import Receta, Ingrediente, TipoComida, Calendario, Calendario_Receta
 from .forms import RecetaForm
+from datetime import date, timedelta, datetime
 
 class TipoComidaModelTests(TestCase):
     def setUp(self):
@@ -569,3 +570,148 @@ class IngredienteViewTests(TestCase):
         self.assertEqual(self.ingrediente.nombre, 'Pepino')
         self.assertEqual(self.ingrediente.frec, 4)
 
+class CalendarioViewTests(TestCase):
+    def setUp(self):
+        # Usamos get_or_create para evitar errores de duplicidad
+        self.desayuno, _ = TipoComida.objects.get_or_create(nombre="Desayuno")
+        self.almuerzo, _ = TipoComida.objects.get_or_create(nombre="Almuerzo")
+        self.merienda, _ = TipoComida.objects.get_or_create(nombre="Merienda")
+        self.cena, _ = TipoComida.objects.get_or_create(nombre="Cena")
+
+        # Creamos una receta para el tipo "Desayuno".
+        self.receta1 = Receta.objects.create(nombre="Receta1", proteinas=10)
+        self.receta1.tipo_comida.add(self.desayuno)
+        
+        # Fijamos una fecha de prueba (por ejemplo, un lunes).
+        self.start_date = date(2025, 3, 16)
+        
+        # Creamos un objeto Calendario para esa fecha y asignamos receta1 a "Desayuno".
+        self.calendario = Calendario.objects.create(fecha=self.start_date, objetivo_proteico=100)
+        Calendario_Receta.objects.create(
+            calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno
+        )
+
+    # Test: La vista 'calendario_semanal' sin parámetro 'start' debe calcular la semana actual
+    # y devolver en el contexto las claves necesarias, incluyendo 7 días.
+    def test_calendario_semanal_without_start(self):
+        response = self.client.get(reverse("calendario_semanal"))
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertIn("dias", context)
+        self.assertIn("dia_data", context)
+        self.assertIn("prev_week_url", context)
+        self.assertIn("next_week_url", context)
+        self.assertIn("meal_order", context)
+        self.assertIn("meal_mapping", context)
+        self.assertEqual(len(context["dias"]), 7)
+
+    # Test: Con un parámetro 'start' válido, la vista debe generar la semana a partir de esa fecha.
+    def test_calendario_semanal_with_start(self):
+        start_str = self.start_date.strftime("%Y-%m-%d")
+        response = self.client.get(reverse("calendario_semanal") + f"?start={start_str}")
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        dias = context["dias"]
+        self.assertEqual(len(dias), 7)
+        self.assertEqual(dias[0].strftime("%Y-%m-%d"), start_str)
+        self.assertIn("prev_week_url", context)
+        self.assertIn("next_week_url", context)
+
+
+class CalendarioModalTests(TestCase):
+    def setUp(self):
+        # Usamos get_or_create para evitar errores de duplicidad
+        self.desayuno, _ = TipoComida.objects.get_or_create(nombre="Desayuno")
+        self.almuerzo, _ = TipoComida.objects.get_or_create(nombre="Almuerzo")
+        self.merienda, _ = TipoComida.objects.get_or_create(nombre="Merienda")
+        self.cena, _ = TipoComida.objects.get_or_create(nombre="Cena")
+
+        # Creamos dos recetas para "Desayuno".
+        self.receta1 = Receta.objects.create(nombre="Receta1", proteinas=10)
+        self.receta1.tipo_comida.add(self.desayuno)
+        self.receta2 = Receta.objects.create(nombre="Receta2", proteinas=15)
+        self.receta2.tipo_comida.add(self.desayuno)
+        
+        # Fijamos una fecha de prueba (por ejemplo, un lunes).
+        self.test_date = date(2025, 3, 16)
+        
+        # Creamos un objeto Calendario para esa fecha y asignamos receta1 a "Desayuno".
+        self.calendario = Calendario.objects.create(fecha=self.test_date, objetivo_proteico=100)
+        Calendario_Receta.objects.create(
+            calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno
+        )
+
+    # Test: Si se llama a 'recetas_por_tipo' sin pasar los parámetros requeridos,
+    # se debe devolver un error indicando "Faltan parámetros."
+    def test_recetas_por_tipo_missing_params(self):
+        url = reverse("recetas_por_tipo")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+        self.assertJSONEqual(response.content, {"error": "Faltan parámetros."})
+
+    # Test: Para "Desayuno" en la fecha de prueba, dado que receta1 ya está en el calendario,
+    # la vista debe devolver únicamente receta2.
+    def test_recetas_por_tipo_valid(self):
+        url = reverse("recetas_por_tipo") + f"?tipo=Desayuno&fecha={self.test_date.strftime('%Y-%m-%d')}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["nombre"], "Receta2")
+
+    # Test: Se debe poder agregar receta2 a "Desayuno" para la fecha de prueba,
+    # y luego existir dos recetas asignadas en ese tipo para dicha fecha.
+    def test_agregar_receta_calendario(self):
+        url = reverse("agregar_receta_calendario")
+        data = {
+            "fecha": self.test_date.strftime('%Y-%m-%d'),
+            "receta_id": self.receta2.id,
+            "tipo_comida_id": self.desayuno.id,
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertIn("mensaje", json_data)
+        count = Calendario_Receta.objects.filter(
+            calendario__fecha=self.test_date,
+            tipo_comida=self.desayuno
+        ).count()
+        self.assertEqual(count, 2)
+
+    # Test: La vista 'recetas_en_calendario' debe devolver receta1 para "Desayuno" en la fecha de prueba.
+    def test_recetas_en_calendario(self):
+        url = reverse("recetas_en_calendario") + f"?fecha={self.test_date.strftime('%Y-%m-%d')}&tipo=Desayuno"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["nombre"], "Receta1")
+
+    # Test: Se debe poder eliminar receta1 de "Desayuno" para la fecha de prueba.
+    def test_eliminar_receta_calendario(self):
+        url = reverse("eliminar_receta_calendario")
+        data = {
+            "fecha": self.test_date.strftime('%Y-%m-%d'),
+            "receta_id": self.receta1.id,
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertIn("mensaje", json_data)
+        exists = Calendario_Receta.objects.filter(
+            calendario__fecha=self.test_date,
+            receta=self.receta1
+        ).exists()
+        self.assertFalse(exists)
+
+    # Test: La vista 'actualizar_calendario_dia' debe devolver un JSON que incluya la clave "recetas"
+    # con, al menos, la receta asignada a "Desayuno" para la fecha de prueba.
+    def test_actualizar_calendario_dia(self):
+        url = reverse("actualizar_calendario_dia") + f"?fecha={self.test_date.strftime('%Y-%m-%d')}"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn("recetas", data)
+        self.assertIn("Desayuno", data["recetas"])
+        self.assertIn("Receta1", data["recetas"]["Desayuno"])
+        

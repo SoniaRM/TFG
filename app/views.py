@@ -78,58 +78,6 @@ def editar_ingrediente(request, pk):
     return render(request, 'ingredientes/editar_ingrediente.html', {'form': form, 'ingrediente': ingrediente})
 
 #CALENDARIO
-'''
-def calendario_eventos(request):
-    """Devuelve las recetas planificadas en formato JSON para FullCalendar."""
-    eventos = []
-    
-    for cr in Calendario_Receta.objects.select_related("calendario", "receta", "tipo_comida").all():
-        eventos.append({
-            "title": f"{cr.receta.nombre} ({cr.tipo_comida.nombre})",
-            "start": cr.calendario.fecha.strftime("%Y-%m-%d"),
-            "color": get_color_tipo_comida(cr.tipo_comida.nombre),  # Color basado en tipo de comida
-        })
-    
-    return JsonResponse(eventos, safe=False)
-
-def get_color_tipo_comida(tipo):
-    """Asigna un color según el tipo de comida."""
-    colores = {
-        "Desayuno": "#FFD700",  # Amarillo
-        "Almuerzo": "#FF4500",  # Naranja
-        "Merienda": "#32CD32",  # Verde
-        "Cena": "#4682B4",  # Azul
-    }
-    return colores.get(tipo, "#808080")  # Gris por defecto
-
-def vista_calendario(request):
-    """Renderiza la página del calendario."""
-    recetas = Receta.objects.all()
-    tipos_comida = TipoComida.objects.all()
-    
-    return render(request, "calendario/calendario.html", {
-        "recetas": recetas,
-        "tipos_comida": tipos_comida
-    })
-
-@csrf_exempt
-def agregar_receta_calendario(request):
-    """Agrega una receta al calendario desde el formulario AJAX."""
-    if request.method == "POST":
-        fecha = request.POST.get("fecha")
-        receta_id = request.POST.get("receta_id")
-        tipo_comida_id = request.POST.get("tipo_comida_id")
-
-        calendario, _ = Calendario.objects.get_or_create(fecha=fecha)
-        receta = Receta.objects.get(id=receta_id)
-        tipo_comida = TipoComida.objects.get(id=tipo_comida_id)
-
-        Calendario_Receta.objects.create(calendario=calendario, receta=receta, tipo_comida=tipo_comida)
-
-        return JsonResponse({"mensaje": "Receta agregada al calendario"}, status=200)
-
-    return JsonResponse({"error": "Método no permitido"}, status=400)
-'''
 def calendario_semanal(request):
     """
     Muestra un calendario de 7 días (semana).
