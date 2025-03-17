@@ -1,3 +1,92 @@
+#encoding:utf-8
+from django.core.validators import RegexValidator, MinValueValidator
 from django.db import models
 
-# Create your models here.
+class TipoComida(models.Model):
+    nombre = models.CharField(
+        max_length=20, 
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-Z]+$',  # Defining the regex as a raw string
+                message='El nombre solo puede contener letras.',
+                code='invalid_nombre'
+            )
+        ], 
+        unique=True)
+
+    def __str__(self):
+        return self.nombre
+
+class Ingrediente(models.Model):
+    nombre = models.CharField(
+        max_length=100,
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$',  # Allowing letters, spaces, and vowels with accents
+                message='El nombre solo puede contener letras, espacios y vocales con tilde.',
+                code='invalid_nombre'
+            )
+        ]
+    )
+    frec = models.IntegerField(validators=[MinValueValidator(1)])
+
+    def __str__(self):
+        return self.nombre
+
+    def delete(self, *args, **kwargs):
+        # Elimina todas las recetas que contienen este ingrediente
+        self.recetas.all().delete()
+        # Llama al método delete original para borrar el ingrediente
+        super().delete(*args, **kwargs)
+
+class Receta(models.Model):
+    nombre = models.CharField(
+        max_length=100,
+        validators=[
+            RegexValidator(
+                regex=r'^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$',  # Allowing letters, spaces, and vowels with accents
+                message='El nombre solo puede contener letras, espacios y vocales con tilde.',
+                code='invalid_nombre'
+            )
+        ]
+    )
+    tipo_comida = models.ManyToManyField(TipoComida, related_name='recetas')
+    proteinas = models.IntegerField(validators=[MinValueValidator(0)])
+    ingredientes = models.ManyToManyField(Ingrediente, related_name='recetas')
+
+    def __str__(self):
+        return self.nombre
+        
+class Calendario(models.Model):
+    fecha = models.DateField(unique=True)  # Cada día debe ser único
+    objetivo_proteico = models.IntegerField(validators=[MinValueValidator(0)], default=100)
+
+    def __str__(self):
+        return f"Planificación del {self.fecha}"
+
+    def calcular_proteinas_restantes(self):
+        """Calcula cuántas proteínas faltan para alcanzar el objetivo diario."""
+        proteinas_consumidas = sum(
+            cr.receta.proteinas for cr in self.calendario_recetas.all()
+        )
+        return max(0, self.objetivo_proteico - proteinas_consumidas)
+
+    def asignar_receta(self, receta, tipo_comida):
+        """Asigna una receta a una fecha con su tipo de comida."""
+        Calendario_Receta.objects.create(calendario=self, receta=receta, tipo_comida=tipo_comida)
+
+    def eliminar_receta(self, receta, tipo_comida):
+        """Elimina una receta específica de un tipo de comida en una fecha."""
+        Calendario_Receta.objects.filter(calendario=self, receta=receta, tipo_comida=tipo_comida).delete()
+
+class Calendario_Receta(models.Model):
+    """Tabla intermedia que conecta Calendario con Receta y TipoComida."""
+    calendario = models.ForeignKey(Calendario, on_delete=models.CASCADE, related_name="calendario_recetas")
+    receta = models.ForeignKey(Receta, on_delete=models.CASCADE, related_name="recetas_calendario")
+    tipo_comida = models.ForeignKey(TipoComida, on_delete=models.CASCADE, related_name="tipo_comida_calendario")
+
+    class Meta:
+        unique_together = ("calendario", "receta", "tipo_comida")
+
+    def __str__(self):
+        return f"{self.receta} en {self.tipo_comida} el {self.calendario.fecha}"

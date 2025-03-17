@@ -1,0 +1,13 @@
+{% extends 'navbar.html' %}
+
+{% block title %}Editar Receta{% endblock %}
+
+{% block content %}
+    <h1>Editar Receta</h1>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Guardar</button>
+    </form>
+    <a href="{% url 'detalle_receta' receta.pk %}">Cancelar</a>
+{% endblock %}
