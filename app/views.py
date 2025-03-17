@@ -132,6 +132,8 @@ def calendario_semanal(request):
         'meal_mapping': meal_mapping,  # Este diccionario se usará en JS
 
     }
+    print(context)
+
     return render(request, 'calendario/semanal.html', context)
 
 #Añadir receta al calendario desde el calendario
@@ -257,4 +259,8 @@ def actualizar_calendario_dia(request):
             recetas_por_tipo[cr.tipo_comida.nombre] = []
         recetas_por_tipo[cr.tipo_comida.nombre].append(cr.receta.nombre)
 
-    return JsonResponse({"recetas": recetas_por_tipo})
+    proteinas_consumidas = sum(cr.receta.proteinas for cr in Calendario_Receta.objects.filter(calendario=calendario))
+
+    return JsonResponse({"recetas": recetas_por_tipo,  
+        "objetivo_proteico": calendario.objetivo_proteico,
+        "proteinas_consumidas": proteinas_consumidas})
