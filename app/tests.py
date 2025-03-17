@@ -570,55 +570,7 @@ class IngredienteViewTests(TestCase):
         self.assertEqual(self.ingrediente.nombre, 'Pepino')
         self.assertEqual(self.ingrediente.frec, 4)
 
-class CalendarioViewTests(TestCase):
-    def setUp(self):
-        # Usamos get_or_create para evitar errores de duplicidad
-        self.desayuno, _ = TipoComida.objects.get_or_create(nombre="Desayuno")
-        self.almuerzo, _ = TipoComida.objects.get_or_create(nombre="Almuerzo")
-        self.merienda, _ = TipoComida.objects.get_or_create(nombre="Merienda")
-        self.cena, _ = TipoComida.objects.get_or_create(nombre="Cena")
-
-        # Creamos una receta para el tipo "Desayuno".
-        self.receta1 = Receta.objects.create(nombre="Receta1", proteinas=10)
-        self.receta1.tipo_comida.add(self.desayuno)
-        
-        # Fijamos una fecha de prueba (por ejemplo, un lunes).
-        self.start_date = date(2025, 3, 16)
-        
-        # Creamos un objeto Calendario para esa fecha y asignamos receta1 a "Desayuno".
-        self.calendario = Calendario.objects.create(fecha=self.start_date, objetivo_proteico=100)
-        Calendario_Receta.objects.create(
-            calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno
-        )
-
-    # Test: La vista 'calendario_semanal' sin parámetro 'start' debe calcular la semana actual
-    # y devolver en el contexto las claves necesarias, incluyendo 7 días.
-    def test_calendario_semanal_without_start(self):
-        response = self.client.get(reverse("calendario_semanal"))
-        self.assertEqual(response.status_code, 200)
-        context = response.context
-        self.assertIn("dias", context)
-        self.assertIn("dia_data", context)
-        self.assertIn("prev_week_url", context)
-        self.assertIn("next_week_url", context)
-        self.assertIn("meal_order", context)
-        self.assertIn("meal_mapping", context)
-        self.assertEqual(len(context["dias"]), 7)
-
-    # Test: Con un parámetro 'start' válido, la vista debe generar la semana a partir de esa fecha.
-    def test_calendario_semanal_with_start(self):
-        start_str = self.start_date.strftime("%Y-%m-%d")
-        response = self.client.get(reverse("calendario_semanal") + f"?start={start_str}")
-        self.assertEqual(response.status_code, 200)
-        context = response.context
-        dias = context["dias"]
-        self.assertEqual(len(dias), 7)
-        self.assertEqual(dias[0].strftime("%Y-%m-%d"), start_str)
-        self.assertIn("prev_week_url", context)
-        self.assertIn("next_week_url", context)
-
-
-class CalendarioModalTests(TestCase):
+class CalendarioModelTests(TestCase):
     def setUp(self):
         # Usamos get_or_create para evitar errores de duplicidad
         self.desayuno, _ = TipoComida.objects.get_or_create(nombre="Desayuno")
@@ -629,14 +581,14 @@ class CalendarioModalTests(TestCase):
         # Creamos dos recetas para "Desayuno".
         self.receta1 = Receta.objects.create(nombre="Receta1", proteinas=10)
         self.receta1.tipo_comida.add(self.desayuno)
-        self.receta2 = Receta.objects.create(nombre="Receta2", proteinas=15)
+        self.receta2 = Receta.objects.create(nombre="Receta2", proteinas=25)
         self.receta2.tipo_comida.add(self.desayuno)
         
         # Fijamos una fecha de prueba (por ejemplo, un lunes).
         self.test_date = date(2025, 3, 16)
         
         # Creamos un objeto Calendario para esa fecha y asignamos receta1 a "Desayuno".
-        self.calendario = Calendario.objects.create(fecha=self.test_date, objetivo_proteico=100)
+        self.calendario = Calendario.objects.create(fecha=self.test_date, objetivo_proteico=50)
         Calendario_Receta.objects.create(
             calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno
         )
@@ -715,3 +667,115 @@ class CalendarioModalTests(TestCase):
         self.assertIn("Desayuno", data["recetas"])
         self.assertIn("Receta1", data["recetas"]["Desayuno"])
         
+    # Caso positivo: Si no hay recetas asignadas, calcular_proteinas_restantes debe devolver el objetivo.
+    def test_calcular_proteinas_restantes_sin_recetas(self):
+        # Creamos un calendario sin recetas
+        cal = Calendario.objects.create(fecha=self.test_date + timedelta(days=1), objetivo_proteico=50)
+        self.assertEqual(cal.calcular_proteinas_restantes(), 50)   
+
+    # Caso positivo: Con una receta asignada (10 proteínas) y objetivo 50, el método debe devolver 40.
+    def test_calcular_proteinas_restantes_con_una_receta(self):
+        resultado = self.calendario.calcular_proteinas_restantes()
+        self.assertEqual(resultado, 40)
+
+    # Caso límite: Asignar una segunda receta (25 proteínas) para "Desayuno"
+    # y con objetivo 50, la suma (10+25=35) es menor que el objetivo, por lo que debe devolver 15.
+    def test_calcular_proteinas_restantes_con_dos_recetas(self):
+        self.calendario.asignar_receta(self.receta2, self.desayuno)
+        resultado = self.calendario.calcular_proteinas_restantes()
+        self.assertEqual(resultado, 15)
+
+    # Caso límite: Si la suma de proteínas es igual o mayor que el objetivo, debe retornar 0.
+    def test_calcular_proteinas_restantes_limite_superado(self):
+        # Creamos un calendario con objetivo 30
+        cal = Calendario.objects.create(fecha=self.test_date + timedelta(days=2), objetivo_proteico=30)
+        # Asignamos ambas recetas: 10 + 25 = 35 > 30, por lo que el resultado debe ser 0.
+        Calendario_Receta.objects.create(calendario=cal, receta=self.receta1, tipo_comida=self.desayuno)
+        Calendario_Receta.objects.create(calendario=cal, receta=self.receta2, tipo_comida=self.desayuno)
+        resultado = cal.calcular_proteinas_restantes()
+        self.assertEqual(resultado, 0)
+
+    # Caso negativo: Intentar asignar la misma receta para el mismo tipo y fecha debe fallar por UNIQUE constraint.
+    def test_asignar_receta_duplicate(self):
+        # Ya se asignó receta1 a desayuno, intentar asignarla nuevamente debe lanzar error.
+        with self.assertRaises(IntegrityError):
+            self.calendario.asignar_receta(self.receta1, self.desayuno)
+
+    # Caso positivo: Eliminar una receta asignada debe remover la relación y actualizar el cálculo.
+    def test_eliminar_receta_existente(self):
+        # Verificamos que receta1 está asignada.
+        self.assertTrue(
+            Calendario_Receta.objects.filter(calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno).exists()
+        )
+        # Eliminamos receta1.
+        self.calendario.eliminar_receta(self.receta1, self.desayuno)
+        # La relación ya no debe existir.
+        self.assertFalse(
+            Calendario_Receta.objects.filter(calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno).exists()
+        )
+        # Y calcular_proteinas_restantes debe volver al objetivo (50, ya que no hay recetas asignadas).
+        self.assertEqual(self.calendario.calcular_proteinas_restantes(), 50)
+
+    # Caso negativo: Eliminar una receta no asignada no debe afectar el estado del calendario.
+    def test_eliminar_receta_no_existente(self):
+        # No se ha asignado receta2 a "Desayuno" en self.calendario.
+        initial_count = Calendario_Receta.objects.filter(calendario=self.calendario, tipo_comida=self.desayuno).count()
+        # Intentamos eliminar receta2, sin que se genere error.
+        self.calendario.eliminar_receta(self.receta2, self.desayuno)
+        final_count = Calendario_Receta.objects.filter(calendario=self.calendario, tipo_comida=self.desayuno).count()
+        self.assertEqual(initial_count, final_count)
+
+    # Test de duplicidad de calendario
+    # Caso negativo: Crear un calendario con una fecha ya existente debe generar error por la restricción UNIQUE.
+    def test_duplicate_calendar_date(self):
+        with self.assertRaises(IntegrityError):
+            Calendario.objects.create(fecha=self.test_date, objetivo_proteico=100)
+
+class CalendarioViewTests(TestCase):
+    def setUp(self):
+        # Usamos get_or_create para evitar errores de duplicidad
+        self.desayuno, _ = TipoComida.objects.get_or_create(nombre="Desayuno")
+        self.almuerzo, _ = TipoComida.objects.get_or_create(nombre="Almuerzo")
+        self.merienda, _ = TipoComida.objects.get_or_create(nombre="Merienda")
+        self.cena, _ = TipoComida.objects.get_or_create(nombre="Cena")
+
+        # Creamos una receta para el tipo "Desayuno".
+        self.receta1 = Receta.objects.create(nombre="Receta1", proteinas=10)
+        self.receta1.tipo_comida.add(self.desayuno)
+        
+        # Fijamos una fecha de prueba (por ejemplo, un lunes).
+        self.start_date = date(2025, 3, 16)
+        
+        # Creamos un objeto Calendario para esa fecha y asignamos receta1 a "Desayuno".
+        self.calendario = Calendario.objects.create(fecha=self.start_date, objetivo_proteico=100)
+        Calendario_Receta.objects.create(
+            calendario=self.calendario, receta=self.receta1, tipo_comida=self.desayuno
+        )
+    
+    # Test: Con un parámetro 'start' válido, la vista debe generar la semana a partir de esa fecha.
+    def test_calendario_semanal_with_start(self):
+        start_str = self.start_date.strftime("%Y-%m-%d")
+        response = self.client.get(reverse("calendario_semanal") + f"?start={start_str}")
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        dias = context["dias"]
+        self.assertEqual(len(dias), 7)
+        self.assertEqual(dias[0].strftime("%Y-%m-%d"), start_str)
+        self.assertIn("prev_week_url", context)
+        self.assertIn("next_week_url", context)
+
+    # Test: La vista 'calendario_semanal' sin parámetro 'start' debe calcular la semana actual
+    # y devolver en el contexto las claves necesarias, incluyendo 7 días.
+    def test_calendario_semanal_without_start(self):
+        response = self.client.get(reverse("calendario_semanal"))
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertIn("dias", context)
+        self.assertIn("dia_data", context)
+        self.assertIn("prev_week_url", context)
+        self.assertIn("next_week_url", context)
+        self.assertIn("meal_order", context)
+        self.assertIn("meal_mapping", context)
+        self.assertEqual(len(context["dias"]), 7)
+
+
