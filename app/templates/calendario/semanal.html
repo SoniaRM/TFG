@@ -534,7 +534,8 @@
         },
         body: new URLSearchParams({
           fecha: fecha,
-          receta_id: recetaId
+          receta_id: recetaId,
+          tipo_comida: mealType
         })
       })
         .then(response => response.json())

@@ -224,13 +224,14 @@ def eliminar_receta_calendario(request):
     if request.method == "POST":
         fecha = request.POST.get("fecha")
         receta_id = request.POST.get("receta_id")
+        tipo_comida = request.POST.get("tipo_comida")  # Se espera que se envíe el nombre del tipo de comida
 
         if not fecha or not receta_id:
             return JsonResponse({"error": "Faltan parámetros."}, status=400)
 
         # Eliminar la receta de la fecha y tipo de comida correspondiente
         eliminados, _ = Calendario_Receta.objects.filter(
-            calendario__fecha=fecha, receta__id=receta_id
+            calendario__fecha=fecha, receta__id=receta_id, tipo_comida__nombre=tipo_comida
         ).delete()
 
         if eliminados:
