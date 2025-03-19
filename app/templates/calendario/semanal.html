@@ -131,7 +131,10 @@
       <div class="day-header">
         {{ day|date:"D" }}<br>
         {{ day|date:"d/m" }}<br>
+        <span class="proteinas-valor">
+
         {{ calendario.proteinas_consumidas }}g / {{ calendario.objetivo_proteico }}g
+        <span class="proteinas-valor">
 
       </div>
 
@@ -475,7 +478,14 @@
       }
       actualizarBarraProteinas(fecha);
       actualizarDegradado(fecha);
-
+      // 4. Actualizamos el texto "xg / 100g" en la cabecera del día
+      const dayColumn = document.getElementById(`day-column-${fecha}`);
+      if (dayColumn) {
+        const proteinaValor = dayColumn.querySelector('.proteinas-valor');
+        if (proteinaValor) {
+          proteinaValor.textContent = `${data.proteinas_consumidas}g / ${data.objetivo_proteico}g`;
+        }
+      }
     })
     .catch(error => console.error("❌ Error al actualizar el calendario:", error));
 }
