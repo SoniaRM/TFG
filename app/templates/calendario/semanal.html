@@ -44,6 +44,7 @@
       background-color: #FFEFE2;
       padding: 10px;
       border-radius: 15px;
+      transition: background 0.5s ease-in-out;
     }
 
     .day-header {
@@ -65,7 +66,7 @@
     }
 
     .meal-block:hover {
-      background-color: #FFE0D6;
+      background-color: #F8F1F0;
     }
 
     .meal-block h4 {
@@ -126,7 +127,7 @@
     {% for day in dias %}
       {% get_calendario_for_date day as calendario %}
 
-    <div class="day-column">
+    <div class="day-column" style="{{ calendario|get_vertical_gradient_style }}">
       <div class="day-header">
         {{ day|date:"D" }}<br>
         {{ day|date:"d/m" }}<br>
