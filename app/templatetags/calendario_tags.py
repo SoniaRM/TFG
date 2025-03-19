@@ -13,7 +13,6 @@ def get_calendario_for_date(fecha):
     print(calendario)
     return calendario
 
-
 @register.filter
 def get_vertical_gradient_style(calendario):
     """
@@ -37,7 +36,7 @@ def get_vertical_gradient_style(calendario):
     
     # Ajusta estos colores a los de tu paleta
     color_solido = "#FFD9C2"  # Color de la parte "rellena" (abajo)
-    color_transparente = "rgba(178, 242, 187, 0)"  # Mismo tono pero transparente
+    color_transparente = "rgba(0, 0, 0, 0)"  # Mismo tono pero transparente
 
     # Generamos un gradiente vertical que va de color_solido en la parte inferior a transparente en la parte superior.
     if porcentaje >= 100:

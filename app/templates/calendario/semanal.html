@@ -127,7 +127,7 @@
     {% for day in dias %}
       {% get_calendario_for_date day as calendario %}
 
-    <div class="day-column" style="{{ calendario|get_vertical_gradient_style }}">
+    <div class="day-column" id="day-column-{{ day|date:'Y-m-d' }}" style="{{ calendario|get_vertical_gradient_style }}">
       <div class="day-header">
         {{ day|date:"D" }}<br>
         {{ day|date:"d/m" }}<br>
@@ -141,11 +141,11 @@
         <div class="meal-items" style="pointer-events: none;">
 
         {% for cr in dia_data|dictkey:day %}
-        {% if cr.tipo_comida.nombre == meal %}
-        <div class="meal-item">
-          {{ cr.receta.nombre }}
-        </div>
-        {% endif %}
+          {% if cr.tipo_comida.nombre == meal %}
+            <div class="meal-item">
+              {{ cr.receta.nombre }}
+            </div>
+          {% endif %}
         {% endfor %}
       </div>
     </div>
@@ -207,6 +207,72 @@
       actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
     });
   </script>
+
+  <script>
+    // Función para actualizar el degradado de un día dado (identificado por su fecha en formato YYYY-MM-DD)
+    function actualizarDegradado(fecha) {
+      fetch(`/api/dia/${fecha}/`)
+        .then(response => response.json())
+        .then(data => {
+          if(data.error) {
+            console.error(data.error);
+            return;
+          }
+          const proteinas = data.proteinas_consumidas;
+          const objetivo = data.objetivo_proteico;
+          let porcentaje = 0;
+          if(objetivo > 0) {
+            porcentaje = Math.min(Math.max((proteinas / objetivo) * 100, 0), 100);
+          }
+          
+          // Define los colores (ajusta según tu paleta)
+          const colorSolido = "#FFD9C2";  // o el color que hayas elegido
+          // Para un fade sutil: de colorSolido a transparente
+          const colorTransparente = "rgba(0, 0, 0, 0)";
+          
+          let newStyle = "";
+          if (porcentaje >= 100) {
+            // Objetivo alcanzado: fondo completamente sólido
+            newStyle = `background: ${colorSolido};`;
+          } else {
+            // Relleno parcial: degradado vertical
+            // Usamos stops para tener mayor parte sólida y un fade sutil al final
+            newStyle = `
+              background: linear-gradient(to top, ${colorSolido} 0%, ${colorSolido} 98%, ${colorTransparente} 100%);
+              background-repeat: no-repeat;
+              background-size: 100% ${porcentaje}%;
+              background-position: bottom;
+            `;
+          }
+          // Actualizamos el estilo del elemento con id "day-column-<fecha>"
+          const dayColumn = document.getElementById(`day-column-${fecha}`);
+          if(dayColumn) {
+            dayColumn.style = newStyle;
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // Ejemplo de uso:
+    // Supongamos que tienes una lista de fechas (en formato YYYY-MM-DD) en un array:
+    const fechas = [/* lista de fechas, por ejemplo: "2025-03-17", "2025-03-18", ... */];
+
+    // Función para actualizar todos los días (o bien llama a actualizarDegradado() cuando se añada/elimine una receta)
+    function actualizarTodosLosDias() {
+      fechas.forEach(fecha => {
+        actualizarDegradado(fecha);
+      });
+    }
+
+    // Llama a la función cuando la página se carga o tras una acción que modifique las recetas
+    document.addEventListener("DOMContentLoaded", function() {
+      actualizarTodosLosDias();
+    });
+
+    // Si tus acciones de agregar/eliminar recetas se hacen vía AJAX, puedes llamar a actualizarDegradado(fecha)
+    // inmediatamente después de la operación para refrescar el degradado.
+  </script>
+
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -408,6 +474,7 @@
         recipesContainer.innerHTML = "";
       }
       actualizarBarraProteinas(fecha);
+      actualizarDegradado(fecha);
 
     })
     .catch(error => console.error("❌ Error al actualizar el calendario:", error));

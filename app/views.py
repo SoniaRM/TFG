@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date, timedelta
+from django.views.decorators.http import require_GET
 
 
 
@@ -264,3 +265,23 @@ def actualizar_calendario_dia(request):
     return JsonResponse({"recetas": recetas_por_tipo,  
         "objetivo_proteico": calendario.objetivo_proteico,
         "proteinas_consumidas": proteinas_consumidas})
+
+#Para que el degradado de los dias del calendario se actualice solo
+@require_GET
+def datos_dia(request, fecha):
+    """
+    Retorna en JSON los datos del día: proteínas consumidas y objetivo.
+    La fecha se espera en formato YYYY-MM-DD.
+    """
+    from datetime import datetime
+    try:
+        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({'error': 'Fecha inválida'}, status=400)
+
+    calendario, _ = Calendario.objects.get_or_create(fecha=fecha_obj, defaults={'objetivo_proteico': 100})
+    data = {
+        'proteinas_consumidas': calendario.proteinas_consumidas,
+        'objetivo_proteico': calendario.objetivo_proteico
+    }
+    return JsonResponse(data)
