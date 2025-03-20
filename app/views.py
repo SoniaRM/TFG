@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date, timedelta
+from django.views.decorators.http import require_GET
 
 
 
@@ -132,6 +133,8 @@ def calendario_semanal(request):
         'meal_mapping': meal_mapping,  # Este diccionario se usará en JS
 
     }
+    print(context)
+
     return render(request, 'calendario/semanal.html', context)
 
 #Añadir receta al calendario desde el calendario
@@ -221,13 +224,14 @@ def eliminar_receta_calendario(request):
     if request.method == "POST":
         fecha = request.POST.get("fecha")
         receta_id = request.POST.get("receta_id")
+        tipo_comida = request.POST.get("tipo_comida")  # Se espera que se envíe el nombre del tipo de comida
 
         if not fecha or not receta_id:
             return JsonResponse({"error": "Faltan parámetros."}, status=400)
 
         # Eliminar la receta de la fecha y tipo de comida correspondiente
         eliminados, _ = Calendario_Receta.objects.filter(
-            calendario__fecha=fecha, receta__id=receta_id
+            calendario__fecha=fecha, receta__id=receta_id, tipo_comida__nombre=tipo_comida
         ).delete()
 
         if eliminados:
@@ -257,4 +261,28 @@ def actualizar_calendario_dia(request):
             recetas_por_tipo[cr.tipo_comida.nombre] = []
         recetas_por_tipo[cr.tipo_comida.nombre].append(cr.receta.nombre)
 
-    return JsonResponse({"recetas": recetas_por_tipo})
+    proteinas_consumidas = sum(cr.receta.proteinas for cr in Calendario_Receta.objects.filter(calendario=calendario))
+
+    return JsonResponse({"recetas": recetas_por_tipo,  
+        "objetivo_proteico": calendario.objetivo_proteico,
+        "proteinas_consumidas": proteinas_consumidas})
+
+#Para que el degradado de los dias del calendario se actualice solo
+@require_GET
+def datos_dia(request, fecha):
+    """
+    Retorna en JSON los datos del día: proteínas consumidas y objetivo.
+    La fecha se espera en formato YYYY-MM-DD.
+    """
+    from datetime import datetime
+    try:
+        fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+    except ValueError:
+        return JsonResponse({'error': 'Fecha inválida'}, status=400)
+
+    calendario, _ = Calendario.objects.get_or_create(fecha=fecha_obj, defaults={'objetivo_proteico': 100})
+    data = {
+        'proteinas_consumidas': calendario.proteinas_consumidas,
+        'objetivo_proteico': calendario.objetivo_proteico
+    }
+    return JsonResponse(data)

@@ -71,6 +71,12 @@ class Calendario(models.Model):
         )
         return max(0, self.objetivo_proteico - proteinas_consumidas)
 
+    @property
+    def proteinas_consumidas(self):
+        """Calcula las proteínas ya consumidas."""
+        return sum(
+            cr.receta.proteinas for cr in self.calendario_recetas.all()
+        )
     def asignar_receta(self, receta, tipo_comida):
         """Asigna una receta a una fecha con su tipo de comida."""
         Calendario_Receta.objects.create(calendario=self, receta=receta, tipo_comida=tipo_comida)

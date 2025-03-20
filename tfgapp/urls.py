@@ -44,6 +44,7 @@ urlpatterns = [
     path("api/recetas_en_calendario/", views.recetas_en_calendario, name="recetas_en_calendario"),
     path("api/eliminar_receta_calendario/", views.eliminar_receta_calendario, name="eliminar_receta_calendario"),
     path("api/calendario_dia/", views.actualizar_calendario_dia, name="actualizar_calendario_dia"),
+    path('api/dia/<str:fecha>/', views.datos_dia, name='datos_dia'),
 
 
 ]

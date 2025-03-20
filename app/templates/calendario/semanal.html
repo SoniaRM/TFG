@@ -1,6 +1,8 @@
 {% extends 'navbar.html' %}
 
 {% load dict_extras %}
+{% load calendario_tags %}
+
 {% block content %}
 <!DOCTYPE html>
 <html lang="es">
@@ -42,6 +44,7 @@
       background-color: #FFEFE2;
       padding: 10px;
       border-radius: 15px;
+      transition: background 0.5s ease-in-out;
     }
 
     .day-header {
@@ -63,7 +66,7 @@
     }
 
     .meal-block:hover {
-      background-color: #FFE0D6;
+      background-color: #F8F1F0;
     }
 
     .meal-block h4 {
@@ -99,45 +102,114 @@
     .recipe-button:hover {
       background-color: #e2e6ea;
     }
+
+    .day-column.today .day-header {
+      background-color: #FFB29A; /* Por ejemplo, resaltar con el mismo rosa claro */
+      color: #fff;
+      font-size: 1.1em;
+    }
+
+    .circular-progress {
+      position: relative;
+      width: 100px;       /* Ajusta el tamaño */
+      height: 100px;
+      border-radius: 50%;
+      background: conic-gradient(
+        #ddd 0%,  /* color base */
+        #ddd 100%
+      );
+    }
+
+    /* Texto en el centro */
+    .circular-progress .progress-value {
+      position: absolute;
+      inset: 0; /* top: 0; left: 0; right: 0; bottom: 0; */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+    .circular-progress::before {
+    content: "";
+    position: absolute;
+    /* Ajusta el inset para el grosor del anillo (cuanto más grande, más delgado el anillo) */
+    inset: 15px;
+    background: #fff; /* Color del "agujero" */
+    border-radius: 50%;
+  }
+  /*******************************************/
+
   </style>
 </head>
 
 <body>
   <h1>Calendario Semanal</h1>
 
-  <div class="navigation">
-    <a href="{{ prev_week_url }}">← Anterior</a>
-    <a href="{% url 'calendario_semanal' %}">Hoy</a>
-    <a href="{{ next_week_url }}">Siguiente →</a>
-  </div>
 
-  <div class="week-container">
-    {% for day in dias %}
-    <div class="day-column">
-      <div class="day-header">
-        {{ day|date:"D" }}<br>
-        {{ day|date:"d/m" }}
+  <div class="container my-4">
+    <h5 id="tituloProteinas"></h5>
+    <!--
+    <div class="progress">
+      <div id="barraProteinas" class="progress-bar bg-success" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+    </div>
+    <p class="mt-2"><span id="consumidas">0</span>g consumidas</p>-->
+    <div id="indicadorProteinas" style="display: flex; align-items: center; gap: 20px;">
+      <svg class="donut-chart" id="donutChart" viewBox="0 0 100 100" width="100" height="100">
+        <!-- Círculo de fondo -->
+        <circle class="donut-bg" cx="50" cy="50" r="45" fill="none" stroke="#ddd" stroke-width="10" />
+        <!-- Círculo de progreso con extremos redondeados -->
+        <circle class="donut-progress" id="donutProgress" cx="50" cy="50" r="45" fill="none"
+          stroke="#FFD9C2" stroke-width="10" stroke-linecap="round"
+          stroke-dasharray="282.743" stroke-dashoffset="282.743" />
+        <!-- Texto centrado -->
+        <text id="donutText" x="50" y="50" text-anchor="middle" dy=".35em" font-size="18" fill="#333">0%</text>
+      </svg>
+      <!-- Texto extra (color-coded) opcional -->
+      <p id="proteinaText" style="margin:0; font-size:1.2rem;"></p>
+    </div>
+    
+
+    <div class="navigation">
+      <a href="{{ prev_week_url }}">← Anterior</a>
+      <a href="{% url 'calendario_semanal' %}">Hoy</a>
+      <a href="{{ next_week_url }}">Siguiente →</a>
+    </div>
+
+    <div class="week-container">
+      {% for day in dias %}
+        {% get_calendario_for_date day as calendario %}
+
+      <div class="day-column" id="day-column-{{ day|date:'Y-m-d' }}" style="{{ calendario|get_vertical_gradient_style }}">
+        <div class="day-header">
+          {{ day|date:"D" }}<br>
+          {{ day|date:"d/m" }}<br>
+          <span class="proteinas-valor">
+
+          {{ calendario.proteinas_consumidas }}g / {{ calendario.objetivo_proteico }}g
+        </span>
+
+        </div>
+
+        {% for meal in meal_order %}
+        <div class="meal-block" data-meal="{{ meal }}" data-fecha="{{ day|date:'Y-m-d' }}">
+          <h4>{{ meal }}</h4>
+          <div class="meal-items" style="pointer-events: none;">
+
+          {% for cr in dia_data|dictkey:day %}
+            {% if cr.tipo_comida.nombre == meal %}
+              <div class="meal-item">
+                {{ cr.receta.nombre }}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
       </div>
 
-      {% for meal in meal_order %}
-      <div class="meal-block" data-meal="{{ meal }}" data-fecha="{{ day|date:'Y-m-d' }}">
-        <h4>{{ meal }}</h4>
-        <div class="meal-items" style="pointer-events: none;">
-
-        {% for cr in dia_data|dictkey:day %}
-        {% if cr.tipo_comida.nombre == meal %}
-        <div class="meal-item">
-          {{ cr.receta.nombre }}
-        </div>
-        {% endif %}
         {% endfor %}
       </div>
-    </div>
-
       {% endfor %}
     </div>
-    {% endfor %}
-  </div>
 
   <!-- Modal para seleccionar receta -->
   <div class="modal fade" id="seleccionarRecetaModal" tabindex="-1" aria-labelledby="seleccionarRecetaModalLabel"
@@ -145,7 +217,10 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Gestión de recetas para <span id="modalMealType"></span> del <span
+          <h5 class="modal-title">Gestión de recetas para 
+            <span id="modalMealType">
+
+            </span> del <span
               id="modalFecha"></span></h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
@@ -174,6 +249,165 @@
   </div>
 
   <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Obtenemos la fecha de hoy
+      const hoy = new Date();
+      // Definimos opciones de formateo en español: "20 de marzo de 2025"
+      const opciones = { day: 'numeric', month: 'long', year: 'numeric' };
+      // Formateamos en español (es-ES)
+      const fechaFormateada = hoy.toLocaleDateString('es-ES', opciones);
+  
+      // Insertamos el texto resultante
+      document.getElementById("tituloProteinas").textContent =
+        `Objetivo diario del ${fechaFormateada}`;
+    });
+  </script>
+  
+
+  <script>/*
+    function actualizarBarraProteinas(fecha) {
+      fetch(`/api/calendario_dia/?fecha=${fecha}`)
+        .then(res => res.json())
+        .then(data => {
+          const objetivo = data.objetivo_proteico || 100;
+          const consumidas = data.proteinas_consumidas || 0;
+          const porcentaje = Math.min((consumidas / objetivo) * 100, 100);
+          document.getElementById('barraProteinas').style.width = porcentaje + '%';
+          document.getElementById('barraProteinas').textContent = `${Math.round(porcentaje)}%`;
+          document.getElementById('consumidas').textContent = consumidas;
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
+    });*/
+  </script>
+
+  <script>
+    // 1) Función para actualizar el donut
+    function actualizarDonut(consumidas, objetivo) {
+      const donutProgress = document.getElementById("donutProgress");
+      const donutText = document.getElementById("donutText");
+      if (!donutProgress || !donutText) return;
+
+      const circumference = 2 * Math.PI * 45; // ≈ 282.743
+      let porcentaje = 0;
+      if (objetivo > 0) {
+        porcentaje = Math.min((consumidas / objetivo) * 100, 100);
+      }
+      // Calcula el offset: al 100% el offset debe ser 0 (círculo lleno)
+      const offset = circumference - (porcentaje / 100) * circumference;
+      donutProgress.style.strokeDashoffset = offset;
+      donutText.textContent = `${Math.round(porcentaje)}%`;
+    }
+
+    
+    // 2) Función para actualizar el texto color-coded
+    function actualizarTextoColor(consumidas, objetivo) {
+      const proteinaText = document.getElementById("proteinaText");
+      if (!proteinaText) return;
+    
+      let ratio = 0;
+      if (objetivo > 0) ratio = consumidas / objetivo;
+    
+      let color = "red";
+      if (ratio >= 1) color = "green";
+      else if (ratio >= 0.5) color = "orange";
+    
+      proteinaText.style.color = color;
+      proteinaText.textContent = `${consumidas}g / ${objetivo}g`;
+    }
+    
+    // 3) Función que obtiene datos del día y llama a las anteriores
+    function actualizarIndicadores(fecha) {
+      fetch(`/api/calendario_dia/?fecha=${fecha}`)
+        .then(res => res.json())
+        .then(data => {
+          const objetivo = data.objetivo_proteico || 100;
+          const consumidas = data.proteinas_consumidas || 0;
+    
+          // Llamamos a las dos funciones
+          actualizarDonut(consumidas, objetivo);
+          actualizarTextoColor(consumidas, objetivo);
+        })
+        .catch(err => console.error("Error actualizando indicadores:", err));
+    }
+    
+    // Llamada inicial al cargar la página
+    document.addEventListener("DOMContentLoaded", () => {
+      const hoy = new Date().toISOString().split('T')[0];
+      actualizarIndicadores(new Date().toISOString().split('T')[0]);
+    });
+  </script>
+    
+
+  <script>
+    // Función para actualizar el degradado de un día dado (identificado por su fecha en formato YYYY-MM-DD)
+    function actualizarDegradado(fecha) {
+      fetch(`/api/dia/${fecha}/`)
+        .then(response => response.json())
+        .then(data => {
+          if(data.error) {
+            console.error(data.error);
+            return;
+          }
+          const proteinas = data.proteinas_consumidas;
+          const objetivo = data.objetivo_proteico;
+          let porcentaje = 0;
+          if(objetivo > 0) {
+            porcentaje = Math.min(Math.max((proteinas / objetivo) * 100, 0), 100);
+          }
+          
+          // Define los colores (ajusta según tu paleta)
+          const colorSolido = "#FFD9C2";  // o el color que hayas elegido
+          // Para un fade sutil: de colorSolido a transparente
+          const colorTransparente = "rgba(0, 0, 0, 0)";
+          
+          let newStyle = "";
+          if (porcentaje >= 100) {
+            // Objetivo alcanzado: fondo completamente sólido
+            newStyle = `background: ${colorSolido};`;
+          } else {
+            // Relleno parcial: degradado vertical
+            // Usamos stops para tener mayor parte sólida y un fade sutil al final
+            newStyle = `
+              background: linear-gradient(to top, ${colorSolido} 0%, ${colorSolido} 98%, ${colorTransparente} 100%);
+              background-repeat: no-repeat;
+              background-size: 100% ${porcentaje}%;
+              background-position: bottom;
+            `;
+          }
+          // Actualizamos el estilo del elemento con id "day-column-<fecha>"
+          const dayColumn = document.getElementById(`day-column-${fecha}`);
+          if(dayColumn) {
+            dayColumn.style = newStyle;
+          }
+        })
+        .catch(err => console.error(err));
+    }
+
+    // Ejemplo de uso:
+    // Supongamos que tienes una lista de fechas (en formato YYYY-MM-DD) en un array:
+    const fechas = [/* lista de fechas, por ejemplo: "2025-03-17", "2025-03-18", ... */];
+
+    // Función para actualizar todos los días (o bien llama a actualizarDegradado() cuando se añada/elimine una receta)
+    function actualizarTodosLosDias() {
+      fechas.forEach(fecha => {
+        actualizarDegradado(fecha);
+      });
+    }
+
+    // Llama a la función cuando la página se carga o tras una acción que modifique las recetas
+    document.addEventListener("DOMContentLoaded", function() {
+      actualizarTodosLosDias();
+    });
+
+    // Si tus acciones de agregar/eliminar recetas se hacen vía AJAX, puedes llamar a actualizarDegradado(fecha)
+    // inmediatamente después de la operación para refrescar el degradado.
+  </script>
+
+
+  <script>
     document.addEventListener("DOMContentLoaded", function () {
       var mealMapping = {{ meal_mapping|safe}};
 
@@ -186,7 +420,6 @@
 
       document.getElementById("modalMealType").textContent = mealType;
       document.getElementById("modalFecha").textContent = fecha;
-/************************************************/
       document.getElementById("seleccionarRecetaModal").dataset.meal = mealType;
       document.getElementById("seleccionarRecetaModal").dataset.fecha = fecha;
 
@@ -260,10 +493,10 @@
       var modalElement = document.getElementById("seleccionarRecetaModal");
       var modal = new bootstrap.Modal(modalElement);
       modal.show();
-/**************************************************/
-              // Al cerrar el modal, actualizar solo la comida afectada
-              modalElement.addEventListener("hidden.bs.modal", function () {
-            actualizarCalendario(fecha, mealType);
+      
+      // Al cerrar el modal, actualizar solo la comida afectada
+      modalElement.addEventListener("hidden.bs.modal", function () {
+      actualizarCalendario(fecha, mealType);
         });
     });
 
@@ -373,14 +606,21 @@
       } else {
         recipesContainer.innerHTML = "";
       }
+      //actualizarBarraProteinas(fecha);
+      actualizarDegradado(fecha);
+      actualizarIndicadores(new Date().toISOString().split('T')[0]);
+
+      // 4. Actualizamos el texto "xg / 100g" en la cabecera del día
+      const dayColumn = document.getElementById(`day-column-${fecha}`);
+      if (dayColumn) {
+        const proteinaValor = dayColumn.querySelector('.proteinas-valor');
+        if (proteinaValor) {
+          proteinaValor.textContent = `${data.proteinas_consumidas}g / ${data.objetivo_proteico}g`;
+        }
+      }
     })
     .catch(error => console.error("❌ Error al actualizar el calendario:", error));
 }
-
-
-
-
-
 
     function agregarRecetaCalendario(recetaId, mealType, fecha) {
       console.log("Agregando receta:", recetaId, "a", mealType, "en", fecha);
@@ -426,7 +666,8 @@
         },
         body: new URLSearchParams({
           fecha: fecha,
-          receta_id: recetaId
+          receta_id: recetaId,
+          tipo_comida: mealType
         })
       })
         .then(response => response.json())
@@ -447,6 +688,20 @@
 
   });
   </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Obtiene la fecha actual en formato YYYY-MM-DD
+    const todayStr = new Date().toISOString().split('T')[0];
+    // Busca el contenedor del día de hoy
+    const todayColumn = document.getElementById(`day-column-${todayStr}`);
+    if (todayColumn) {
+      // Agrega la clase "today" para resaltarlo
+      todayColumn.classList.add("today");
+    }
+  });
+</script>
+
 
 </body>
 
