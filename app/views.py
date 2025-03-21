@@ -320,8 +320,7 @@ def exportar_semana(request):
     else:
         input_date = datetime.today().date()
 
-    # 2. Forzar que sea lunes. weekday() devuelve 0 para lunes, 6 para domingo
-    # Si hoy es miércoles (weekday=2), le restamos 2 días para obtener el lunes.
+    # 2. Forzar que sea lunes
     start_date = input_date - timedelta(days=input_date.weekday())
 
     # Generar 7 días desde el lunes (lunes a domingo)
@@ -335,7 +334,7 @@ def exportar_semana(request):
 
     # 4. Construir los datos para la tabla
     # 4.1. Dos filas de cabecera: la primera con las fechas (dd/mm) y la segunda con el nombre del día
-    # Dejamos la primera celda vacía (para la columna de tipos de comida)
+    #     Dejamos la primera celda vacía (para la columna de tipos de comida)
     header_dates = [""] + [d.strftime("%d/%m") for d in dias]
     header_days = [""] + [format_date(d, format="EEEE", locale='es').capitalize() for d in dias]
     
@@ -343,18 +342,27 @@ def exportar_semana(request):
     table_data.append(header_dates)
     table_data.append(header_days)
     
-    # 4.2. Para cada tipo de comida, la primera celda es el tipo, y el resto son recetas
+    # 4.2. Para cada tipo de comida, la primera celda es el tipo,
+    #      y el resto son Paragraph con posibles saltos de línea <br/>
+    styles = getSampleStyleSheet()  # Para usarlo en los Paragraph
+    normal_style = styles['Normal']
+
     for meal in meal_order:
-        row = [meal]  # Primera columna: "Desayuno", "Almuerzo", etc.
+        # Primera columna: el tipo de comida
+        row = [Paragraph(meal, normal_style)]
         for d in dias:
             cal = calendarios.get(d)
-            cell_text = ""
+            # Por defecto, la celda estará vacía
+            cell_paragraph = Paragraph("", normal_style)
             if cal:
                 # Recopilar recetas de este día que coincidan con el tipo de comida
                 recetas = [cr.receta.nombre for cr in cal.calendario_recetas.all()
                            if cr.tipo_comida.nombre.lower() == meal.lower()]
-                cell_text = "\n".join(recetas)
-            row.append(cell_text)
+                if recetas:
+                    # Usamos <br/> para separar las recetas en líneas distintas
+                    combined_text = "<br/>".join(recetas)
+                    cell_paragraph = Paragraph(combined_text, normal_style)
+            row.append(cell_paragraph)
         table_data.append(row)
     
     # 5. Generar la lista única de recetas y la lista de la compra
@@ -371,8 +379,7 @@ def exportar_semana(request):
                 for ing in receta.ingredientes.all():
                     shopping_dict[ing.nombre] = shopping_dict.get(ing.nombre, 0) + 1
 
-    styles = getSampleStyleSheet()
-    bullet_style = ParagraphStyle('bullet', parent=styles['Normal'], leftIndent=10)
+    bullet_style = ParagraphStyle('bullet', parent=normal_style, leftIndent=10)
     
     recetas_flowables = []
     for rec_name, ingredientes in unique_recipes.items():
@@ -412,10 +419,13 @@ def exportar_semana(request):
     other_cols_width = (doc.width - first_col_width) / len(dias)
     col_widths = [first_col_width] + [other_cols_width] * len(dias)
     
+    # Ajustamos el estilo de la tabla para permitir WORDWRAP y alineación vertical arriba
     table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
         ('BACKGROUND', (0, 1), (-1, 1), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 9),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
@@ -429,6 +439,7 @@ def exportar_semana(request):
     elements.append(Paragraph("Recetas:", custom_heading))
     elements.append(Spacer(1, 10))
     if recetas_flowables:
+        from reportlab.platypus import ListFlowable
         elements.append(ListFlowable(recetas_flowables, bulletType='bullet'))
     else:
         elements.append(Paragraph("No hay recetas asignadas.", styles['Normal']))
