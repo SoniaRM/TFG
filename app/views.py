@@ -298,49 +298,59 @@ def datos_dia(request, fecha):
     return JsonResponse(data)
 
 #Exportacion pdf de las recetas de la semana
+
 def exportar_semana(request):
     """
     Exporta un PDF con el formato:
       - Una tabla donde la primera columna muestra los tipos de comida (Desayuno, Almuerzo, Merienda, Cena)
-        y las siguientes 7 columnas corresponden a los días de la semana (con fecha y nombre del día en español).
+        y las siguientes 7 columnas corresponden a cada día de la semana (lunes a domingo).
       - Debajo, una lista de recetas únicas de la semana, mostrando sus ingredientes.
       - Finalmente, una lista de la compra que agrupa los ingredientes y cuenta sus apariciones.
     
     Se espera un parámetro GET 'start' con la fecha de inicio de la semana (YYYY-MM-DD).
+    Si no se pasa o es inválido, se toma el lunes de la semana actual.
     """
-    # 1. Obtener la fecha de inicio de la semana
+    # 1. Obtener la fecha base
     start_str = request.GET.get('start')
-    try:
-        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-    except (ValueError, TypeError):
-        start_date = datetime.today().date()
+    if start_str:
+        try:
+            input_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            input_date = datetime.today().date()
+    else:
+        input_date = datetime.today().date()
 
-    # 2. Generar la lista de 7 días
+    # 2. Forzar que sea lunes. weekday() devuelve 0 para lunes, 6 para domingo
+    # Si hoy es miércoles (weekday=2), le restamos 2 días para obtener el lunes.
+    start_date = input_date - timedelta(days=input_date.weekday())
+
+    # Generar 7 días desde el lunes (lunes a domingo)
     dias = [start_date + timedelta(days=i) for i in range(7)]
     
     # Orden de los tipos de comida
     meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
 
-    # 3. Obtener los objetos Calendario para esos días (se asume que cada día tiene un objeto Calendario)
+    # 3. Obtener los objetos Calendario para esos días
     calendarios = {cal.fecha: cal for cal in Calendario.objects.filter(fecha__in=dias)}
 
-    # 4. Construir los datos para la tabla con la primera columna de tipos de comida
-    # Primera fila: la primera celda vacía y luego las fechas en formato dd/mm
+    # 4. Construir los datos para la tabla
+    # 4.1. Dos filas de cabecera: la primera con las fechas (dd/mm) y la segunda con el nombre del día
+    # Dejamos la primera celda vacía (para la columna de tipos de comida)
     header_dates = [""] + [d.strftime("%d/%m") for d in dias]
-    # Segunda fila: la primera celda vacía y luego los nombres de los días en español
     header_days = [""] + [format_date(d, format="EEEE", locale='es').capitalize() for d in dias]
     
     table_data = []
     table_data.append(header_dates)
     table_data.append(header_days)
     
-    # Para cada tipo de comida, la primera celda es el nombre y luego las recetas (separadas por salto de línea) para cada día
+    # 4.2. Para cada tipo de comida, la primera celda es el tipo, y el resto son recetas
     for meal in meal_order:
-        row = [meal]  # Primera celda: el tipo de comida
+        row = [meal]  # Primera columna: "Desayuno", "Almuerzo", etc.
         for d in dias:
             cal = calendarios.get(d)
             cell_text = ""
             if cal:
+                # Recopilar recetas de este día que coincidan con el tipo de comida
                 recetas = [cr.receta.nombre for cr in cal.calendario_recetas.all()
                            if cr.tipo_comida.nombre.lower() == meal.lower()]
                 cell_text = "\n".join(recetas)
@@ -348,8 +358,8 @@ def exportar_semana(request):
         table_data.append(row)
     
     # 5. Generar la lista única de recetas y la lista de la compra
-    unique_recipes = {}  # clave: receta.nombre, valor: lista de ingredientes
-    shopping_dict = {}   # clave: ingrediente.nombre, valor: cantidad (número de apariciones)
+    unique_recipes = {}
+    shopping_dict = {}
     for d in dias:
         cal = calendarios.get(d)
         if cal:
@@ -385,7 +395,6 @@ def exportar_semana(request):
         bottomMargin=40
     )
     
-    # Definir algunos estilos personalizados
     custom_title = ParagraphStyle('customTitle', parent=styles['Title'], alignment=1)
     custom_heading = ParagraphStyle('customHeading', parent=styles['Heading2'], alignment=1)
     
@@ -398,8 +407,8 @@ def exportar_semana(request):
     elements.append(Paragraph(f"{start_formatted} al {end_formatted}", custom_heading))
     elements.append(Spacer(1, 20))
     
-    # Calcular los anchos: ahora tenemos 8 columnas (1 para tipos y 7 para días)
-    first_col_width = doc.width * 0.15  # 15% del ancho para la primera columna
+    # Cálculo de anchos de columnas (1 para tipos y 7 para días)
+    first_col_width = doc.width * 0.15
     other_cols_width = (doc.width - first_col_width) / len(dias)
     col_widths = [first_col_width] + [other_cols_width] * len(dias)
     
