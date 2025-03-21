@@ -46,5 +46,8 @@ urlpatterns = [
     path("api/calendario_dia/", views.actualizar_calendario_dia, name="actualizar_calendario_dia"),
     path('api/dia/<str:fecha>/', views.datos_dia, name='datos_dia'),
 
+    #EXPORTACIÓN
+    path('exportar_semana/', views.exportar_semana, name='exportar_semana'),
+
 
 ]
