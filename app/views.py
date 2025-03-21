@@ -9,8 +9,18 @@ from datetime import datetime
 from django.views.decorators.csrf import csrf_exempt
 from datetime import date, timedelta
 from django.views.decorators.http import require_GET
-
-
+#Exportacion pdf de las recetas de la semana
+import io
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    ListFlowable
+)
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from babel.dates import format_date
 
 #RECETAS
 def listado_recetas(request):
@@ -286,3 +296,163 @@ def datos_dia(request, fecha):
         'objetivo_proteico': calendario.objetivo_proteico
     }
     return JsonResponse(data)
+
+#Exportacion pdf de las recetas de la semana
+
+def exportar_semana(request):
+    """
+    Exporta un PDF con el formato:
+      - Una tabla donde la primera columna muestra los tipos de comida (Desayuno, Almuerzo, Merienda, Cena)
+        y las siguientes 7 columnas corresponden a cada día de la semana (lunes a domingo).
+      - Debajo, una lista de recetas únicas de la semana, mostrando sus ingredientes.
+      - Finalmente, una lista de la compra que agrupa los ingredientes y cuenta sus apariciones.
+    
+    Se espera un parámetro GET 'start' con la fecha de inicio de la semana (YYYY-MM-DD).
+    Si no se pasa o es inválido, se toma el lunes de la semana actual.
+    """
+    # 1. Obtener la fecha base
+    start_str = request.GET.get('start')
+    if start_str:
+        try:
+            input_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            input_date = datetime.today().date()
+    else:
+        input_date = datetime.today().date()
+
+    # 2. Forzar que sea lunes
+    start_date = input_date - timedelta(days=input_date.weekday())
+
+    # Generar 7 días desde el lunes (lunes a domingo)
+    dias = [start_date + timedelta(days=i) for i in range(7)]
+    
+    # Orden de los tipos de comida
+    meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+
+    # 3. Obtener los objetos Calendario para esos días
+    calendarios = {cal.fecha: cal for cal in Calendario.objects.filter(fecha__in=dias)}
+
+    # 4. Construir los datos para la tabla
+    # 4.1. Dos filas de cabecera: la primera con las fechas (dd/mm) y la segunda con el nombre del día
+    #     Dejamos la primera celda vacía (para la columna de tipos de comida)
+    header_dates = [""] + [d.strftime("%d/%m") for d in dias]
+    header_days = [""] + [format_date(d, format="EEEE", locale='es').capitalize() for d in dias]
+    
+    table_data = []
+    table_data.append(header_dates)
+    table_data.append(header_days)
+    
+    # 4.2. Para cada tipo de comida, la primera celda es el tipo,
+    #      y el resto son Paragraph con posibles saltos de línea <br/>
+    styles = getSampleStyleSheet()  # Para usarlo en los Paragraph
+    normal_style = styles['Normal']
+
+    for meal in meal_order:
+        # Primera columna: el tipo de comida
+        row = [Paragraph(meal, normal_style)]
+        for d in dias:
+            cal = calendarios.get(d)
+            # Por defecto, la celda estará vacía
+            cell_paragraph = Paragraph("", normal_style)
+            if cal:
+                # Recopilar recetas de este día que coincidan con el tipo de comida
+                recetas = [cr.receta.nombre for cr in cal.calendario_recetas.all()
+                           if cr.tipo_comida.nombre.lower() == meal.lower()]
+                if recetas:
+                    # Usamos <br/> para separar las recetas en líneas distintas
+                    combined_text = "<br/>".join(recetas)
+                    cell_paragraph = Paragraph(combined_text, normal_style)
+            row.append(cell_paragraph)
+        table_data.append(row)
+    
+    # 5. Generar la lista única de recetas y la lista de la compra
+    unique_recipes = {}
+    shopping_dict = {}
+    for d in dias:
+        cal = calendarios.get(d)
+        if cal:
+            for cr in cal.calendario_recetas.all():
+                receta = cr.receta
+                if receta.nombre not in unique_recipes:
+                    ingredientes = list(receta.ingredientes.values_list('nombre', flat=True))
+                    unique_recipes[receta.nombre] = ingredientes
+                for ing in receta.ingredientes.all():
+                    shopping_dict[ing.nombre] = shopping_dict.get(ing.nombre, 0) + 1
+
+    bullet_style = ParagraphStyle('bullet', parent=normal_style, leftIndent=10)
+    
+    recetas_flowables = []
+    for rec_name, ingredientes in unique_recipes.items():
+        ing_str = ", ".join(ingredientes)
+        recetas_flowables.append(Paragraph(f"{rec_name}: {ing_str}", bullet_style))
+    
+    compra_flowables = []
+    for ing_name in sorted(shopping_dict.keys()):
+        count = shopping_dict[ing_name]
+        compra_flowables.append(Paragraph(f"{ing_name}: {count} raciones", bullet_style))
+    
+    # 6. Crear el PDF usando Platypus
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=60,
+        bottomMargin=40
+    )
+    
+    custom_title = ParagraphStyle('customTitle', parent=styles['Title'], alignment=1)
+    custom_heading = ParagraphStyle('customHeading', parent=styles['Heading2'], alignment=1)
+    
+    elements = []
+    # Título principal en dos líneas
+    start_formatted = format_date(dias[0], format="d 'de' MMMM 'de' y", locale='es')
+    end_formatted = format_date(dias[-1], format="d 'de' MMMM 'de' y", locale='es')
+    elements.append(Paragraph("Recetas de la semana", custom_title))
+    elements.append(Spacer(1, 5))
+    elements.append(Paragraph(f"{start_formatted} al {end_formatted}", custom_heading))
+    elements.append(Spacer(1, 20))
+    
+    # Cálculo de anchos de columnas (1 para tipos y 7 para días)
+    first_col_width = doc.width * 0.15
+    other_cols_width = (doc.width - first_col_width) / len(dias)
+    col_widths = [first_col_width] + [other_cols_width] * len(dias)
+    
+    # Ajustamos el estilo de la tabla para permitir WORDWRAP y alineación vertical arriba
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+        ('BACKGROUND', (0, 1), (-1, 1), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('WORDWRAP', (0, 0), (-1, -1), True),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+    ])
+    week_table = Table(table_data, colWidths=col_widths)
+    week_table.setStyle(table_style)
+    elements.append(week_table)
+    elements.append(Spacer(1, 20))
+    
+    elements.append(Paragraph("Recetas:", custom_heading))
+    elements.append(Spacer(1, 10))
+    if recetas_flowables:
+        from reportlab.platypus import ListFlowable
+        elements.append(ListFlowable(recetas_flowables, bulletType='bullet'))
+    else:
+        elements.append(Paragraph("No hay recetas asignadas.", styles['Normal']))
+    elements.append(Spacer(1, 20))
+    
+    elements.append(Paragraph("Lista de la compra:", custom_heading))
+    elements.append(Spacer(1, 10))
+    if compra_flowables:
+        elements.append(ListFlowable(compra_flowables, bulletType='bullet'))
+    else:
+        elements.append(Paragraph("No hay ingredientes en la lista de la compra.", styles['Normal']))
+    elements.append(Spacer(1, 20))
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return FileResponse(buffer, as_attachment=True, filename="recetas_semana.pdf")
