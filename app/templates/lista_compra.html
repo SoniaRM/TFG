@@ -1,0 +1,200 @@
+{% extends 'navbar.html' %}
+
+{% block title %}Lista de la compra{% endblock %}
+
+{% block content %}
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* Estilo de los botones redondos */
+        .btn-racion {
+            background-color: #FFB29A; /* Color rosa personalizado */
+            color: white;
+            width: 45px;
+            height: 45px;
+            border: none;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-racion:hover {
+            background-color: #E89C87;
+        }
+
+        /* Botón "Tengo de sobra" */
+        .btn-rosa {
+            background-color: #FFB29A;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn-rosa:hover {
+            background-color: #E89C87;
+        }
+
+        /* Botón "Cancelar" */
+        .btn-cancelar {
+            background-color: #ccc;
+            color: black;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .btn-cancelar:hover {
+            background-color: #bbb;
+        }
+
+    </style>
+</head>
+
+<div class="container">
+    <h1>Lista de la compra</h1>
+    <p><strong>Semana del:</strong> {{ semana_formateada }}</p>
+
+    <div class="navigation">
+        <a href="{{ prev_week_url }}">← Semana anterior</a> |
+        <a href="{{ next_week_url }}">Semana siguiente →</a>
+    </div>
+
+    {% if ingredientes %}
+        <h2>Ingredientes por comprar</h2>
+        <ul id="lista-compra">
+            {% for nombre, cantidad in ingredientes %}
+                <li id="item-{{ forloop.counter }}" data-nombre="{{ nombre }}">
+                    <strong>{{ nombre }}</strong> – <span id="restante-{{ nombre }}">{{ cantidad }}</span> raciones
+                    <button onclick="abrirModal('{{ nombre }}', {{ cantidad }})">Ya lo tengo</button>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <h2>Ingredientes en la despensa</h2>
+        <ul id="ingredientes-disponibles">
+        </ul>
+    {% else %}
+        <p>No hay ingredientes para esta semana.</p>
+    {% endif %}
+</div>
+
+<!-- Modal -->
+<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
+    <div style="background:white; width:320px; margin:10% auto; padding:20px; border-radius:10px; position:relative; text-align:center;">
+        <h3 id="modal-titulo"></h3>
+        <p>¿Qué quieres hacer?</p>
+        
+        <button onclick="tengoDeSobra()" class="btn-rosa">Tengo de sobra</button>
+        <br><br>
+        
+        <p>Selecciona cuántas raciones tienes:</p>
+        <div id="raciones-opciones" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;"></div>
+
+        <br>
+        <button onclick="cerrarModal()" class="btn-cancelar">Cancelar</button>
+    </div>
+</div>
+
+<script>
+    let ingredienteNombre = null;
+    
+    function abrirModal(nombre, cantidad) {
+        ingredienteNombre = nombre;
+
+        // Obtener las raciones restantes desde localStorage o usar la cantidad total si es la primera vez
+        let estado = JSON.parse(localStorage.getItem("estadoListaCompra")) || { restantes: {}, disponibles: [] };
+        let restanteActual = estado.restantes[nombre] !== undefined ? estado.restantes[nombre] : cantidad;
+
+        document.getElementById('modal').style.display = 'block';
+        document.getElementById('modal-titulo').innerText = nombre;
+
+        const opcionesContainer = document.getElementById('raciones-opciones');
+        opcionesContainer.innerHTML = '';
+
+        for (let i = 1; i <= restanteActual; i++) {
+            let boton = document.createElement('button');
+            boton.innerText = i;
+            boton.classList.add('btn-racion');
+            boton.onclick = function () {
+                actualizarRaciones(nombre, i, restanteActual);
+            };
+            opcionesContainer.appendChild(boton);
+        }
+    }
+
+    function cerrarModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    function tengoDeSobra() {
+        moverAListaDisponible(ingredienteNombre);
+        cerrarModal();
+    }
+
+    function actualizarRaciones(nombre, racionesSeleccionadas, restanteActual) {
+        let restante = Math.max(0, restanteActual - racionesSeleccionadas);
+        document.getElementById(`restante-${nombre}`).innerText = restante;
+
+        // Guardar en localStorage
+        let estado = JSON.parse(localStorage.getItem("estadoListaCompra")) || { restantes: {}, disponibles: [] };
+        estado.restantes[nombre] = restante;
+        localStorage.setItem("estadoListaCompra", JSON.stringify(estado));
+
+        if (restante === 0) {
+            moverAListaDisponible(nombre);
+        }
+
+        cerrarModal();
+    }
+
+    function moverAListaDisponible(nombre) {
+        let item = document.querySelector(`li[data-nombre="${nombre}"]`);
+        const disponibles = document.getElementById('ingredientes-disponibles');
+
+        let estado = JSON.parse(localStorage.getItem("estadoListaCompra")) || { restantes: {}, disponibles: [] };
+        estado.disponibles.push(nombre);
+        delete estado.restantes[nombre];
+        localStorage.setItem("estadoListaCompra", JSON.stringify(estado));
+
+        const nuevoItem = document.createElement('li');
+        nuevoItem.innerHTML = `<strong>${nombre}</strong>`;
+
+        disponibles.appendChild(nuevoItem);
+        item.remove();
+    }
+
+    function cargarEstadoDesdeLocalStorage() {
+        let datosGuardados = localStorage.getItem("estadoListaCompra");
+        if (datosGuardados) {
+            let estado = JSON.parse(datosGuardados);
+
+            for (let nombre in estado.restantes) {
+                let elemento = document.getElementById(`restante-${nombre}`);
+                if (elemento) {
+                    elemento.innerText = estado.restantes[nombre];
+                }
+            }
+
+            if (estado.disponibles) {
+                estado.disponibles.forEach(nombre => {
+                    let item = document.querySelector(`li[data-nombre="${nombre}"]`);
+                    if (item) {
+                        moverAListaDisponible(nombre);
+                    }
+                });
+            }
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", cargarEstadoDesdeLocalStorage);
+</script>
+
+{% endblock %}

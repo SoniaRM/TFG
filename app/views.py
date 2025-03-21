@@ -21,6 +21,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 from babel.dates import format_date
+#Lista de la compra
+from django.utils.timezone import now
 
 #RECETAS
 def listado_recetas(request):
@@ -298,7 +300,7 @@ def datos_dia(request, fecha):
     return JsonResponse(data)
 
 #Exportacion pdf de las recetas de la semana
-
+#EXPORTACION
 def exportar_semana(request):
     """
     Exporta un PDF con el formato:
@@ -456,3 +458,42 @@ def exportar_semana(request):
     doc.build(elements)
     buffer.seek(0)
     return FileResponse(buffer, as_attachment=True, filename="recetas_semana.pdf")
+
+#LISTA COMPRA
+def lista_compra(request):
+    # Obtener la fecha de inicio de la semana (lunes)
+    start_str = request.GET.get('start')
+    if start_str:
+        try:
+            input_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except ValueError:
+            input_date = now().date()
+    else:
+        input_date = now().date()
+
+    start_date = input_date - timedelta(days=input_date.weekday())  # Forzamos a lunes
+    dias = [start_date + timedelta(days=i) for i in range(7)]
+
+    calendarios = Calendario.objects.filter(fecha__range=(dias[0], dias[-1])).prefetch_related('calendario_recetas__receta__ingredientes')
+
+    ingredientes_contados = {}
+
+    for calendario in calendarios:
+        for cr in calendario.calendario_recetas.all():
+            for ingrediente in cr.receta.ingredientes.all():
+                nombre = ingrediente.nombre
+                if nombre in ingredientes_contados:
+                    ingredientes_contados[nombre] += 1
+                else:
+                    ingredientes_contados[nombre] = 1
+
+    ingredientes_ordenados = sorted(ingredientes_contados.items())  # orden alfabético
+
+    context = {
+        'ingredientes': ingredientes_ordenados,
+        'start_date': start_date,
+        'prev_week_url': f'?start={(start_date - timedelta(days=7)).isoformat()}',
+        'next_week_url': f'?start={(start_date + timedelta(days=7)).isoformat()}',
+    }
+
+    return render(request, 'lista_compra.html', context)
