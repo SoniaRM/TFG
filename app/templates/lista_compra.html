@@ -127,6 +127,26 @@
   }
 */
 
+    // Para que el estado sea por semana, usamos una clave que incluya la fecha de inicio.
+    // Esta variable se inyecta desde la vista (start_date) en formato "YYYY-MM-DD".
+    var semanaKey = "estadoListaCompra_{{ start_date|date:'Y-m-d' }}";
+
+    function getStorageKey() {
+        return semanaKey;
+    }
+
+    function leerEstado() {
+        let data = localStorage.getItem(getStorageKey());
+        if (!data) {
+            return { original: {}, compra: {}, despensa: {} };
+        }
+        return JSON.parse(data);
+    }
+
+    function guardarEstado(estado) {
+        localStorage.setItem(getStorageKey(), JSON.stringify(estado));
+    }
+
 function resetearLista() {
     if (confirm("¿Estás seguro de que quieres reiniciar la lista de la compra? Esta acción no se puede deshacer.")) {
         localStorage.removeItem("estadoListaCompra");
@@ -321,34 +341,20 @@ function refrescarVista() {
 // ======================
 //  6) Cargar y Guardar estado en localStorage
 // ======================
-function leerEstado() {
-    let data = localStorage.getItem("estadoListaCompra");
-    if (!data) {
-        // Estructura base
-        return {
-            original:  {},
-            compra:    {},
-            despensa:  {}
-        };
-    }
-    return JSON.parse(data);
-}
 
-function guardarEstado(estado) {
-    localStorage.setItem("estadoListaCompra", JSON.stringify(estado));
-}
 
 // ======================
 //  7) Al cargar la página, inicializamos
 // ======================
 function cargarEstadoDesdeLocalStorage() {
-    // Si no hay nada, creamos la estructura
+    // Lee el estado usando la clave semanal (si la tienes implementada)
     let estado = leerEstado();
-
-    // 1) Inicializar la "compra" con lo que viene del template, si no existe
+    // Si el estado está vacío (o no existe compra para cierto ingrediente),
+    // inicialízalo a partir de lo que se muestra en el template.
     let lista = document.querySelectorAll('#lista-compra li[data-nombre]');
     lista.forEach(li => {
         let nombre = li.dataset.nombre;
+        // Se asume que el span contiene la cantidad correcta que viene del contexto
         let r = parseInt(li.querySelector('span').innerText) || 0;
         if (estado.compra[nombre] === undefined) {
             estado.compra[nombre] = r;
@@ -357,11 +363,10 @@ function cargarEstadoDesdeLocalStorage() {
             estado.original[nombre] = r;
         }
     });
-
     guardarEstado(estado);
-    // Renderizamos la vista
     refrescarVista();
 }
+
 
 document.addEventListener("DOMContentLoaded", cargarEstadoDesdeLocalStorage);
 </script>

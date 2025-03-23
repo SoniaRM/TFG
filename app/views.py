@@ -473,13 +473,21 @@ def lista_compra(request):
 
     start_date = input_date - timedelta(days=input_date.weekday())  # Forzamos a lunes
     dias = [start_date + timedelta(days=i) for i in range(7)]
+    print("DEBUG: start_date =", start_date)
+    print("DEBUG: dias =", dias)
+
+    from babel.dates import format_date
+    semana_formateada = f"{dias[0].day}-{dias[-1].day} de {format_date(dias[0], format='MMMM yyyy', locale='es')}"
 
     calendarios = Calendario.objects.filter(fecha__range=(dias[0], dias[-1])).prefetch_related('calendario_recetas__receta__ingredientes')
+    print("DEBUG: Calendarios en este rango:", list(calendarios))
 
     ingredientes_contados = {}
 
     for calendario in calendarios:
+        print(f"DEBUG: Para el día {calendario.fecha}, hay {calendario.calendario_recetas.count()} asignaciones:")
         for cr in calendario.calendario_recetas.all():
+            print("   -", cr.receta.nombre, "en", cr.tipo_comida, "(ID:", cr.id, ")")
             for ingrediente in cr.receta.ingredientes.all():
                 nombre = ingrediente.nombre
                 if nombre in ingredientes_contados:
@@ -489,11 +497,14 @@ def lista_compra(request):
 
     ingredientes_ordenados = sorted(ingredientes_contados.items())  # orden alfabético
 
+    print("DEBUG: ingredientes_contados =", ingredientes_contados)
+
     context = {
         'ingredientes': ingredientes_ordenados,
         'start_date': start_date,
         'prev_week_url': f'?start={(start_date - timedelta(days=7)).isoformat()}',
         'next_week_url': f'?start={(start_date + timedelta(days=7)).isoformat()}',
+        'semana_formateada': semana_formateada,  # <-- Aquí se pasa el string formateado
     }
 
     return render(request, 'lista_compra.html', context)
