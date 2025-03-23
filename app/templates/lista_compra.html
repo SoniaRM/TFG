@@ -3,61 +3,9 @@
 {% block title %}Lista de la compra{% endblock %}
 
 {% block content %}
-
-<head>
-    <meta charset="UTF-8">
-    <style>
-        /* Estilo de los botones redondos */
-        .btn-racion {
-            background-color: #FFB29A; /* Color rosa personalizado */
-            color: white;
-            width: 45px;
-            height: 45px;
-            border: none;
-            border-radius: 50%;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.3s;
-            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn-racion:hover {
-            background-color: #E89C87;
-        }
-
-        /* Botón "Tengo de sobra" */
-        .btn-rosa {
-            background-color: #FFB29A;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .btn-rosa:hover {
-            background-color: #E89C87;
-        }
-
-        /* Botón "Cancelar" */
-        .btn-cancelar {
-            background-color: #ccc;
-            color: black;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .btn-cancelar:hover {
-            background-color: #bbb;
-        }
-
-
-    </style>
-</head>
+<form id="dummy-form" style="display:none;">
+    {% csrf_token %}
+</form>
 
 <div class="container">
     <h1>Lista de la compra</h1>
@@ -65,204 +13,107 @@
 
     <div class="navigation">
         <a href="{{ prev_week_url }}">← Semana anterior</a> |
-        <a href="?start={{ current_start_date|date:'Y-m-d' }}">Esta semana</a> |
+        <!-- Botón "Esta semana" -->
+        <a href="?start={{ today|date:'Y-m-d' }}">Esta semana</a> |
         <a href="{{ next_week_url }}">Semana siguiente →</a>
     </div>
 
-    {% if ingredientes %}
+    {% if ingredientes_por_comprar or ingredientes_en_despensa %}
         <h2>Ingredientes por comprar</h2>
         <ul id="lista-compra">
-            {% for nombre, cantidad in ingredientes %}
-                <li id="item-{{ forloop.counter }}" data-nombre="{{ nombre }}">
-                    <strong>{{ nombre }}</strong> – <span id="restante-{{ nombre }}">{{ cantidad }}</span> raciones
-                    <button onclick="abrirModalCompra('{{ nombre }}', {{ cantidad }})">Ya lo tengo</button>
+            {% for item in ingredientes_por_comprar %}
+                <li data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
+                    <strong>{{ item.ingrediente.nombre }}</strong>
+                    – <span class="compra-value">{{ item.compra }}</span> raciones
+                    <button onclick="abrirModalCompra({{ item.id }}, {{ item.compra }})">Ya lo tengo</button>
                 </li>
             {% endfor %}
         </ul>
 
         <h2>Ingredientes en la despensa</h2>
-        <ul id="ingredientes-disponibles"></ul>
-        <button onclick="resetearLista()" class="btn-reset">Reiniciar Lista</button>
+        <ul id="ingredientes-despensa">
+            {% for item in ingredientes_en_despensa %}
+                <li data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
+                    <strong>{{ item.ingrediente.nombre }}</strong>
+                    – Tengo <span class="despensa-value">{{ item.despensa }}</span> (Faltan {{ item.original|add:"-:"|add:item.despensa }})
+                    <button onclick="abrirModalDespensa({{ item.id }}, {{ item.despensa }})">Devolver</button>
+                </li>
+            {% endfor %}
+        </ul>
     {% else %}
         <p>No hay ingredientes para esta semana.</p>
     {% endif %}
+
+    <button onclick="resetearLista()" class="btn-reset">Reiniciar Lista</button>
 </div>
 
-<!-- Modal para "Ya lo tengo" (Compra -> Despensa) -->
-<div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
-    <div style="background:white; width:320px; margin:10% auto; padding:20px; border-radius:10px; text-align:center;">
-        <h3 id="modal-titulo"></h3>
-        <p>¿Qué quieres hacer?</p>
-
-        <button onclick="tengoDeSobra()" class="btn-rosa">Tengo de sobra</button>
-        <br><br>
-        
-        <p>Selecciona cuántas raciones tienes:</p>
-        <div id="raciones-opciones" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;"></div>
-
-        <br>
-        <button onclick="cerrarModal()" class="btn-cancelar">Cancelar</button>
-    </div>
+<!-- Modal para mover de compra -> despensa -->
+<div id="modal-compra" 
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+            background-color: rgba(0,0,0,0.5); z-index:9999;">
+  <div style="background:white; width:320px; margin:10% auto; padding:20px; 
+              border-radius:10px; text-align:center; position:relative;">
+      <h3 id="modal-compra-titulo"></h3>
+      <p>Selecciona cuántas raciones tienes:</p>
+      <div id="raciones-opciones-compra" 
+           style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"></div>
+      <br>
+      <button onclick="cerrarModalCompra()">Cancelar</button>
+  </div>
 </div>
 
-<!-- Modal para "¿Te faltan raciones?" (Despensa -> Compra) -->
-<div id="modal-despensa" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5);">
-    <div style="background:white; width:320px; margin:10% auto; padding:20px; border-radius:10px; text-align:center;">
-        <h3 id="modal-despensa-titulo"></h3>
-        <p>¿Te faltan raciones?</p>
-        <div id="raciones-opciones-despensa" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;"></div>
-        <br>
-        <button onclick="cerrarModalDespensa()" class="btn-cancelar">Cancelar</button>
-    </div>
+<!-- Modal para mover de despensa -> compra -->
+<div id="modal-despensa"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
+            background-color: rgba(0,0,0,0.5); z-index:9999;">
+  <div style="background:white; width:320px; margin:10% auto; padding:20px; 
+              border-radius:10px; text-align:center; position:relative;">
+      <h3 id="modal-despensa-titulo"></h3>
+      <p>Selecciona cuántas raciones devuelves a la compra:</p>
+      <div id="raciones-opciones-despensa" 
+           style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"></div>
+      <br>
+      <button onclick="cerrarModalDespensa()">Cancelar</button>
+  </div>
 </div>
-
 
 <script>
-    /********************************************************/
-/*
-  Estructura en localStorage:
-  {
-    original:   { "salmon": 3, "lechuga": 2, ... }  // totales requeridos
-    compra:     { "salmon": 1, "lechuga": 2, ... }  // lo que queda por comprar
-    despensa:   { "salmon": 2, "lechuga": 0, ... }  // lo que el usuario dice tener
-  }
-*/
+function abrirModalCompra(itemId, compraActual) {
+    // Mostramos el overlay
+    const modal = document.getElementById('modal-compra');
+    modal.style.display = 'block';
 
-    // Para que el estado sea por semana, usamos una clave que incluya la fecha de inicio.
-    // Esta variable se inyecta desde la vista (start_date) en formato "YYYY-MM-DD".
-    var semanaKey = "estadoListaCompra_{{ start_date|date:'Y-m-d' }}";
+    document.getElementById('modal-compra-titulo').textContent = "¿Cuántas raciones tienes?";
 
-    function getStorageKey() {
-        return semanaKey;
-    }
-
-    function leerEstado() {
-        let data = localStorage.getItem(getStorageKey());
-        if (!data) {
-            return { original: {}, compra: {}, despensa: {} };
-        }
-        return JSON.parse(data);
-    }
-
-    function guardarEstado(estado) {
-        localStorage.setItem(getStorageKey(), JSON.stringify(estado));
-    }
-
-function resetearLista() {
-    if (confirm("¿Estás seguro de que quieres reiniciar la lista de la compra? Esta acción no se puede deshacer.")) {
-        localStorage.removeItem("estadoListaCompra");
-        location.reload();
+    // Generar botones
+    let cont = document.getElementById('raciones-opciones-compra');
+    cont.innerHTML = '';
+    for (let i = 1; i <= compraActual; i++) {
+        let btn = document.createElement('button');
+        btn.textContent = i;
+        btn.style.margin = '5px';
+        btn.onclick = () => moverCompraADespensa(itemId, i);
+        cont.appendChild(btn);
     }
 }
-
-// ======================
-//  1) Apertura de Modal "Ya lo tengo" (Compra -> Despensa)
-// ======================
-let ingredienteActual = null;
-function abrirModalCompra(nombre, total) {
-    ingredienteActual = nombre;
-    let estado = leerEstado();
-
-    // Si no existe "original[nombre]", lo creamos
-    if (!estado.original[nombre]) {
-        estado.original[nombre] = total;
-    }
-    // Si no existe "compra[nombre]", se asume "total"
-    if (estado.compra[nombre] === undefined) {
-        estado.compra[nombre] = total;
-    }
-
-    guardarEstado(estado);
-
-    // Mostramos el modal
-    document.getElementById('modal').style.display = 'block';
-    document.getElementById('modal-titulo').innerText = nombre;
-
-    // Generamos botones del 1 hasta "compra[nombre]"
-    let resto = estado.compra[nombre];
-    let contenedor = document.getElementById('raciones-opciones');
-    contenedor.innerHTML = '';
-    for (let i = 1; i <= resto; i++) {
-        let boton = document.createElement('button');
-        boton.innerText = i;
-        boton.classList.add('btn-racion');
-        boton.onclick = function () {
-            asignarParcialCompraADespensa(nombre, i);
-        };
-        contenedor.appendChild(boton);
-    }
+function cerrarModalCompra() {
+    document.getElementById('modal-compra').style.display = 'none';
 }
 
-// "Tengo de sobra": el usuario indica que tiene todo
-function tengoDeSobra() {
-    let estado = leerEstado();
-    if (!ingredienteActual) return;
+function abrirModalDespensa(itemId, despensaActual) {
+    const modal = document.getElementById('modal-despensa');
+    modal.style.display = 'block';
 
-    // Total que necesita este ingrediente
-    let total = estado.original[ingredienteActual] || 0;
+    document.getElementById('modal-despensa-titulo').textContent = "¿Cuántas raciones devuelves a la compra?";
 
-    // Simplemente establecemos: ya no faltan raciones, las tengo todas
-    estado.compra[ingredienteActual] = 0;
-    estado.despensa[ingredienteActual] = total;
-
-    guardarEstado(estado);
-    cerrarModal();
-    refrescarVista();  // Para actualizar el DOM
-}
-
-
-function cerrarModal() {
-    document.getElementById('modal').style.display = 'none';
-}
-
-// ======================
-//  2) Lógica parcial: "asignarParcialCompraADespensa(nombre, raciones)"
-//     Mueve 'raciones' de la lista de compra a la despensa
-// ======================
-function asignarParcialCompraADespensa(nombre, raciones) {
-    cerrarModal();
-    let estado = leerEstado();
-
-    // 1) Disminuimos la compra
-    if (!estado.compra[nombre]) {
-        estado.compra[nombre] = 0;
-    }
-    estado.compra[nombre] = Math.max(0, estado.compra[nombre] - raciones);
-
-    // 2) Aumentamos la despensa
-    if (!estado.despensa[nombre]) {
-        estado.despensa[nombre] = 0;
-    }
-    estado.despensa[nombre] += raciones;
-
-    guardarEstado(estado);
-
-    // Actualizamos el DOM
-    refrescarVista();
-}
-
-// ======================
-//  3) Apertura de Modal "¿Te faltan raciones?" (Despensa -> Compra)
-// ======================
-function abrirModalDespensa(nombre) {
-    let estado = leerEstado();
-    document.getElementById('modal-despensa').style.display = 'block';
-    document.getElementById('modal-despensa-titulo').innerText = nombre;
-
-    // Leemos cuántas raciones hay en la despensa
-    let enDespensa = estado.despensa[nombre] || 0;
-
-    let contenedor = document.getElementById('raciones-opciones-despensa');
-    contenedor.innerHTML = '';
-    // Mostramos botones del 1 hasta enDespensa
-    for (let i = 1; i <= enDespensa; i++) {
-        let boton = document.createElement('button');
-        boton.innerText = i;
-        boton.classList.add('btn-racion');
-        boton.onclick = function () {
-            devolverParcialDespensaACompra(nombre, i);
-        };
-        contenedor.appendChild(boton);
+    let cont = document.getElementById('raciones-opciones-despensa');
+    cont.innerHTML = '';
+    for (let i = 1; i <= despensaActual; i++) {
+        let btn = document.createElement('button');
+        btn.textContent = i;
+        btn.style.margin = '5px';
+        btn.onclick = () => moverDespensaACompra(itemId, i);
+        cont.appendChild(btn);
     }
 }
 
@@ -270,106 +121,104 @@ function cerrarModalDespensa() {
     document.getElementById('modal-despensa').style.display = 'none';
 }
 
-// ======================
-//  4) Lógica parcial: "devolverParcialDespensaACompra(nombre, raciones)"
-//     Mueve 'raciones' de la despensa a la compra
-// ======================
-function devolverParcialDespensaACompra(nombre, raciones) {
-    cerrarModalDespensa();
-    let estado = leerEstado();
+function moverCompraADespensa(itemId, raciones) {
+    // 1) Recogemos el lista_id del <li>
+    let li = document.querySelector(`[data-item-id='${itemId}']`);
+    let listaId = li.dataset.listaId;
 
-    // 1) Disminuimos la despensa
-    if (!estado.despensa[nombre]) {
-        estado.despensa[nombre] = 0;
-    }
-    estado.despensa[nombre] = Math.max(0, estado.despensa[nombre] - raciones);
-
-    // 2) Aumentamos la compra
-    if (!estado.compra[nombre]) {
-        // Si no existía, la creamos
-        estado.compra[nombre] = 0;
-    }
-    estado.compra[nombre] += raciones;
-
-    guardarEstado(estado);
-    refrescarVista();
+    // 2) POST a /mover_compra_despensa/
+    fetch("/mover_compra_despensa/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: new URLSearchParams({
+            'lista_id': listaId,
+            'item_id': itemId,
+            'raciones': raciones
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert("Error: " + data.error);
+        } else {
+            cerrarModalCompra();
+            refrescarDatos();
+        }
+    })
+    .catch(err => console.error(err));
 }
 
-// ======================
-//  5) Refrescar la Vista (DOM) según el estado actual
-// ======================
-function refrescarVista() {
-    // 1) Limpiamos la lista de compra y la despensa
-    let listaCompra = document.getElementById('lista-compra');
-    let listaDespensa = document.getElementById('ingredientes-disponibles');
-    listaCompra.innerHTML = '';
-    listaDespensa.innerHTML = '';
+function moverDespensaACompra(itemId, raciones) {
+    let li = document.querySelector(`[data-item-id='${itemId}']`);
+    let listaId = li.dataset.listaId;
 
-    let estado = leerEstado();
-
-    // 2) Renderizar la lista de la compra
-    // Recorremos "estado.compra" y mostramos solo los que tengan raciones > 0
-    for (let nombre in estado.compra) {
-        let r = estado.compra[nombre];
-        if (r > 0) {
-            let li = document.createElement('li');
-            li.dataset.nombre = nombre;
-            li.innerHTML = `<strong>${nombre}</strong> – <span id="restante-${nombre}">${r}</span> raciones
-                            <button onclick="abrirModalCompra('${nombre}', ${estado.original[nombre] || r})">Ya lo tengo</button>`;
-            listaCompra.appendChild(li);
+    fetch("/mover_despensa_compra/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: new URLSearchParams({
+            'lista_id': listaId,
+            'item_id': itemId,
+            'raciones': raciones
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert("Error: " + data.error);
+        } else {
+            cerrarModalDespensa();
+            refrescarDatos();
         }
-    }
-
-    // 3) Renderizar la despensa
-    // Recorremos "estado.despensa" y mostramos solo los que tengan raciones > 0
-    for (let nombre in estado.despensa) {
-        let d = estado.despensa[nombre];
-        if (d > 0) {
-            let total = estado.original[nombre] || d;
-            let restante = total - d;
-            let li = document.createElement('li');
-            li.dataset.nombre = nombre;
-            li.style.cursor = "pointer";
-            li.onclick = function() {
-                abrirModalDespensa(nombre);
-            };
-            li.innerHTML = `<strong>${nombre}</strong> – Tengo ${d} (Faltan ${restante})`;
-            listaDespensa.appendChild(li);
-        }
-    }
+    })
+    .catch(err => console.error(err));
 }
 
-// ======================
-//  6) Cargar y Guardar estado en localStorage
-// ======================
-
-
-// ======================
-//  7) Al cargar la página, inicializamos
-// ======================
-function cargarEstadoDesdeLocalStorage() {
-    // Lee el estado usando la clave semanal (si la tienes implementada)
-    let estado = leerEstado();
-    // Si el estado está vacío (o no existe compra para cierto ingrediente),
-    // inicialízalo a partir de lo que se muestra en el template.
-    let lista = document.querySelectorAll('#lista-compra li[data-nombre]');
-    lista.forEach(li => {
-        let nombre = li.dataset.nombre;
-        // Se asume que el span contiene la cantidad correcta que viene del contexto
-        let r = parseInt(li.querySelector('span').innerText) || 0;
-        if (estado.compra[nombre] === undefined) {
-            estado.compra[nombre] = r;
-        }
-        if (estado.original[nombre] === undefined) {
-            estado.original[nombre] = r;
-        }
-    });
-    guardarEstado(estado);
-    refrescarVista();
+function refrescarDatos() {
+    // Hacemos un GET a /lista_compra/datos?start=...
+    // Extraemos la "start_date" actual desde la URL
+    let urlParams = new URLSearchParams(window.location.search);
+    let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
+    fetch(`/lista_compra/datos?start=${start}`)
+      .then(res => res.json())
+      .then(data => {
+          // 1) Vaciar los UL
+          document.getElementById("lista-compra").innerHTML = "";
+          document.getElementById("ingredientes-despensa").innerHTML = "";
+          // 2) Llenar con data.por_comprar y data.en_despensa
+          data.por_comprar.forEach(item => {
+              let li = document.createElement('li');
+              li.dataset.itemId = item.item_id;
+              li.dataset.listaId = item.lista_id;
+              li.innerHTML = `<strong>${item.ingrediente}</strong> – <span class="compra-value">${item.compra}</span> raciones
+                <button onclick="abrirModalCompra(${item.item_id}, ${item.compra})">Ya lo tengo</button>`;
+              document.getElementById("lista-compra").appendChild(li);
+          });
+          data.en_despensa.forEach(item => {
+              let faltan = item.original - item.despensa;
+              let li = document.createElement('li');
+              li.dataset.itemId = item.item_id;
+              li.dataset.listaId = item.lista_id;
+              li.innerHTML = `<strong>${item.ingrediente}</strong> – Tengo <span class="despensa-value">${item.despensa}</span> (Faltan ${faltan})
+                <button onclick="abrirModalDespensa(${item.item_id}, ${item.despensa})">Devolver</button>`;
+              document.getElementById("ingredientes-despensa").appendChild(li);
+          });
+      })
+      .catch(err => console.error(err));
 }
 
-
-document.addEventListener("DOMContentLoaded", cargarEstadoDesdeLocalStorage);
+function resetearLista() {
+    if (!confirm("¿Estás seguro de que quieres reiniciar la lista de la compra?")) return;
+    // Podrías crear una vista /lista_compra/reset?start=... que borre todos los items
+    // o reasigne compra=original, despensa=0
+    // y luego hacer refrescarDatos() o recargar la página
+    alert("Implementa una vista para resetear la DB si lo deseas :)");
+}
 </script>
 
 {% endblock %}

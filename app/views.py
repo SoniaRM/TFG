@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Receta, Ingrediente, TipoComida, Calendario, Calendario_Receta
+from .models import Receta, Ingrediente, TipoComida, Calendario, Calendario_Receta, ListaCompra, ListaCompraItem
 from .forms import RecetaForm, IngredienteForm
 
 from django.shortcuts import get_object_or_404
@@ -209,6 +209,14 @@ def agregar_receta_calendario(request):
             # Crear la relación en la tabla intermedia
             Calendario_Receta.objects.create(calendario=calendario, receta=receta, tipo_comida=tipo_comida)
 
+            # 1) Obtener el lunes de la semana en la que se ha añadido la receta
+            from datetime import datetime, timedelta
+            fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
+            week_start = fecha_date - timedelta(days=fecha_date.weekday())
+
+            # 2) Llamar a generar_lista_compra(week_start)
+            generar_lista_compra(week_start)
+
             return JsonResponse({"mensaje": "Receta agregada exitosamente."}, status=200)
 
         except Exception as e:
@@ -245,6 +253,14 @@ def eliminar_receta_calendario(request):
         eliminados, _ = Calendario_Receta.objects.filter(
             calendario__fecha=fecha, receta__id=receta_id, tipo_comida__nombre=tipo_comida
         ).delete()
+
+        # 1) Obtener el lunes de la semana
+        from datetime import datetime, timedelta
+        fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
+        week_start = fecha_date - timedelta(days=fecha_date.weekday())
+
+        # 2) Llamar a generar_lista_compra(week_start)
+        generar_lista_compra(week_start)
 
         if eliminados:
             return JsonResponse({"mensaje": "Receta eliminada correctamente."}, status=200)
@@ -459,7 +475,9 @@ def exportar_semana(request):
     buffer.seek(0)
     return FileResponse(buffer, as_attachment=True, filename="recetas_semana.pdf")
 
+
 #LISTA COMPRA
+'''
 def lista_compra(request):
     # Obtener la fecha de inicio de la semana (lunes)
     start_str = request.GET.get('start')
@@ -513,3 +531,170 @@ def lista_compra(request):
     }
 
     return render(request, 'lista_compra.html', context)
+    '''
+
+def lista_compra(request):
+    # 1) Determinamos la semana
+    start_str = request.GET.get('start')
+    if start_str:
+        try:
+            input_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except ValueError:
+            input_date = now().date()
+    else:
+        input_date = now().date()
+
+    # Forzamos a lunes
+    start_date = input_date - timedelta(days=input_date.weekday())
+    dias = [start_date + timedelta(days=i) for i in range(7)]
+
+    # 2) Obtenemos (o creamos) la ListaCompra para esa semana
+    lista_compra_obj, _ = ListaCompra.objects.get_or_create(start_date=start_date)
+
+    # 3) Obtenemos todos los items y separamos en:
+    #    - ingredientes por comprar (compra>0)
+    #    - ingredientes en despensa (despensa>0)
+    items = lista_compra_obj.items.select_related('ingrediente')
+    ingredientes_por_comprar = []
+    ingredientes_en_despensa = []
+
+    for item in items:
+        if item.compra > 0:
+            ingredientes_por_comprar.append(item)
+        if item.despensa > 0:
+            ingredientes_en_despensa.append(item)
+
+    # 4) Formateamos la semana (ej: "17-23 de marzo 2025")
+    from babel.dates import format_date
+    semana_formateada = f"{dias[0].day}-{dias[-1].day} de {format_date(dias[0], format='MMMM yyyy', locale='es')}"
+
+    # 5) Calculamos URLs para anterior y siguiente semana
+    prev_week_date = start_date - timedelta(days=7)
+    next_week_date = start_date + timedelta(days=7)
+
+    context = {
+        'start_date': start_date,
+        'semana_formateada': semana_formateada,
+        'prev_week_url': f'?start={prev_week_date.isoformat()}',
+        'next_week_url': f'?start={next_week_date.isoformat()}',
+        'ingredientes_por_comprar': ingredientes_por_comprar,
+        'ingredientes_en_despensa': ingredientes_en_despensa,
+    }
+    return render(request, 'lista_compra.html', context)
+
+
+def mover_compra_despensa(request):
+    if request.method == 'POST':
+        lista_id = request.POST.get('lista_id')
+        item_id = request.POST.get('item_id')
+        raciones = int(request.POST.get('raciones', 0))
+        item = get_object_or_404(ListaCompraItem, id=item_id, lista_id=lista_id)
+        # Recalcular: Aumentar despensa y ajustar compra según el valor original.
+        nuevo_despensa = item.despensa + raciones
+        # No puede superar el total original:
+        if nuevo_despensa > item.original:
+            nuevo_despensa = item.original
+        item.despensa = nuevo_despensa
+        item.compra = item.original - nuevo_despensa
+        item.save()
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+def mover_despensa_compra(request):
+    if request.method == 'POST':
+        lista_id = request.POST.get('lista_id')
+        item_id = request.POST.get('item_id')
+        raciones = int(request.POST.get('raciones', 0))
+        item = get_object_or_404(ListaCompraItem, id=item_id, lista_id=lista_id)
+        # Recalcular: Disminuir despensa y ajustar compra.
+        nuevo_despensa = item.despensa - raciones
+        if nuevo_despensa < 0:
+            nuevo_despensa = 0
+        item.despensa = nuevo_despensa
+        item.compra = item.original - nuevo_despensa
+        item.save()
+        return JsonResponse({'status': 'ok'})
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+def lista_compra_datos(request):
+    start_str = request.GET.get('start')
+    if start_str:
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+    else:
+        start_date = now().date() - timedelta(days=now().date().weekday())
+
+    lista_compra_obj = get_object_or_404(ListaCompra, start_date=start_date)
+    items = lista_compra_obj.items.select_related('ingrediente')
+
+    por_comprar = []
+    en_despensa = []
+    for it in items:
+        if it.compra > 0:
+            por_comprar.append({
+                'item_id': it.id,
+                'lista_id': it.lista.id,
+                'ingrediente': it.ingrediente.nombre,
+                'compra': it.compra,
+                'original': it.original,
+            })
+        if it.despensa > 0:
+            en_despensa.append({
+                'item_id': it.id,
+                'lista_id': it.lista.id,
+                'ingrediente': it.ingrediente.nombre,
+                'despensa': it.despensa,
+                'original': it.original,
+            })
+
+    return JsonResponse({
+        'por_comprar': por_comprar,
+        'en_despensa': en_despensa,
+    })
+
+
+def generar_lista_compra(week_start):
+    from datetime import timedelta
+    from .models import ListaCompra, ListaCompraItem, Calendario, Ingrediente
+
+    end_date = week_start + timedelta(days=6)
+    lista, created = ListaCompra.objects.get_or_create(start_date=week_start)
+
+    # Obtén los calendarios para la semana y prefetch de asignaciones
+    calendarios = Calendario.objects.filter(fecha__range=(week_start, end_date)) \
+                                    .prefetch_related('calendario_recetas__receta__ingredientes')
+
+    ingredientes_contados = {}
+    print("DEBUG: Generando lista para la semana del", week_start, "hasta", end_date)
+
+    for cal in calendarios:
+        asignaciones = cal.calendario_recetas.all()
+        print("DEBUG: Día", cal.fecha, "tiene", asignaciones.count(), "asignación(es)")
+        for cr in asignaciones:
+            receta = cr.receta
+            print("  DEBUG: Asignación de receta:", receta.nombre, "en", cr.tipo_comida.nombre)
+            for ing in receta.ingredientes.all():
+                ingredientes_contados[ing.nombre] = ingredientes_contados.get(ing.nombre, 0) + 1
+                print("    DEBUG: Ingrediente", ing.nombre, "ahora cuenta", ingredientes_contados[ing.nombre])
+    
+    print("DEBUG: Total ingredientes_contados =", ingredientes_contados)
+
+    # Limpiamos items previos en la lista para esa semana
+    lista.items.all().delete()
+
+    # Creamos un item por cada ingrediente según el conteo obtenido
+    for nombre, cant in ingredientes_contados.items():
+        try:
+            ing_obj = Ingrediente.objects.get(nombre=nombre)
+        except Ingrediente.DoesNotExist:
+            continue
+        ListaCompraItem.objects.create(
+            lista=lista,
+            ingrediente=ing_obj,
+            original=cant,
+            compra=cant,
+            despensa=0
+        )
+
+    return lista
+
+

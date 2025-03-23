@@ -1,6 +1,7 @@
 #encoding:utf-8
 from django.core.validators import RegexValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 class TipoComida(models.Model):
     nombre = models.CharField(
@@ -96,3 +97,27 @@ class Calendario_Receta(models.Model):
 
     def __str__(self):
         return f"{self.receta} en {self.tipo_comida} el {self.calendario.fecha}"
+
+
+class ListaCompra(models.Model):
+    # Por ejemplo, para identificar a qué semana pertenece
+    start_date = models.DateField(default=timezone.now)
+    
+    # Si quieres enlazarlo a un usuario (aunque sea una app de un solo usuario),
+    # podrías añadir un campo user = models.ForeignKey(User, on_delete=models.CASCADE)
+    # si en el futuro quisieras multiusuario.
+
+    def __str__(self):
+        return f"Lista de la compra - Semana del {self.start_date}"
+
+class ListaCompraItem(models.Model):
+    """Representa un ingrediente en la lista, con las raciones originales, 
+    cuántas faltan por comprar y cuántas tiene el usuario."""
+    lista = models.ForeignKey(ListaCompra, on_delete=models.CASCADE, related_name="items")
+    ingrediente = models.ForeignKey(Ingrediente, on_delete=models.CASCADE)
+    original = models.PositiveIntegerField(default=0)
+    compra = models.PositiveIntegerField(default=0)
+    despensa = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.ingrediente.nombre} en {self.lista}"
