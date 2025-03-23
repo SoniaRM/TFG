@@ -653,45 +653,61 @@ def lista_compra_datos(request):
 
 
 def generar_lista_compra(week_start):
+    """
+    Recalcula la lista de la compra para la semana que inicia en week_start.
+    Cada asignación de receta suma 1 para cada ingrediente de la receta.
+    Se actualizan los items existentes preservando la cantidad en despensa,
+    de modo que:
+      compra = (nuevo total) – despensa, 
+      y si la despensa supera el nuevo total se ajusta a éste.
+    """
     from datetime import timedelta
     from .models import ListaCompra, ListaCompraItem, Calendario, Ingrediente
 
     end_date = week_start + timedelta(days=6)
+    # Obtén (o crea) la ListaCompra para esa semana
     lista, created = ListaCompra.objects.get_or_create(start_date=week_start)
 
-    # Obtén los calendarios para la semana y prefetch de asignaciones
+    # Calcula los nuevos totales a partir del calendario
+    # Cada asignación (fila en Calendario_Receta) suma 1 para cada ingrediente
     calendarios = Calendario.objects.filter(fecha__range=(week_start, end_date)) \
                                     .prefetch_related('calendario_recetas__receta__ingredientes')
-
-    ingredientes_contados = {}
-    print("DEBUG: Generando lista para la semana del", week_start, "hasta", end_date)
-
+    nuevos_totales = {}
     for cal in calendarios:
-        asignaciones = cal.calendario_recetas.all()
-        print("DEBUG: Día", cal.fecha, "tiene", asignaciones.count(), "asignación(es)")
-        for cr in asignaciones:
-            receta = cr.receta
-            print("  DEBUG: Asignación de receta:", receta.nombre, "en", cr.tipo_comida.nombre)
-            for ing in receta.ingredientes.all():
-                ingredientes_contados[ing.nombre] = ingredientes_contados.get(ing.nombre, 0) + 1
-                print("    DEBUG: Ingrediente", ing.nombre, "ahora cuenta", ingredientes_contados[ing.nombre])
-    
-    print("DEBUG: Total ingredientes_contados =", ingredientes_contados)
+        for cr in cal.calendario_recetas.all():
+            for ing in cr.receta.ingredientes.all():
+                nuevos_totales[ing.nombre] = nuevos_totales.get(ing.nombre, 0) + 1
 
-    # Limpiamos items previos en la lista para esa semana
-    lista.items.all().delete()
+    # Obtenemos los items existentes (por ingrediente, clave: nombre)
+    items_existentes = { item.ingrediente.nombre: item for item in lista.items.all() }
 
-    # Creamos un item por cada ingrediente según el conteo obtenido
-    for nombre, cant in ingredientes_contados.items():
+    # Actualizamos o eliminamos los items existentes
+    for ing_name, item in items_existentes.items():
+        if ing_name in nuevos_totales:
+            nuevo_total = nuevos_totales[ing_name]
+            # Si la cantidad en despensa supera el nuevo total, se ajusta
+            if item.despensa > nuevo_total:
+                item.despensa = nuevo_total
+            item.original = nuevo_total
+            item.compra = nuevo_total - item.despensa
+            item.save()
+            # Quitamos este ingrediente de nuevos_totales, ya se actualizó
+            del nuevos_totales[ing_name]
+        else:
+            # Si ya no aparece en el calendario, se elimina el item
+            item.delete()
+
+    # Para los ingredientes nuevos (que no existían antes) se crean los items
+    for ing_name, total in nuevos_totales.items():
         try:
-            ing_obj = Ingrediente.objects.get(nombre=nombre)
+            ing_obj = Ingrediente.objects.get(nombre=ing_name)
         except Ingrediente.DoesNotExist:
             continue
         ListaCompraItem.objects.create(
             lista=lista,
             ingrediente=ing_obj,
-            original=cant,
-            compra=cant,
+            original=total,
+            compra=total,   # Inicialmente, no hay nada en despensa
             despensa=0
         )
 
