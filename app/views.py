@@ -482,6 +482,10 @@ def lista_compra(request):
     calendarios = Calendario.objects.filter(fecha__range=(dias[0], dias[-1])).prefetch_related('calendario_recetas__receta__ingredientes')
     print("DEBUG: Calendarios en este rango:", list(calendarios))
 
+    # Calculamos la semana actual (lunes de hoy)
+    today = now().date()
+    current_start_date = today - timedelta(days=today.weekday())
+
     ingredientes_contados = {}
 
     for calendario in calendarios:
@@ -504,7 +508,8 @@ def lista_compra(request):
         'start_date': start_date,
         'prev_week_url': f'?start={(start_date - timedelta(days=7)).isoformat()}',
         'next_week_url': f'?start={(start_date + timedelta(days=7)).isoformat()}',
-        'semana_formateada': semana_formateada,  # <-- Aquí se pasa el string formateado
+        'semana_formateada': semana_formateada,  
+        'current_start_date': current_start_date, 
     }
 
     return render(request, 'lista_compra.html', context)
