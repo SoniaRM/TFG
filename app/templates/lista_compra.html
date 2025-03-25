@@ -18,6 +18,10 @@
         <a href="{{ next_week_url }}">Semana siguiente →</a>
     </div>
 
+    <!-- Botón para activar "Modo super" -->
+    <button id="btn-modo-super" onclick="activarModoSuper()">Modo super</button>
+
+
     {% if ingredientes_por_comprar or ingredientes_en_despensa %}
         <h2>Ingredientes por comprar</h2>
         <ul id="lista-compra">
@@ -46,6 +50,27 @@
     {% endif %}
 
     <button onclick="resetearLista()" class="btn-reset">Reiniciar Lista</button>
+</div>
+
+
+<!-- SECCIÓN MODO SUPER (OCULTA POR DEFECTO) -->
+<div id="modo-super" style="display:none; padding: 20px;">
+    <h2>Modo supermercado</h2>
+    <button id="btn-atras" onclick="desactivarModoSuper()">Atrás</button>
+
+    <div style="display: flex; gap: 40px;">
+      <!-- Lista de ingredientes por comprar -->
+      <div>
+        <h3>Ingredientes por comprar</h3>
+        <ul id="super-por-comprar"></ul>
+      </div>
+      <!-- Lista de ingredientes en la cesta -->
+      <div>
+        <h3>Ingredientes en la cesta</h3>
+        <ul id="super-cesta"></ul>
+      </div>
+    </div>
+    <button id="btn-comprar" onclick="finalizarCompra()">Comprar</button>
 </div>
 
 <!-- Modal para mover de compra -> despensa -->
@@ -217,11 +242,146 @@ function refrescarDatos() {
 
 function resetearLista() {
     if (!confirm("¿Estás seguro de que quieres reiniciar la lista de la compra?")) return;
-    // Podrías crear una vista /lista_compra/reset?start=... que borre todos los items
-    // o reasigne compra=original, despensa=0
-    // y luego hacer refrescarDatos() o recargar la página
-    alert("Implementa una vista para resetear la DB si lo deseas :)");
+    
+    // Obtener la fecha de inicio desde la URL o usar el start_date
+    let urlParams = new URLSearchParams(window.location.search);
+    let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
+    
+    fetch(`/lista_compra/reset/?start=${start}`, {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}"
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            alert("Error: " + data.error);
+        } else {
+            alert(data.mensaje);
+            location.reload();
+        }
+    })
+    .catch(err => console.error(err));
 }
+
+// ========== BOTÓN PARA ACTIVAR MODO SUPER ==========
+function activarModoSuper() {
+      // Mostramos la sección "modo-super" y ocultamos la vista normal (o viceversa)
+      const modoSuperDiv = document.getElementById('modo-super');
+      const container = document.querySelector('.container');
+      // Por ejemplo, ocultar la .container y mostrar modo-super:
+      container.style.display = 'none';
+      modoSuperDiv.style.display = 'block';
+
+      // Llenar la lista "super-por-comprar" con los ingredientes actuales de "por comprar"
+      // Podríamos usar la data actual del DOM o llamar a refrescarDatos() si tienes un array local.
+      inicializarModoSuper();
+  }
+
+ // ========== INICIALIZAR MODO SUPER ==========
+ function inicializarModoSuper() {
+      // 1) Limpiamos las listas
+      document.getElementById('super-por-comprar').innerHTML = "";
+      document.getElementById('super-cesta').innerHTML = "";
+
+      // 2) Recorremos la lista de compra actual del DOM
+      let porComprarItems = document.querySelectorAll('#lista-compra li[data-item-id]');
+      porComprarItems.forEach(li => {
+          let itemId = li.dataset.itemId;
+          let listaId = li.dataset.listaId;
+          let nombre = li.querySelector('strong').textContent.trim();
+          let compra = li.querySelector('.compra-value').textContent.trim();
+
+          // Crear un li en super-por-comprar
+          let nuevoLi = document.createElement('li');
+          nuevoLi.dataset.itemId = itemId;
+          nuevoLi.dataset.listaId = listaId;
+          nuevoLi.dataset.nombre = nombre;
+          nuevoLi.dataset.cantidad = compra;
+          nuevoLi.innerHTML = `
+            <strong>${nombre}</strong> – <span>${compra}</span> raciones
+            <button onclick="moverACesta('${itemId}')">✔</button>
+          `;
+          document.getElementById('super-por-comprar').appendChild(nuevoLi);
+      });
+  }
+
+  
+  // ========== MOVER A CESTA ==========
+  function moverACesta(itemId) {
+      // Buscamos el li en super-por-comprar
+      let li = document.querySelector(`#super-por-comprar li[data-item-id='${itemId}']`);
+      if (!li) return;
+
+      // Lo quitamos de super-por-comprar y lo metemos en super-cesta
+      li.remove();
+      li.innerHTML = `
+        <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
+        <button onclick="moverAListaPorComprar('${itemId}')">X</button>
+      `;
+      document.getElementById('super-cesta').appendChild(li);
+  }
+
+  
+  // ========== MOVER A LISTA POR COMPRAR ==========
+  function moverAListaPorComprar(itemId) {
+      let li = document.querySelector(`#super-cesta li[data-item-id='${itemId}']`);
+      if (!li) return;
+      li.remove();
+      li.innerHTML = `
+        <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
+        <button onclick="moverACesta('${itemId}')">✔</button>
+      `;
+      document.getElementById('super-por-comprar').appendChild(li);
+  }
+
+   // ========== BOTÓN "COMPRAR" ==========
+   function finalizarCompra() {
+      // Recorrer la super-cesta y obtener los ingredientes
+      let cestaItems = document.querySelectorAll('#super-cesta li[data-item-id]');
+      let cestaData = [];
+      cestaItems.forEach(li => {
+          cestaData.push({
+              item_id: li.dataset.itemId,
+              lista_id: li.dataset.listaId,
+              nombre: li.dataset.nombre,
+              cantidad: li.dataset.cantidad
+          });
+      });
+
+      // Hacemos un fetch POST a un nuevo endpoint, por ejemplo "/finalizar_compra/"
+      // que en el servidor actualiza la despensa de esa semana para esos ingredientes.
+      // Te sugiero crear una vista "finalizar_compra" que reciba la lista de items y 
+      // haga item.despensa += X en la BD, o como tú desees.
+      fetch("/finalizar_compra/", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: JSON.stringify({ items: cestaData, start: "{{ start_date|date:'Y-m-d' }}" })
+      })
+      .then(res => res.json())
+      .then(data => {
+          if (data.error) {
+              alert("Error al comprar: " + data.error);
+          } else {
+              alert("¡Compra realizada! Se han actualizado las raciones en la despensa.");
+              // Opcional: recargar la página o llamar a refrescarDatos()
+              location.reload();
+          }
+      })
+      .catch(err => console.error(err));
+  }
+  function desactivarModoSuper() {
+    // Oculta la sección Modo Super y muestra la vista normal
+    document.getElementById('modo-super').style.display = 'none';
+    // Asumiendo que la vista normal está en un contenedor con clase .container
+    document.querySelector('.container').style.display = 'block';
+}
+
+
 </script>
 
 {% endblock %}

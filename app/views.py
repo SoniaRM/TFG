@@ -719,4 +719,67 @@ def generar_lista_compra(week_start):
 
     return lista
 
+@csrf_exempt
+def finalizar_compra(request):
+    if request.method == 'POST':
+        import json
+        data = json.loads(request.body)
+        items = data.get('items', [])
+        start_str = data.get('start')
 
+        try:
+            start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except:
+            return JsonResponse({"error": "Fecha inválida"}, status=400)
+
+        lista = ListaCompra.objects.get(start_date=start_date)
+
+        for item_info in items:
+            item_id = item_info.get('item_id')
+            cantidad_str = item_info.get('cantidad', '0')
+            cantidad = int(cantidad_str)
+            # Buscamos el ListaCompraItem
+            try:
+                lci = ListaCompraItem.objects.get(id=item_id, lista=lista)
+                # Aumentamos la despensa
+                nuevo_despensa = lci.despensa + cantidad
+                if nuevo_despensa > lci.original:
+                    nuevo_despensa = lci.original
+                lci.despensa = nuevo_despensa
+                lci.compra = lci.original - nuevo_despensa
+                lci.save()
+            except ListaCompraItem.DoesNotExist:
+                continue
+        
+        return JsonResponse({"mensaje": "Compra realizada correctamente."})
+    return JsonResponse({"error": "Método no permitido"}, status=405)
+
+
+@csrf_exempt
+def resetear_lista_compra(request):
+    if request.method == "POST":
+        # Obtener la fecha de inicio de la semana (parámetro 'start')
+        start_str = request.GET.get('start')
+        if start_str:
+            try:
+                start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+            except ValueError:
+                return JsonResponse({"error": "Fecha inválida"}, status=400)
+        else:
+            # Si no se proporciona, tomar el lunes de la semana actual
+            start_date = now().date() - timedelta(days=now().date().weekday())
+        
+        try:
+            lista = ListaCompra.objects.get(start_date=start_date)
+        except ListaCompra.DoesNotExist:
+            return JsonResponse({"error": "Lista de compra no encontrada para la fecha especificada."}, status=404)
+        
+        # Reiniciar cada item: despensa a 0 y compra igual al valor original
+        for item in lista.items.all():
+            item.despensa = 0
+            item.compra = item.original
+            item.save()
+        
+        return JsonResponse({"mensaje": "Lista de compra reiniciada correctamente."})
+    
+    return JsonResponse({"error": "Método no permitido"}, status=405)
