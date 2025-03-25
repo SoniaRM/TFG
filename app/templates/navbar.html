@@ -24,7 +24,9 @@
                 <li class="{% if request.resolver_match.url_name == 'calendario_semanal' %}activo{% endif %}">
                     <a href="{% url 'calendario_semanal' %}">Calendario</a>
                 </li>
-
+                <li class="{% if request.resolver_match.url_name == 'lista_compra' %}activo{% endif %}">
+                    <a href="{% url 'lista_compra' %}">Compra</a>
+                </li>
             </ul>
         </nav>
     </div>

@@ -49,5 +49,13 @@ urlpatterns = [
     #EXPORTACIÓN
     path('exportar_semana/', views.exportar_semana, name='exportar_semana'),
 
+    #LISTA COMPRA
+    path('lista_compra/', views.lista_compra, name='lista_compra'),
+    path('lista_compra/datos', views.lista_compra_datos, name='lista_compra_datos'),
+    path('mover_compra_despensa/', views.mover_compra_despensa, name='mover_compra_despensa'),
+    path('mover_despensa_compra/', views.mover_despensa_compra, name='mover_despensa_compra'),
+    path('finalizar_compra/', views.finalizar_compra, name='finalizar_compra'),
+    path('lista_compra/reset/', views.resetear_lista_compra, name='reset_lista_compra'),
+
 
 ]
