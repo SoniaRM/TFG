@@ -562,7 +562,12 @@ def lista_compra(request):
         if item.compra > 0:
             ingredientes_por_comprar.append(item)
         if item.despensa > 0:
+            item.faltan = item.original - item.despensa
+            # Si por alguna razón faltan es negativo, lo ajustamos a 0
+            if item.faltan < 0:
+                item.faltan = 0
             ingredientes_en_despensa.append(item)
+
 
     # 4) Formateamos la semana (ej: "17-23 de marzo 2025")
     from babel.dates import format_date
@@ -644,6 +649,7 @@ def lista_compra_datos(request):
                 'ingrediente': it.ingrediente.nombre,
                 'despensa': it.despensa,
                 'original': it.original,
+                'faltan': max(0, it.original - it.despensa)
             })
 
     return JsonResponse({

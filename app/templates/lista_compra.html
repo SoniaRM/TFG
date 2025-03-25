@@ -35,7 +35,8 @@
             {% for item in ingredientes_en_despensa %}
                 <li data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
                     <strong>{{ item.ingrediente.nombre }}</strong>
-                    – Tengo <span class="despensa-value">{{ item.despensa }}</span> (Faltan {{ item.original|add:"-:"|add:item.despensa }})
+                    – Tengo <span class="despensa-value">{{ item.despensa }}</span> 
+                    (Faltan {{ item.faltan }})
                     <button onclick="abrirModalDespensa({{ item.id }}, {{ item.despensa }})">Devolver</button>
                 </li>
             {% endfor %}
@@ -199,12 +200,14 @@ function refrescarDatos() {
                 <button onclick="abrirModalCompra(${item.item_id}, ${item.compra})">Ya lo tengo</button>`;
               document.getElementById("lista-compra").appendChild(li);
           });
+
           data.en_despensa.forEach(item => {
-              let faltan = item.original - item.despensa;
+              console.log("item.original =", item.original, "item.despensa =", item.despensa);
+              console.log("FALTAN =", item.faltan);
               let li = document.createElement('li');
               li.dataset.itemId = item.item_id;
               li.dataset.listaId = item.lista_id;
-              li.innerHTML = `<strong>${item.ingrediente}</strong> – Tengo <span class="despensa-value">${item.despensa}</span> (Faltan ${faltan})
+              li.innerHTML = `<strong>${item.ingrediente}</strong> – Tengo <span class="despensa-value">${item.despensa}</span> (Faltan ${item.faltan})
                 <button onclick="abrirModalDespensa(${item.item_id}, ${item.despensa})">Devolver</button>`;
               document.getElementById("ingredientes-despensa").appendChild(li);
           });
