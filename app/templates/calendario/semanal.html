@@ -241,9 +241,20 @@
 
           <!-- Sección 2: Lista de recetas disponibles para añadir -->
           <h6>Añadir nueva receta:</h6>
+
+          <input
+            type="text"
+            id="buscar-receta"
+            class="form-control mb-2"
+            placeholder="Buscar receta..."
+          />
           <div id="recipeList" class="recipe-list">
             <p class="text-muted">Cargando...</p>
           </div>
+          <!-- Mensaje "No hay coincidencias" oculto por defecto -->
+          <p id="no-coincidencias-recetas" style="display: none; color: red;">
+            No hay coincidencias
+          </p>
 
         </div>
         <div class="modal-footer">
@@ -657,7 +668,16 @@
           // ✅ Actualizar dinámicamente la interfaz sin recargar
           cargarRecetasAñadidas(mealType, fecha);
           cargarRecetasDisponibles(mealType, fecha);
+
+          const buscarRecetaInput = document.getElementById("buscar-receta");
+          if (buscarRecetaInput) {
+            buscarRecetaInput.value = "";
+            // Disparamos el evento "keyup" para forzar que el script de filtrado muestre todas las recetas
+            const eventoKeyUp = new Event("keyup");
+            buscarRecetaInput.dispatchEvent(eventoKeyUp);
+          }
         })
+        
         .catch(() => console.error("Error al agregar la receta."));
     }
 
@@ -707,6 +727,32 @@
   });
 </script>
 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const buscarRecetaInput = document.getElementById("buscar-receta");
+  if (!buscarRecetaInput) return;
+
+  buscarRecetaInput.addEventListener("keyup", function() {
+    const filtro = this.value.toLowerCase();
+    const recipeList = document.getElementById("recipeList");
+    const noCoincidencias = document.getElementById("no-coincidencias-recetas");
+
+    if (!recipeList) return;
+
+    // Selecciona todos los botones de receta
+    const recipeButtons = recipeList.querySelectorAll(".recipe-button");
+
+    recipeButtons.forEach((btn) => {
+      const textoReceta = btn.textContent.toLowerCase();
+      if (textoReceta.includes(filtro)) {
+        btn.style.display = "";
+      } else {
+        btn.style.display = "none";
+      }
+    });
+  });
+});
+</script>
 
 </body>
 
