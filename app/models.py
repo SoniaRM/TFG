@@ -119,5 +119,8 @@ class ListaCompraItem(models.Model):
     compra = models.PositiveIntegerField(default=0)
     despensa = models.PositiveIntegerField(default=0)
 
+    class Meta:
+        unique_together = ('lista', 'ingrediente')
+        
     def __str__(self):
         return f"{self.ingrediente.nombre} en {self.lista}"

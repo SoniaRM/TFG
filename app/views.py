@@ -23,6 +23,9 @@ from reportlab.lib import colors
 from babel.dates import format_date
 #Lista de la compra
 from django.utils.timezone import now
+#Recomendaciones
+from itertools import combinations
+
 
 #RECETAS
 def listado_recetas(request):
@@ -155,14 +158,17 @@ def calendario_semanal(request):
 @csrf_exempt
 def recetas_por_tipo(request):
     """
-    Devuelve las recetas disponibles para agregar al calendario,
-    excluyendo las que ya han sido añadidas en la fecha y tipo de comida seleccionados.
+    Devuelve las recetas disponibles (individuales y en pares) para agregar al calendario,
+    excluyendo las que ya han sido añadidas en la fecha y tipo de comida seleccionados,
+    y ordenándolas según un score que combina el ajuste proteico y la penalización por frecuencia.
     """
     tipo = request.GET.get("tipo")
     fecha = request.GET.get("fecha")
 
     if not tipo or not fecha:
         return JsonResponse({"error": "Faltan parámetros."}, status=400)
+
+    # 1. Recetas del tipo seleccionado, excluyendo las ya asignadas en esa fecha y comida
 
     # Obtener todas las recetas del tipo de comida seleccionado
     recetas_disponibles = Receta.objects.filter(tipo_comida__nombre=tipo).distinct()
@@ -175,11 +181,85 @@ def recetas_por_tipo(request):
 
     # Excluir las recetas ya añadidas
     recetas_filtradas = recetas_disponibles.exclude(id__in=recetas_ya_agregadas.values_list('id', flat=True))
+    # 2. Calcular el saldo proteico para el día indicado
 
-    # Devolver la lista en formato JSON
-    data = [{"id": receta.id, "nombre": receta.nombre} for receta in recetas_filtradas]
-    return JsonResponse(data, safe=False)
+    calendario = Calendario.objects.filter(fecha=fecha).first()
+    if calendario:
+        objetivo_proteico = calendario.objetivo_proteico
+        proteinas_consumidas = calendario.proteinas_consumidas
+    else:
+        # Si no existe un calendario para ese día, usamos valores por defecto (por ejemplo, 100g de proteína)
+        objetivo_proteico = 100
+        proteinas_consumidas = 0
+    remaining_protein = objetivo_proteico - proteinas_consumidas
 
+    # 3. Parámetros y preparación
+    PENALTY_PER_INGREDIENT = 50
+
+    recetas_con_score = []
+    fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
+    recomendaciones = []  # Aquí almacenaremos tanto individuales como pares
+
+    # 4. Evaluación individual (se calcula el score para cada receta)
+    individual_scores = []  # lista de tuplas (total_score, receta)
+    for receta in recetas_filtradas:
+        protein_score = 100 - abs(remaining_protein - receta.proteinas)
+        penalty = 0
+        for ingrediente in receta.ingredientes.all():
+            start_period = fecha_date - timedelta(days=ingrediente.frec)
+            end_period = fecha_date + timedelta(days=ingrediente.frec)
+            used_recently = Calendario_Receta.objects.filter(
+                calendario__fecha__gte=start_period,
+                calendario__fecha__lt=end_period,
+                receta__ingredientes=ingrediente
+            ).exists()
+            if used_recently:
+                penalty += PENALTY_PER_INGREDIENT
+        total_score = protein_score - penalty
+        individual_scores.append((total_score, receta))
+        recomendaciones.append({
+            "ids": [receta.id],
+            "nombre": receta.nombre,
+            "score": total_score,
+            "tipo": "single"
+        })
+
+    # 5. Para la generación de pares: si hay demasiadas recetas candidatas,
+    # se selecciona un pool aleatorio (para incluir también recetas con menor score individual)
+    MAX_POOL = 20  # Ajusta este número según tus necesidades
+    pool_for_pairs = list(recetas_filtradas)
+    if len(pool_for_pairs) > MAX_POOL:
+        pool_for_pairs = random.sample(pool_for_pairs, MAX_POOL)
+
+    # 6. Evaluación de pares (se forman combinaciones del pool para pares)
+    for rec1, rec2 in combinations(pool_for_pairs, 2):
+        combined_protein = rec1.proteinas + rec2.proteinas
+        protein_score_pair = 100 - abs(remaining_protein - combined_protein)
+        # Unión de ingredientes para evitar contar dos veces
+        ingredientes_pair = set(list(rec1.ingredientes.all()) + list(rec2.ingredientes.all()))
+        penalty_pair = 0
+        for ingrediente in ingredientes_pair:
+            start_period = fecha_date - timedelta(days=ingrediente.frec)
+            end_period = fecha_date + timedelta(days=ingrediente.frec)
+            used_recently = Calendario_Receta.objects.filter(
+                calendario__fecha__gte=start_period,
+                calendario__fecha__lt=end_period,
+                receta__ingredientes=ingrediente
+            ).exists()
+            if used_recently:
+                penalty_pair += PENALTY_PER_INGREDIENT
+        total_score_pair = protein_score_pair - penalty_pair
+        recomendaciones.append({
+            "ids": [rec1.id, rec2.id],
+            "nombre": f"{rec1.nombre} + {rec2.nombre}",
+            "score": total_score_pair,
+            "tipo": "pair"
+        })
+
+    # 7. Ordenar todas las recomendaciones por score (de mayor a menor)
+    recomendaciones.sort(key=lambda x: x["score"], reverse=True)
+
+    return JsonResponse(recomendaciones, safe=False)
 
 @csrf_exempt
 def agregar_receta_calendario(request):
@@ -667,9 +747,6 @@ def generar_lista_compra(week_start):
       compra = (nuevo total) – despensa, 
       y si la despensa supera el nuevo total se ajusta a éste.
     """
-    from datetime import timedelta
-    from .models import ListaCompra, ListaCompraItem, Calendario, Ingrediente
-
     end_date = week_start + timedelta(days=6)
     # Obtén (o crea) la ListaCompra para esa semana
     lista, created = ListaCompra.objects.get_or_create(start_date=week_start)
@@ -682,38 +759,35 @@ def generar_lista_compra(week_start):
     for cal in calendarios:
         for cr in cal.calendario_recetas.all():
             for ing in cr.receta.ingredientes.all():
-                nuevos_totales[ing.nombre] = nuevos_totales.get(ing.nombre, 0) + 1
+                nuevos_totales[ing.id] = nuevos_totales.get(ing.id, 0) + 1
 
-    # Obtenemos los items existentes (por ingrediente, clave: nombre)
-    items_existentes = { item.ingrediente.nombre: item for item in lista.items.all() }
+    # Obtenemos los items existentes usando el ID del ingrediente
+    items_existentes = { item.ingrediente.id: item for item in lista.items.all() }
 
     # Actualizamos o eliminamos los items existentes
-    for ing_name, item in items_existentes.items():
-        if ing_name in nuevos_totales:
-            nuevo_total = nuevos_totales[ing_name]
-            # Si la cantidad en despensa supera el nuevo total, se ajusta
+    for ing_id, item in items_existentes.items():
+        if ing_id in nuevos_totales:
+            nuevo_total = nuevos_totales[ing_id]
             if item.despensa > nuevo_total:
                 item.despensa = nuevo_total
             item.original = nuevo_total
             item.compra = nuevo_total - item.despensa
             item.save()
-            # Quitamos este ingrediente de nuevos_totales, ya se actualizó
-            del nuevos_totales[ing_name]
+            del nuevos_totales[ing_id]
         else:
-            # Si ya no aparece en el calendario, se elimina el item
             item.delete()
 
-    # Para los ingredientes nuevos (que no existían antes) se crean los items
-    for ing_name, total in nuevos_totales.items():
+    # Para los ingredientes nuevos (que no estaban en la lista) se crean los items
+    for ing_id, total in nuevos_totales.items():
         try:
-            ing_obj = Ingrediente.objects.get(nombre=ing_name)
+            ing_obj = Ingrediente.objects.get(pk=ing_id)
         except Ingrediente.DoesNotExist:
             continue
         ListaCompraItem.objects.create(
             lista=lista,
             ingrediente=ing_obj,
             original=total,
-            compra=total,   # Inicialmente, no hay nada en despensa
+            compra=total,  # Inicialmente, no hay nada en despensa
             despensa=0
         )
 
