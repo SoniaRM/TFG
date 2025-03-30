@@ -747,9 +747,6 @@ def generar_lista_compra(week_start):
       compra = (nuevo total) – despensa, 
       y si la despensa supera el nuevo total se ajusta a éste.
     """
-    from datetime import timedelta
-    from .models import ListaCompra, ListaCompraItem, Calendario, Ingrediente
-
     end_date = week_start + timedelta(days=6)
     # Obtén (o crea) la ListaCompra para esa semana
     lista, created = ListaCompra.objects.get_or_create(start_date=week_start)
@@ -762,38 +759,35 @@ def generar_lista_compra(week_start):
     for cal in calendarios:
         for cr in cal.calendario_recetas.all():
             for ing in cr.receta.ingredientes.all():
-                nuevos_totales[ing.nombre] = nuevos_totales.get(ing.nombre, 0) + 1
+                nuevos_totales[ing.id] = nuevos_totales.get(ing.id, 0) + 1
 
-    # Obtenemos los items existentes (por ingrediente, clave: nombre)
-    items_existentes = { item.ingrediente.nombre: item for item in lista.items.all() }
+    # Obtenemos los items existentes usando el ID del ingrediente
+    items_existentes = { item.ingrediente.id: item for item in lista.items.all() }
 
     # Actualizamos o eliminamos los items existentes
-    for ing_name, item in items_existentes.items():
-        if ing_name in nuevos_totales:
-            nuevo_total = nuevos_totales[ing_name]
-            # Si la cantidad en despensa supera el nuevo total, se ajusta
+    for ing_id, item in items_existentes.items():
+        if ing_id in nuevos_totales:
+            nuevo_total = nuevos_totales[ing_id]
             if item.despensa > nuevo_total:
                 item.despensa = nuevo_total
             item.original = nuevo_total
             item.compra = nuevo_total - item.despensa
             item.save()
-            # Quitamos este ingrediente de nuevos_totales, ya se actualizó
-            del nuevos_totales[ing_name]
+            del nuevos_totales[ing_id]
         else:
-            # Si ya no aparece en el calendario, se elimina el item
             item.delete()
 
-    # Para los ingredientes nuevos (que no existían antes) se crean los items
-    for ing_name, total in nuevos_totales.items():
+    # Para los ingredientes nuevos (que no estaban en la lista) se crean los items
+    for ing_id, total in nuevos_totales.items():
         try:
-            ing_obj = Ingrediente.objects.get(nombre=ing_name)
+            ing_obj = Ingrediente.objects.get(pk=ing_id)
         except Ingrediente.DoesNotExist:
             continue
         ListaCompraItem.objects.create(
             lista=lista,
             ingrediente=ing_obj,
             original=total,
-            compra=total,   # Inicialmente, no hay nada en despensa
+            compra=total,  # Inicialmente, no hay nada en despensa
             despensa=0
         )
 
