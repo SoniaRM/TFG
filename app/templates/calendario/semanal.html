@@ -4,6 +4,10 @@
 {% load calendario_tags %}
 
 {% block content %}
+
+<form id="dummy-form" style="display:none;">
+  {% csrf_token %}
+</form>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -492,11 +496,13 @@
           data.forEach(receta => {
             var button = document.createElement("button");
             button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
-            button.textContent = receta.nombre;
-            button.dataset.recetaId = receta.id;
+            button.innerHTML  = `${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
+            button.dataset.recetaIds = JSON.stringify(receta.ids);
 
             button.addEventListener("click", function () {
-              agregarRecetaCalendario(receta.id, mealType, fecha);
+              const ids = JSON.parse(this.dataset.recetaIds);
+              // La función agregarRecetaCalendario deberá adaptarse para aceptar un arreglo de IDs
+              agregarRecetaCalendario(ids, mealType, fecha);
             });
 
             recipeList.appendChild(button);
@@ -570,11 +576,19 @@
           data.forEach(receta => {
             var button = document.createElement("button");
             button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
-            button.textContent = receta.nombre;
-            button.dataset.recetaId = receta.id;
-
-            button.addEventListener("click", function () {
-              agregarRecetaCalendario(receta.id, mealType, fecha);
+            // Diferenciar si es un par de recetas o una receta individual
+            if (receta.tipo === "pair") {
+              button.innerHTML = `<strong>Par:</strong> ${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
+            } else {
+              button.innerHTML = `${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
+            }
+            // Guardamos el/los ID(s) en el atributo data, usando JSON para mayor flexibilidad
+            button.dataset.recetaIds = JSON.stringify(receta.ids);
+            // Al hacer clic, se recupera el arreglo de IDs y se llama a la función de agregar recetas
+            button.addEventListener("click", function() {
+              const ids = JSON.parse(this.dataset.recetaIds);
+              // La función agregarRecetaCalendario deberá adaptarse para aceptar un arreglo de IDs
+              agregarRecetaCalendario(ids, mealType, fecha);
             });
 
             recipeList.appendChild(button);
@@ -638,49 +652,69 @@
     .catch(error => console.error("❌ Error al actualizar el calendario:", error));
 }
 
-    function agregarRecetaCalendario(recetaId, mealType, fecha) {
-      console.log("Agregando receta:", recetaId, "a", mealType, "en", fecha);
+function agregarRecetaCalendario(ids, mealType, fecha) {
 
-      var tipoComidaId = mealMapping[mealType];
-
-      fetch("/api/agregar_receta_calendario/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: new URLSearchParams({
-          fecha: fecha,
-          receta_id: recetaId,
-          tipo_comida_id: tipoComidaId
-        })
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log("🔵 Respuesta del servidor (Agregar):", data);
-
-          if (data.error) {
-            console.error("Error:", data.error);
-            return;
-          }
-          actualizarCalendario(fecha);  // 🚀 Se actualiza el calendario sin F5
-
-          // ✅ Actualizar dinámicamente la interfaz sin recargar
-          cargarRecetasAñadidas(mealType, fecha);
-          cargarRecetasDisponibles(mealType, fecha);
-
-          const buscarRecetaInput = document.getElementById("buscar-receta");
-          if (buscarRecetaInput) {
-            buscarRecetaInput.value = "";
-            // Disparamos el evento "keyup" para forzar que el script de filtrado muestre todas las recetas
-            const eventoKeyUp = new Event("keyup");
-            buscarRecetaInput.dispatchEvent(eventoKeyUp);
-          }
-        })
-        
-        .catch(() => console.error("Error al agregar la receta."));
+  if (!Array.isArray(ids)) {
+    // Puede que venga como undefined o como un número
+    if (typeof ids === "undefined") {
+      console.error("Error: el parámetro ids es undefined.");
+      return;
     }
+    ids = [ids];
+  }
+  console.log("Agregando recetas:", ids, "para", mealType, "en", fecha);
 
+  var tipoComidaId = mealMapping[mealType];
+
+  const requests = ids.map(recetaId => {
+    return fetch("/api/agregar_receta_calendario/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": "{{ csrf_token }}"
+      },
+      body: new URLSearchParams({
+        fecha: fecha,
+        receta_id: recetaId,
+        tipo_comida_id: tipoComidaId
+      })
+    })
+      .then(response => response.json())
+      .catch(error => {
+        console.error("Error en fetch para receta", recetaId, error);
+        throw error;
+      });
+  });
+
+  Promise.all(requests)
+    .then(results => {
+      console.log("🔵 Respuesta del servidor (Agregar):", results);
+      
+      // Opcional: verificar si alguna respuesta tiene error
+      const errores = results.filter(res => res.error);
+      if (errores.length > 0) {
+        console.error("Errores al agregar recetas:", errores);
+        alert("Hubo un error al agregar algunas recetas. Revisa la consola.");
+      }
+      
+      actualizarCalendario(fecha, mealType);  // Actualiza el calendario
+      cargarRecetasAñadidas(mealType, fecha);    // Actualiza la lista de recetas añadidas
+      cargarRecetasDisponibles(mealType, fecha);   // Actualiza las recetas disponibles
+
+      const buscarRecetaInput = document.getElementById("buscar-receta");
+      if (buscarRecetaInput) {
+        buscarRecetaInput.value = "";
+        const eventoKeyUp = new Event("keyup");
+        buscarRecetaInput.dispatchEvent(eventoKeyUp);
+      }
+    })
+    .catch(error => {
+      console.error("Error al agregar la receta:", error);
+      alert("Error al agregar la receta. Revisa la consola para más detalles.");
+    });
+}
+/*******************************/
+/*************************************/
 
     function eliminarRecetaCalendario(recetaId, mealType, fecha) {
       fetch("/api/eliminar_receta_calendario/", {
