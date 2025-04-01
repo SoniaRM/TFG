@@ -3,84 +3,91 @@
 {% block title %}Crear Receta{% endblock %}
 
 {% block content %}
-<h1>Crear Receta</h1>
+<!-- Incluimos Bootstrap desde CDN para usar sus clases -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
+<style>
+    .card-form {
+        background-color: #FFF8F5;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin: 20px auto;
+        max-width: 600px;
+    }
+    .card-form h2 {
+        background-color: #FFD9C2;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+</style>
 
-    <!-- Campo nombre -->
-    <p>
-        {{ form.nombre.label_tag }}<br>
-        {{ form.nombre }}
-        {{ form.nombre.errors }}
-
-    </p>
-
-    <!-- Campo tipo_comida -->
-    <p>
-        {{ form.tipo_comida.label_tag }}<br>
-        {{ form.tipo_comida }}
-        {{ form.tipo_comida.errors }}
-
-    </p>
-
-    <!-- Campo proteinas -->
-    <p>
-        {{ form.proteinas.label_tag }}<br>
-        {{ form.proteinas }}
-        {{ form.proteinas.errors }}
-
-    </p>
-
-    <!-- Campo ingredientes con buscador -->
-    <p>
-        <label for="buscar-ingrediente">{{ form.ingredientes.label }}:</label><br>
-        <!-- Aquí está el buscador -->
-        <input
-            type="text"
-            id="buscar-ingrediente"
-            placeholder="Buscar ingrediente..."
-            style="margin-bottom: 0.5em;"
-        />
-        <br>
-        <!-- Aquí se renderizan los checkboxes de ingredientes -->
-        {{ form.ingredientes }}
-        {{ form.ingredientes.errors }}
-
-        <p id="no-coincidencias" style="display: none; color: red;">
-            No hay coincidencias
-        </p>
-    </p>
-
-    <button type="submit">Guardar</button>
-</form>
+<div class="container mt-4">
+    <div class="card-form">
+        <h2>Crear Receta</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+            
+            <div class="mb-3">
+                {{ form.nombre.label_tag }}
+                <input type="text" name="{{ form.nombre.name }}" id="{{ form.nombre.id_for_label }}" value="{{ form.nombre.value|default_if_none:'' }}" class="form-control">
+                {{ form.nombre.errors }}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.tipo_comida.label_tag }}
+                {{ form.tipo_comida }}
+                {{ form.tipo_comida.errors }}
+            </div>
+            
+            <div class="mb-3">
+                {{ form.proteinas.label_tag }}
+                <input type="number" name="{{ form.proteinas.name }}" id="{{ form.proteinas.id_for_label }}" value="{{ form.proteinas.value|default_if_none:'' }}" class="form-control">
+                {{ form.proteinas.errors }}
+            </div>
+            
+            <div class="mb-3">
+                <label for="buscar-ingrediente">{{ form.ingredientes.label }}:</label>
+                <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente..." style="margin-bottom: 0.5em;">
+                <div class="row" id="ingrediente-checkboxes">
+                    {% for checkbox in form.ingredientes %}
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                {{ checkbox.tag }}
+                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                {{ form.ingredientes.errors }}
+                <p id="no-coincidencias" style="display: none; color: red;">No hay coincidencias</p>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        </form>
+    </div>
+</div>
 
 <!-- Script para filtrar las opciones de ingredientes en tiempo real -->
 <script>
 document.getElementById('buscar-ingrediente').addEventListener('keyup', function() {
     var filtro = this.value.toLowerCase();
-    // Buscamos todos los checkboxes dentro del div que Django genera
-    var checkboxes = document.querySelectorAll('#id_ingredientes input[type="checkbox"]');
+    var checkboxes = document.querySelectorAll('#ingrediente-checkboxes input[type="checkbox"]');
     var totalVisible = 0;
-
     checkboxes.forEach(function(checkbox) {
-        // El texto del <label> está junto al checkbox
         var labelText = checkbox.parentNode.textContent.toLowerCase();
         if (labelText.includes(filtro)) {
-            checkbox.parentNode.style.display = '';
+            checkbox.parentNode.parentNode.style.display = '';
             totalVisible++;
         } else {
-            checkbox.parentNode.style.display = 'none';
+            checkbox.parentNode.parentNode.style.display = 'none';
         }
     });
-        // Mostrar el mensaje "No hay coincidencias" si totalVisible == 0
     var noMatchMsg = document.getElementById('no-coincidencias');
-    if (totalVisible === 0) {
-        noMatchMsg.style.display = 'block';
-    } else {
-        noMatchMsg.style.display = 'none';
-    }
+    noMatchMsg.style.display = totalVisible === 0 ? 'block' : 'none';
 });
 </script>
 {% endblock %}
