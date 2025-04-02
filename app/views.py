@@ -115,6 +115,8 @@ def calendario_semanal(request):
 
     # 3) Generamos la lista de 7 días de la semana
     dias = [start_date + timedelta(days=i) for i in range(7)]
+    dias_semana_es = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+    dias_context = [(dia, dias_semana_es[dia.weekday()]) for dia in dias]
 
     # 4) Obtenemos todos los objetos Calendario que caigan en esos 7 días
     calendarios = Calendario.objects.filter(fecha__range=[dias[0], dias[-1]]) \
@@ -147,7 +149,7 @@ def calendario_semanal(request):
         'next_week_url': f'?start={next_week_date}',  # Query string para ir a la semana siguiente
         'meal_order': meal_order,  # <-- Importante
         'meal_mapping': meal_mapping,  # Este diccionario se usará en JS
-
+        'dias_context': dias_context,
     }
     print(context)
 
