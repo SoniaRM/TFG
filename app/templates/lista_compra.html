@@ -3,104 +3,184 @@
 {% block title %}Lista de la compra{% endblock %}
 
 {% block content %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
 <form id="dummy-form" style="display:none;">
     {% csrf_token %}
 </form>
 
-<div class="container">
-    <h1>Lista de la compra</h1>
-    <p><strong>Semana del:</strong> {{ semana_formateada }}</p>
 
-    <div class="navigation">
-        <a href="{{ prev_week_url }}">← Semana anterior</a> |
-        <!-- Botón "Esta semana" -->
-        <a href="?start={{ today|date:'Y-m-d' }}">Esta semana</a> |
-        <a href="{{ next_week_url }}">Semana siguiente →</a>
+<style>
+    .card-lista {
+        background-color: #FFF8F5;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin: 30px auto;
+        max-width: 800px;
+    }
+
+    .card-lista h1, .card-lista h2, .card-lista h3  {
+        background-color: #FFD9C2;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .navigation a {
+        margin: 0 10px;
+        font-weight: bold;
+        color: #333;
+        text-decoration: none;
+    }
+
+    ul li {
+        margin-bottom: 10px;
+    }
+
+    /* Modo Super */
+    #modo-super {
+        display: none;
+    }
+    .card-modo-super {
+        background-color: #FFF8F5;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 20px;
+        margin: 30px auto;
+        max-width: 800px;
+    }
+
+    /* Estilos para los modales personalizados */
+    .modal-custom {
+        display: none; 
+        position: fixed; 
+        top: 0;
+        left: 0; 
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5); 
+        z-index: 1050;
+    }
+    .modal-custom .modal-dialog {
+        margin: 100px auto;
+        max-width: 320px;
+    }
+    .modal-custom .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="card-lista" id="vista-normal">
+        <h1>Lista de la compra</h1>
+        <p><strong>Semana del:</strong> {{ semana_formateada }}</p>
+
+        <div class="navigation mb-3">
+            <a href="{{ prev_week_url }}">← Semana anterior</a> |
+            <a href="?start={{ today|date:'Y-m-d' }}">Esta semana</a> |
+            <a href="{{ next_week_url }}">Semana siguiente →</a>
+        </div>
+
+        <div class="mb-3">
+            <button class="btn btn-secondary" onclick="activarModoSuper()">Modo super</button>
+        </div>
+
+        {% if ingredientes_por_comprar or ingredientes_en_despensa %}
+            <h2>Ingredientes por comprar</h2>
+            <ul id="lista-compra" class="list-group mb-4">
+                {% for item in ingredientes_por_comprar %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
+                    <div>
+                        <strong>{{ item.ingrediente.nombre }}</strong> – <span class="compra-value">{{ item.compra }}</span> raciones
+                    </div>
+                    <button class="btn btn-sm btn-outline-success" onclick="abrirModalCompra({{ item.id }}, {{ item.compra }})">Ya lo tengo</button>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <h2>Ingredientes en la despensa</h2>
+            <ul id="ingredientes-despensa" class="list-group mb-4">
+                {% for item in ingredientes_en_despensa %}
+                <li class="list-group-item d-flex justify-content-between align-items-center" data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
+                    <div>
+                        <strong>{{ item.ingrediente.nombre }}</strong> – Tengo <span class="despensa-value">{{ item.despensa }}</span> (Faltan {{ item.faltan }})
+                    </div>
+                    <button class="btn btn-sm btn-outline-warning" onclick="abrirModalDespensa({{ item.id }}, {{ item.despensa }})">Devolver</button>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>No hay ingredientes para esta semana.</p>
+        {% endif %}
+
+        <div class="text-center">
+            <button onclick="resetearLista()" class="btn btn-danger mt-3">Reiniciar Lista</button>
+        </div>
     </div>
-
-    <!-- Botón para activar "Modo super" -->
-    <button id="btn-modo-super" onclick="activarModoSuper()">Modo super</button>
-
-
-    {% if ingredientes_por_comprar or ingredientes_en_despensa %}
-        <h2>Ingredientes por comprar</h2>
-        <ul id="lista-compra">
-            {% for item in ingredientes_por_comprar %}
-                <li data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
-                    <strong>{{ item.ingrediente.nombre }}</strong>
-                    – <span class="compra-value">{{ item.compra }}</span> raciones
-                    <button onclick="abrirModalCompra({{ item.id }}, {{ item.compra }})">Ya lo tengo</button>
-                </li>
-            {% endfor %}
-        </ul>
-
-        <h2>Ingredientes en la despensa</h2>
-        <ul id="ingredientes-despensa">
-            {% for item in ingredientes_en_despensa %}
-                <li data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
-                    <strong>{{ item.ingrediente.nombre }}</strong>
-                    – Tengo <span class="despensa-value">{{ item.despensa }}</span> 
-                    (Faltan {{ item.faltan }})
-                    <button onclick="abrirModalDespensa({{ item.id }}, {{ item.despensa }})">Devolver</button>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>No hay ingredientes para esta semana.</p>
-    {% endif %}
-
-    <button onclick="resetearLista()" class="btn-reset">Reiniciar Lista</button>
 </div>
 
 
 <!-- SECCIÓN MODO SUPER (OCULTA POR DEFECTO) -->
-<div id="modo-super" style="display:none; padding: 20px;">
+<div id="modo-super" class="card-modo-super">
     <h2>Modo supermercado</h2>
-    <button id="btn-atras" onclick="desactivarModoSuper()">Atrás</button>
-
-    <div style="display: flex; gap: 40px;">
-      <!-- Lista de ingredientes por comprar -->
-      <div>
-        <h3>Ingredientes por comprar</h3>
-        <ul id="super-por-comprar"></ul>
-      </div>
-      <!-- Lista de ingredientes en la cesta -->
-      <div>
-        <h3>Ingredientes en la cesta</h3>
-        <ul id="super-cesta"></ul>
-      </div>
+    <div class="d-flex justify-content-end mb-3">
+        <button id="btn-atras" class="btn btn-secondary" onclick="desactivarModoSuper()">Atrás</button>
     </div>
-    <button id="btn-comprar" onclick="finalizarCompra()">Comprar</button>
+    <div class="row">
+        <div class="col-md-6">
+            <h3>Ingredientes por comprar</h3>
+            <ul id="super-por-comprar" class="list-group"></ul>
+        </div>
+        <div class="col-md-6">
+            <h3>Ingredientes en la cesta</h3>
+            <ul id="super-cesta" class="list-group"></ul>
+        </div>
+    </div>
+    <div class="text-center mt-3">
+        <button id="btn-comprar" class="btn btn-success" onclick="finalizarCompra()">Comprar</button>
+    </div>
 </div>
 
-<!-- Modal para mover de compra -> despensa -->
-<div id="modal-compra" 
-     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-            background-color: rgba(0,0,0,0.5); z-index:9999;">
-  <div style="background:white; width:320px; margin:10% auto; padding:20px; 
-              border-radius:10px; text-align:center; position:relative;">
-      <h3 id="modal-compra-titulo"></h3>
-      <p>Selecciona cuántas raciones tienes:</p>
-      <div id="raciones-opciones-compra" 
-           style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"></div>
-      <br>
-      <button onclick="cerrarModalCompra()">Cancelar</button>
-  </div>
+<!-- Modal para mover de compra a despensa -->
+<div id="modal-compra" class="modal-custom">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="modal-compra-titulo" class="modal-title">¿Cuántas raciones tienes?</h5>
+                <button type="button" class="btn-close" onclick="cerrarModalCompra()"></button>
+            </div>
+            <div class="modal-body">
+                <p>Selecciona cuántas raciones tienes:</p>
+                <div id="raciones-opciones-compra" class="d-flex flex-wrap gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModalCompra()">Cancelar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<!-- Modal para mover de despensa -> compra -->
-<div id="modal-despensa"
-     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-            background-color: rgba(0,0,0,0.5); z-index:9999;">
-  <div style="background:white; width:320px; margin:10% auto; padding:20px; 
-              border-radius:10px; text-align:center; position:relative;">
-      <h3 id="modal-despensa-titulo"></h3>
-      <p>Selecciona cuántas raciones devuelves a la compra:</p>
-      <div id="raciones-opciones-despensa" 
-           style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"></div>
-      <br>
-      <button onclick="cerrarModalDespensa()">Cancelar</button>
-  </div>
+<!-- Modal para mover de despensa a compra -->
+<div id="modal-despensa" class="modal-custom">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="modal-despensa-titulo" class="modal-title">¿Cuántas raciones devuelves a la compra?</h5>
+                <button type="button" class="btn-close" onclick="cerrarModalDespensa()"></button>
+            </div>
+            <div class="modal-body">
+                <p>Selecciona cuántas raciones devuelves a la compra:</p>
+                <div id="raciones-opciones-despensa" class="d-flex flex-wrap gap-2"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="cerrarModalDespensa()">Cancelar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -117,6 +197,7 @@ function abrirModalCompra(itemId, compraActual) {
     for (let i = 1; i <= compraActual; i++) {
         let btn = document.createElement('button');
         btn.textContent = i;
+        btn.className = 'btn btn-outline-primary';
         btn.style.margin = '5px';
         btn.onclick = () => moverCompraADespensa(itemId, i);
         cont.appendChild(btn);
@@ -137,6 +218,7 @@ function abrirModalDespensa(itemId, despensaActual) {
     for (let i = 1; i <= despensaActual; i++) {
         let btn = document.createElement('button');
         btn.textContent = i;
+        btn.className = 'btn btn-outline-primary';
         btn.style.margin = '5px';
         btn.onclick = () => moverDespensaACompra(itemId, i);
         cont.appendChild(btn);
@@ -219,21 +301,21 @@ function refrescarDatos() {
           // 2) Llenar con data.por_comprar y data.en_despensa
           data.por_comprar.forEach(item => {
               let li = document.createElement('li');
+              li.className = 'list-group-item d-flex justify-content-between align-items-center';
               li.dataset.itemId = item.item_id;
               li.dataset.listaId = item.lista_id;
-              li.innerHTML = `<strong>${item.ingrediente}</strong> – <span class="compra-value">${item.compra}</span> raciones
-                <button onclick="abrirModalCompra(${item.item_id}, ${item.compra})">Ya lo tengo</button>`;
+              li.innerHTML = `<div><strong>${item.ingrediente}</strong> – <span class="compra-value">${item.compra}</span> raciones</div>
+                <button class="btn btn-sm btn-outline-success" onclick="abrirModalCompra(${item.item_id}, ${item.compra})">Ya lo tengo</button>`;
               document.getElementById("lista-compra").appendChild(li);
           });
 
           data.en_despensa.forEach(item => {
-              console.log("item.original =", item.original, "item.despensa =", item.despensa);
-              console.log("FALTAN =", item.faltan);
               let li = document.createElement('li');
+              li.className = 'list-group-item d-flex justify-content-between align-items-center';
               li.dataset.itemId = item.item_id;
               li.dataset.listaId = item.lista_id;
-              li.innerHTML = `<strong>${item.ingrediente}</strong> – Tengo <span class="despensa-value">${item.despensa}</span> (Faltan ${item.faltan})
-                <button onclick="abrirModalDespensa(${item.item_id}, ${item.despensa})">Devolver</button>`;
+              li.innerHTML = `<div><strong>${item.ingrediente}</strong> – Tengo <span class="despensa-value">${item.despensa}</span> (Faltan ${item.faltan})</div>
+                <button class="btn btn-sm btn-outline-warning" onclick="abrirModalDespensa(${item.item_id}, ${item.despensa})">Devolver</button>`;
               document.getElementById("ingredientes-despensa").appendChild(li);
           });
       })
@@ -267,17 +349,10 @@ function resetearLista() {
 
 // ========== BOTÓN PARA ACTIVAR MODO SUPER ==========
 function activarModoSuper() {
-      // Mostramos la sección "modo-super" y ocultamos la vista normal (o viceversa)
-      const modoSuperDiv = document.getElementById('modo-super');
-      const container = document.querySelector('.container');
-      // Por ejemplo, ocultar la .container y mostrar modo-super:
-      container.style.display = 'none';
-      modoSuperDiv.style.display = 'block';
-
-      // Llenar la lista "super-por-comprar" con los ingredientes actuales de "por comprar"
-      // Podríamos usar la data actual del DOM o llamar a refrescarDatos() si tienes un array local.
-      inicializarModoSuper();
-  }
+    document.getElementById('vista-normal').style.display = 'none';
+    document.getElementById('modo-super').style.display = 'block';
+    inicializarModoSuper();
+}
 
  // ========== INICIALIZAR MODO SUPER ==========
  function inicializarModoSuper() {
@@ -300,9 +375,13 @@ function activarModoSuper() {
           nuevoLi.dataset.nombre = nombre;
           nuevoLi.dataset.cantidad = compra;
           nuevoLi.innerHTML = `
-            <strong>${nombre}</strong> – <span>${compra}</span> raciones
-            <button onclick="moverACesta('${itemId}')">✔</button>
-          `;
+            <div class="d-flex align-items-center">
+                <button class="btn btn-sm btn-outline-success me-2" onclick="moverACesta('${itemId}')">✔</button>
+                <div>
+                <strong>${nombre}</strong> – <span>${compra}</span> raciones
+                </div>
+            </div>
+            `;
           document.getElementById('super-por-comprar').appendChild(nuevoLi);
       });
   }
@@ -317,9 +396,13 @@ function activarModoSuper() {
       // Lo quitamos de super-por-comprar y lo metemos en super-cesta
       li.remove();
       li.innerHTML = `
-        <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
-        <button onclick="moverAListaPorComprar('${itemId}')">X</button>
-      `;
+        <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-danger me-2" onclick="moverAListaPorComprar('${itemId}')">❌</button>
+            <div>
+            <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
+            </div>
+        </div>
+        `;
       document.getElementById('super-cesta').appendChild(li);
   }
 
@@ -330,9 +413,13 @@ function activarModoSuper() {
       if (!li) return;
       li.remove();
       li.innerHTML = `
-        <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
-        <button onclick="moverACesta('${itemId}')">✔</button>
-      `;
+        <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-success me-2" onclick="moverACesta('${itemId}')">✔</button>
+            <div>
+            <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
+            </div>
+        </div>
+        `;
       document.getElementById('super-por-comprar').appendChild(li);
   }
 
@@ -374,11 +461,10 @@ function activarModoSuper() {
       })
       .catch(err => console.error(err));
   }
+  
   function desactivarModoSuper() {
-    // Oculta la sección Modo Super y muestra la vista normal
     document.getElementById('modo-super').style.display = 'none';
-    // Asumiendo que la vista normal está en un contenedor con clase .container
-    document.querySelector('.container').style.display = 'block';
+    document.getElementById('vista-normal').style.display = 'block';
 }
 
 
