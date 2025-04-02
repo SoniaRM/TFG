@@ -1,5 +1,5 @@
 from django import forms
-from .models import Receta, Ingrediente, TipoComida
+from .models import Receta, Ingrediente, TipoComida, Calendario
 
 class RecetaForm(forms.ModelForm):
     nombre = forms.CharField(max_length=100)
@@ -20,3 +20,15 @@ class IngredienteForm(forms.ModelForm):
     class Meta:
         model = Ingrediente
         fields = ['nombre', 'frec']
+
+
+class ObjetivoDiarioForm(forms.ModelForm):
+    class Meta:
+        model = Calendario
+        fields = ['objetivo_proteico']
+        widgets = {
+            'objetivo_proteico': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+        }
+        labels = {
+            'objetivo_proteico': 'Objetivo diario de proteínas (g)'
+        }

@@ -57,5 +57,7 @@ urlpatterns = [
     path('finalizar_compra/', views.finalizar_compra, name='finalizar_compra'),
     path('lista_compra/reset/', views.resetear_lista_compra, name='reset_lista_compra'),
 
+    #CONFIGURACION OBJETIVO
+    path('configurar_objetivo/', views.configurar_objetivo, name='configurar_objetivo'),
 
 ]

@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import Receta, Ingrediente, TipoComida, Calendario, Calendario_Receta, ListaCompra, ListaCompraItem
-from .forms import RecetaForm, IngredienteForm
+from .forms import RecetaForm, IngredienteForm, ObjetivoDiarioForm
 
 from django.shortcuts import get_object_or_404
 
@@ -25,7 +25,8 @@ from babel.dates import format_date
 from django.utils.timezone import now
 #Recomendaciones
 from itertools import combinations
-
+#Configuracion objetivo diario
+from django.utils import timezone
 
 #RECETAS
 def listado_recetas(request):
@@ -557,62 +558,6 @@ def exportar_semana(request):
 
 
 #LISTA COMPRA
-'''
-def lista_compra(request):
-    # Obtener la fecha de inicio de la semana (lunes)
-    start_str = request.GET.get('start')
-    if start_str:
-        try:
-            input_date = datetime.strptime(start_str, "%Y-%m-%d").date()
-        except ValueError:
-            input_date = now().date()
-    else:
-        input_date = now().date()
-
-    start_date = input_date - timedelta(days=input_date.weekday())  # Forzamos a lunes
-    dias = [start_date + timedelta(days=i) for i in range(7)]
-    print("DEBUG: start_date =", start_date)
-    print("DEBUG: dias =", dias)
-
-    from babel.dates import format_date
-    semana_formateada = f"{dias[0].day}-{dias[-1].day} de {format_date(dias[0], format='MMMM yyyy', locale='es')}"
-
-    calendarios = Calendario.objects.filter(fecha__range=(dias[0], dias[-1])).prefetch_related('calendario_recetas__receta__ingredientes')
-    print("DEBUG: Calendarios en este rango:", list(calendarios))
-
-    # Calculamos la semana actual (lunes de hoy)
-    today = now().date()
-    current_start_date = today - timedelta(days=today.weekday())
-
-    ingredientes_contados = {}
-
-    for calendario in calendarios:
-        print(f"DEBUG: Para el día {calendario.fecha}, hay {calendario.calendario_recetas.count()} asignaciones:")
-        for cr in calendario.calendario_recetas.all():
-            print("   -", cr.receta.nombre, "en", cr.tipo_comida, "(ID:", cr.id, ")")
-            for ingrediente in cr.receta.ingredientes.all():
-                nombre = ingrediente.nombre
-                if nombre in ingredientes_contados:
-                    ingredientes_contados[nombre] += 1
-                else:
-                    ingredientes_contados[nombre] = 1
-
-    ingredientes_ordenados = sorted(ingredientes_contados.items())  # orden alfabético
-
-    print("DEBUG: ingredientes_contados =", ingredientes_contados)
-
-    context = {
-        'ingredientes': ingredientes_ordenados,
-        'start_date': start_date,
-        'prev_week_url': f'?start={(start_date - timedelta(days=7)).isoformat()}',
-        'next_week_url': f'?start={(start_date + timedelta(days=7)).isoformat()}',
-        'semana_formateada': semana_formateada,  
-        'current_start_date': current_start_date, 
-    }
-
-    return render(request, 'lista_compra.html', context)
-    '''
-
 def lista_compra(request):
     # 1) Determinamos la semana
     start_str = request.GET.get('start')
@@ -857,3 +802,21 @@ def resetear_lista_compra(request):
         return JsonResponse({"mensaje": "Lista de compra reiniciada correctamente."})
     
     return JsonResponse({"error": "Método no permitido"}, status=405)
+
+#Configuración objetivo diario
+
+def configurar_objetivo(request):
+    hoy = timezone.now().date()
+    calendario, _ = Calendario.objects.get_or_create(fecha=hoy)
+
+    if request.method == 'POST':
+        form = ObjetivoDiarioForm(request.POST, instance=calendario)
+        if form.is_valid():
+            nuevo_objetivo = form.cleaned_data['objetivo_proteico']
+            # Actualizamos todos los días desde hoy en adelante
+            Calendario.objects.filter(fecha__gte=hoy).update(objetivo_proteico=nuevo_objetivo)
+            return redirect('calendario_semanal')  # O donde quieras redirigir
+    else:
+        form = ObjetivoDiarioForm(instance=calendario)
+
+    return render(request, 'configurar_objetivo.html', {'form': form})
