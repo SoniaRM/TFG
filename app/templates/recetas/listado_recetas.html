@@ -37,6 +37,7 @@
     }
     .btn-action {
         margin-right: 5px;
+        width: 90%;
     }
 </style>
 
@@ -65,14 +66,20 @@
                     {% endfor %}
                 </ul>
             </div>
-            <div class="d-flex justify-content-between mt-2">
-                <a href="{% url 'detalle_receta' receta.pk %}" class="btn btn-primary btn-action">Ver</a>
-                <a href="{% url 'editar_receta' receta.pk %}" class="btn btn-warning btn-action">Editar</a>
-                <form method="post" action="{% url 'detalle_receta' receta.pk %}" style="display:inline;">
+            <div class="d-flex">
+                <div class="flex-fill text-center">
+                  <a href="{% url 'detalle_receta' receta.pk %}" class="btn btn-primary btn-action">Ver</a>
+                </div>
+                <div class="flex-fill text-center">
+                  <a href="{% url 'editar_receta' receta.pk %}" class="btn btn-warning btn-action">Editar</a>
+                </div>
+                <div class="flex-fill text-center">
+                  <form method="post" action="{% url 'detalle_receta' receta.pk %}" style="display:inline-block; width:100%;">
                     {% csrf_token %}
-                    <button type="submit" name="delete" class="btn btn-danger btn-action">Eliminar</button>
-                </form>
-            </div>
+                    <button type="submit" name="delete" class="btn btn-danger btn-action" style="width:100%;">Eliminar</button>
+                  </form>
+                </div>
+            </div> 
         </div>
         {% endfor %}
     </div>

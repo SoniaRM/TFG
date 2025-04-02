@@ -1,14 +1,38 @@
 {% extends 'navbar.html' %}
 
-{% block title %}Editar ingrediente{% endblock %}
+{% block title %}Editar Ingrediente{% endblock %}
 
 {% block content %}
-    <h1>Editar Ingrediente</h1>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Guardar</button>
-    </form>
-    <a href="{% url 'detalle_ingrediente' ingrediente.pk %}">Cancelar</a>
+<!-- Incluimos Bootstrap para aprovechar sus clases -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+<style>
+  .card-form {
+      background-color: #FFF8F5;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 600px;
+  }
+  .card-form h2 {
+      background-color: #FFD9C2;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      margin-bottom: 20px;
+  }
+</style>
+
+<div class="container mt-4">
+  <div class="card-form">
+    <h2>Editar Ingrediente</h2>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+    <a href="{% url 'detalle_ingrediente' ingrediente.pk %}" class="btn btn-secondary mt-3">Cancelar</a>
+  </div>
+</div>
 {% endblock %}
