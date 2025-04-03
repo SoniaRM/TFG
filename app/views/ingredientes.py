@@ -19,7 +19,10 @@ def crear_ingrediente(request):
         form = IngredienteForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('listado_ingredientes')  
+            return render(request, 'ingredientes/crear_ingrediente.html', {
+                'form': IngredienteForm(),
+                'exito': True
+            })    
     else:
         form = IngredienteForm()
     return render(request, 'ingredientes/crear_ingrediente.html', {'form': form})
@@ -30,7 +33,11 @@ def editar_ingrediente(request, pk):
         form = IngredienteForm(request.POST, instance=ingrediente)
         if form.is_valid():
             form.save()
-            return redirect('listado_ingredientes')  
+            return render(request, 'ingredientes/editar_ingrediente.html', {
+                'form': form,
+                'ingrediente': ingrediente,
+                'exito': True
+            })    
     else:
         form = IngredienteForm(instance=ingrediente)
     return render(request, 'ingredientes/editar_ingrediente.html', {'form': form, 'ingrediente': ingrediente})
