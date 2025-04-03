@@ -454,9 +454,8 @@ function activarModoSuper() {
           if (data.error) {
               alert("Error al comprar: " + data.error);
           } else {
-              alert("¡Compra realizada! Se han actualizado las raciones en la despensa.");
-              // Opcional: recargar la página o llamar a refrescarDatos()
-              location.reload();
+            mostrarSuccessModal("");
+            setTimeout(() => location.reload(), 1000);  // recarga luego de 2.5s
           }
       })
       .catch(err => console.error(err));

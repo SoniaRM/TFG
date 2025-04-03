@@ -91,4 +91,16 @@ document.getElementById('buscar-ingrediente').addEventListener('keyup', function
     noMatchMsg.style.display = totalVisible === 0 ? 'block' : 'none';
 });
 </script>
+
+
+{% if exito %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mostrarSuccessModal();
+    setTimeout(() => {
+      window.location.href = "{% url 'detalle_receta' receta.pk %}";
+    }, 1000);
+  });
+</script>
+{% endif %}
 {% endblock %}

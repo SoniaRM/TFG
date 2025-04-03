@@ -1,0 +1,44 @@
+<!-- Success Modal minimalista -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content bg-transparent border-0 shadow-none text-center animate-zoom">
+        <div class="mx-auto" style="
+            background-color: rgba(76, 175, 80, 0.2);
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;">
+          <i class="bi bi-check-circle-fill" style="font-size: 4rem; color: #4CAF50;"></i>
+        </div>
+        <h4 class="text-success">¡Operación realizada con éxito!</h4>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    @keyframes zoomIn {
+      from { opacity: 0; transform: scale(0.6); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .animate-zoom {
+      animation: zoomIn 0.3s ease-out;
+    }
+  </style>
+  
+  <script>
+    function mostrarSuccessModal(mensaje = "") {
+      const modalElement = document.getElementById("successModal");
+      if (!modalElement) return;
+  
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+  
+      // Auto cerrar después de 1.5 segundos
+      setTimeout(() => {
+        modal.hide();
+      }, 1000);
+    }
+  </script>
+  

@@ -19,7 +19,10 @@ def crear_receta(request):
         form = RecetaForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('listado_recetas')  # Redirige a la lista de recetas después de crear una nueva
+            return render(request, 'recetas/crear_receta.html', {
+                'form': RecetaForm(),
+                'exito': True
+            })
     else:
         form = RecetaForm()
     return render(request, 'recetas/crear_receta.html', {'form': form})
@@ -30,7 +33,11 @@ def editar_receta(request, pk):
         form = RecetaForm(request.POST, instance=receta)
         if form.is_valid():
             form.save()
-            return redirect('listado_recetas')
+            return render(request, 'recetas/editar_receta.html', {
+                'form': form,
+                'receta': receta,
+                'exito': True
+            })
     else:
         form = RecetaForm(instance=receta)
     return render(request, 'recetas/editar_receta.html', {'form': form, 'receta': receta})
