@@ -23,8 +23,8 @@ class Ingrediente(models.Model):
         max_length=100,
         validators=[
             RegexValidator(
-                regex=r'^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$',  # Allowing letters, spaces, and vowels with accents
-                message='El nombre solo puede contener letras, espacios y vocales con tilde.',
+                regex=r'^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ\s]+$',
+                message='El nombre solo puede contener letras, números, espacios y la letra ñ.',
                 code='invalid_nombre'
             )
         ]
@@ -45,8 +45,8 @@ class Receta(models.Model):
         max_length=100,
         validators=[
             RegexValidator(
-                regex=r'^[a-zA-ZáéíóúÁÉÍÓÚ\s]+$',  # Allowing letters, spaces, and vowels with accents
-                message='El nombre solo puede contener letras, espacios y vocales con tilde.',
+                regex=r'^[a-zA-Z0-9ñÑáéíóúÁÉÍÓÚ\s]+$',
+                message='El nombre solo puede contener letras, números, espacios y la letra ñ.',
                 code='invalid_nombre'
             )
         ]
