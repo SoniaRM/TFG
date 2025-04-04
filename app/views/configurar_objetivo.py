@@ -14,7 +14,7 @@ def vista_configurar_objetivo(request):
             nuevo_objetivo = form.cleaned_data['objetivo_proteico']
             # Actualizamos todos los días desde hoy en adelante
             Calendario.objects.filter(fecha__gte=hoy).update(objetivo_proteico=nuevo_objetivo)
-            return redirect('calendario_semanal')  # O donde quieras redirigir
+            return render(request, 'configurar_objetivo.html', {'form': form, 'exito': True})  # Mostrar modal
     else:
         form = ObjetivoDiarioForm(instance=calendario)
 
