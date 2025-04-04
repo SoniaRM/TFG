@@ -185,6 +185,12 @@
 
 <script>
 function abrirModalCompra(itemId, compraActual) {
+    if (compraActual === 1) {
+        // Si solo hay una ración, mover directamente sin mostrar modal
+        moverCompraADespensa(itemId, 1);
+        return;
+    }
+
     // Mostramos el overlay
     const modal = document.getElementById('modal-compra');
     modal.style.display = 'block';
@@ -208,6 +214,12 @@ function cerrarModalCompra() {
 }
 
 function abrirModalDespensa(itemId, despensaActual) {
+    if (despensaActual === 1) {
+        // Si solo hay una ración, mover directamente sin mostrar modal
+        moverDespensaACompra(itemId, 1);
+        return;
+    }
+    
     const modal = document.getElementById('modal-despensa');
     modal.style.display = 'block';
 
