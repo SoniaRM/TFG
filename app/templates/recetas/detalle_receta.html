@@ -48,7 +48,13 @@
         <div class="d-flex justify-content-between mt-3">
             <form method="post" style="display:inline;">
                 {% csrf_token %}
-                <button type="submit" name="delete" class="btn btn-danger btn-action">Eliminar</button>
+                <button type="button"
+                        class="btn btn-danger btn-action"
+                        style="width:100%;"
+                        data-url="{% url 'detalle_receta' receta.pk %}"
+                        onclick="confirmarEliminacion(this)">
+                    Eliminar
+                </button>
             </form>
             <div>
                 <a href="{% url 'editar_receta' receta.pk %}" class="btn btn-warning btn-action">Editar</a>
@@ -57,4 +63,37 @@
         </div>
     </div>
 </div>
+
+
+<!-- Modal de Confirmación para eliminar receta -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center animate-zoom" style="border-radius: 15px; background-color: #FFF8F5;">
+        <div class="modal-header">
+          <h5 class="modal-title w-100" id="confirmDeleteModalLabel">¿Eliminar receta?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de que deseas eliminar esta receta?</p>
+          <form id="deleteForm" method="post">
+            {% csrf_token %}
+            <button type="submit" name="delete" class="btn btn-danger">Sí, eliminar</button>
+            <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">Cancelar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Almacena dinámicamente la acción del formulario
+  function confirmarEliminacion(button) {
+      const url = button.getAttribute('data-url');
+      const form = document.getElementById('deleteForm');
+      form.action = url;
+      const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+      modal.show();
+  }
+  </script>
+  
 {% endblock %}
