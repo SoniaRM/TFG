@@ -33,6 +33,12 @@
     <div class="mb-4">
         <a href="{% url 'crear_ingrediente' %}" class="btn btn-success">Crear Nuevo Ingrediente</a>
     </div>
+
+    <div class="mb-3">
+      <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente por nombre...">
+      <p id="no-coincidencias" style="display: none; color: red;">No hay coincidencias</p>
+    </div>
+  
     <div class="row">
         {% for ingrediente in ingredientes %}
         <div class="col-md-3">
@@ -94,4 +100,31 @@
       modal.show();
   }
 </script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("buscar-ingrediente");
+    const tarjetas = document.querySelectorAll(".card-ingrediente");
+    const noMatchMsg = document.getElementById("no-coincidencias");
+
+    input.addEventListener("keyup", function () {
+      const filtro = input.value.toLowerCase();
+      let algunaVisible = false;
+
+      tarjetas.forEach(function (tarjeta) {
+        const nombre = tarjeta.querySelector("h5").textContent.toLowerCase();
+        if (nombre.includes(filtro)) {
+          tarjeta.parentElement.style.display = "";
+          algunaVisible = true;
+        } else {
+          tarjeta.parentElement.style.display = "none";
+        }
+      });
+
+      noMatchMsg.style.display = algunaVisible ? "none" : "block";
+    });
+  });
+</script>
+
+
 {% endblock %}

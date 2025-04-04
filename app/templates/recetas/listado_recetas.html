@@ -45,6 +45,10 @@
     <div class="mt-4">
         <a href="{% url 'crear_receta' %}" class="btn btn-success">Crear Nueva Receta</a>
     </div>
+    <div class="mb-3">
+      <input type="text" id="buscar-receta" class="form-control" placeholder="Buscar receta por nombre...">
+      <p id="no-coincidencias" style="display: none; color: red;">No hay coincidencias</p>
+    </div>
     <div class="container-recetas">
         {% for receta in recetas %}
         <div class="card-receta">
@@ -119,5 +123,28 @@ function confirmarEliminacion(button) {
     modal.show();
 }
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const input = document.getElementById("buscar-receta");
+    const tarjetas = document.querySelectorAll(".card-receta");
+    const noMatchMsg = document.getElementById("no-coincidencias");
 
+    input.addEventListener("keyup", function () {
+      const filtro = input.value.toLowerCase();
+      let algunaVisible = false;
+
+      tarjetas.forEach(function (tarjeta) {
+        const nombre = tarjeta.querySelector("h5").textContent.toLowerCase();
+        if (nombre.includes(filtro)) {
+          tarjeta.style.display = "";
+          algunaVisible = true;
+        } else {
+          tarjeta.style.display = "none";
+        }
+      });
+
+      noMatchMsg.style.display = algunaVisible ? "none" : "block";
+    });
+  });
+</script>
 {% endblock %}
