@@ -497,7 +497,11 @@
           data.forEach(receta => {
             var button = document.createElement("button");
             button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
-            button.innerHTML  = `${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
+            if (receta.nombre.includes(" + ")) {
+              button.innerHTML = `<strong>Par:</strong> ${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
+            } else {
+              button.innerHTML = `${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
+            }
             button.dataset.recetaIds = JSON.stringify(receta.ids);
 
             button.addEventListener("click", function () {
