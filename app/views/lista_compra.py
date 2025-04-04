@@ -143,17 +143,18 @@ def generar_lista_compra(week_start):
     Cada asignación de receta suma 1 para cada ingrediente de la receta.
     Se actualizan los items existentes preservando la cantidad en despensa,
     de modo que:
-      compra = (nuevo total) – despensa, 
+      compra = (nuevo total) – despensa,
       y si la despensa supera el nuevo total se ajusta a éste.
     """
     end_date = week_start + timedelta(days=6)
+
     # Obtén (o crea) la ListaCompra para esa semana
     lista, created = ListaCompra.objects.get_or_create(start_date=week_start)
 
     # Calcula los nuevos totales a partir del calendario
-    # Cada asignación (fila en Calendario_Receta) suma 1 para cada ingrediente
     calendarios = Calendario.objects.filter(fecha__range=(week_start, end_date)) \
                                     .prefetch_related('calendario_recetas__receta__ingredientes')
+
     nuevos_totales = {}
     for cal in calendarios:
         for cr in cal.calendario_recetas.all():
@@ -176,19 +177,26 @@ def generar_lista_compra(week_start):
         else:
             item.delete()
 
-    # Para los ingredientes nuevos (que no estaban en la lista) se crean los items
+    # Para los ingredientes nuevos, usamos get_or_create por seguridad extra
     for ing_id, total in nuevos_totales.items():
         try:
             ing_obj = Ingrediente.objects.get(pk=ing_id)
         except Ingrediente.DoesNotExist:
             continue
-        ListaCompraItem.objects.create(
+
+        item, created = ListaCompraItem.objects.get_or_create(
             lista=lista,
             ingrediente=ing_obj,
-            original=total,
-            compra=total,  # Inicialmente, no hay nada en despensa
-            despensa=0
+            defaults={
+                'original': total,
+                'compra': total,
+                'despensa': 0
+            }
         )
+        if not created:
+            item.original = total
+            item.compra = item.original - item.despensa
+            item.save()
 
     return lista
 
