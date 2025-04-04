@@ -3,22 +3,27 @@
 <link rel="shortcut icon" href="{% static 'imagenes/favicon.jpg' %}" type="image/x-icon">
 
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Navbar{% endblock %}</title>
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
     <!-- Cargar CSS -->
     <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
 </head>
+
 <body>
     <div class="container-nav">
         <nav>
             <ul>
-                <li class="{% if request.resolver_match.url_name == 'listado_recetas' or request.resolver_match.url_name == 'detalle_receta' or request.resolver_match.url_name == 'crear_receta' or request.resolver_match.url_name == 'editar_receta' %}activo{% endif %}">
+                <li
+                    class="{% if request.resolver_match.url_name == 'listado_recetas' or request.resolver_match.url_name == 'detalle_receta' or request.resolver_match.url_name == 'crear_receta' or request.resolver_match.url_name == 'editar_receta' %}activo{% endif %}">
                     <a href="{% url 'listado_recetas' %}">Recetas</a>
                 </li>
-                <li class="{% if request.resolver_match.url_name == 'listado_ingredientes' or request.resolver_match.url_name == 'detalle_ingrediente' or request.resolver_match.url_name == 'crear_ingrediente' or request.resolver_match.url_name == 'editar_ingrediente' %}activo{% endif %}">
+                <li
+                    class="{% if request.resolver_match.url_name == 'listado_ingredientes' or request.resolver_match.url_name == 'detalle_ingrediente' or request.resolver_match.url_name == 'crear_ingrediente' or request.resolver_match.url_name == 'editar_ingrediente' %}activo{% endif %}">
                     <a href="{% url 'listado_ingredientes' %}">Ingredientes</a>
                 </li>
                 <li class="{% if request.resolver_match.url_name == 'calendario_semanal' %}activo{% endif %}">
@@ -27,10 +32,19 @@
                 <li class="{% if request.resolver_match.url_name == 'lista_compra' %}activo{% endif %}">
                     <a href="{% url 'lista_compra' %}">Compra</a>
                 </li>
+                <li style="margin-left: auto;" class="{% if request.resolver_match.url_name == 'configurar_objetivo' %}activo{% endif %}">
+                    <a href="{% url 'configurar_objetivo' %}" title="Configuración">
+                        <i class="bi bi-gear" style="font-size: 20px;"></i>
+                    </a>
+                </li>
             </ul>
         </nav>
     </div>
     {% block content %}{% endblock %}
+    {% include 'successModal.html' %}
+<!-- Bootstrap JS (necesario para mostrar modales) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
+
 </html>

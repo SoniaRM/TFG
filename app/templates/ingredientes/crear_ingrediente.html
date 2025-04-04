@@ -34,4 +34,15 @@
     </form>
   </div>
 </div>
+
+{% if exito %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mostrarSuccessModal();
+    setTimeout(() => {
+      window.location.href = "{% url 'listado_ingredientes' %}";
+    }, 1000);
+  });
+</script>
+{% endif %}
 {% endblock %}

@@ -35,4 +35,15 @@
     <a href="{% url 'detalle_ingrediente' ingrediente.pk %}" class="btn btn-secondary mt-3">Cancelar</a>
   </div>
 </div>
+
+{% if exito %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    mostrarSuccessModal();
+    setTimeout(() => {
+      window.location.href = "{% url 'detalle_ingrediente' ingrediente.pk %}";
+    }, 1000);
+  });
+</script>
+{% endif %}
 {% endblock %}
