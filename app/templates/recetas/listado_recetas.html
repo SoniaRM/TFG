@@ -88,6 +88,29 @@
         <input type="number" id="min-proteina" class="form-control" style="width: 70px;" value="0">
       </div>
     </div>
+
+    <!-- Bloque para filtrar por Tipo de Comida -->
+    <div class="mb-4">
+      <label class="form-label">Tipo de Comida:</label>
+      <div id="tipo-comida-filtros" class="d-flex gap-2">
+        <div class="form-check">
+          <input class="form-check-input tipo-filter" type="checkbox" value="desayuno" id="tipoDesayuno">
+          <label class="form-check-label" for="tipoDesayuno">Desayuno</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input tipo-filter" type="checkbox" value="almuerzo" id="tipoAlmuerzo">
+          <label class="form-check-label" for="tipoAlmuerzo">Almuerzo</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input tipo-filter" type="checkbox" value="merienda" id="tipoMerienda">
+          <label class="form-check-label" for="tipoMerienda">Merienda</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input tipo-filter" type="checkbox" value="cena" id="tipoCena">
+          <label class="form-check-label" for="tipoCena">Cena</label>
+        </div>
+      </div>
+    </div>
     <div class="mb-4">
       <label class="form-label">Ingredientes:</label>
       <input type="text" id="buscar-ingrediente-filtro" class="form-control mb-2" placeholder="Buscar ingrediente...">
@@ -217,7 +240,10 @@ function confirmarEliminacion(button) {
     function aplicarFiltros() {
       const filtroNombre = inputNombre.value.toLowerCase();
       const minProteinas = parseInt(inputMin.value) || 0;
-  
+      // Obtener los tipos seleccionados
+      const tipoFilters = document.querySelectorAll("input.tipo-filter:checked");
+      const selectedTipos = Array.from(tipoFilters).map(cb => cb.value.toLowerCase());
+
       let algunaVisible = false;
   
       tarjetas.forEach(function (tarjeta) {
@@ -226,14 +252,19 @@ function confirmarEliminacion(button) {
         const ingredientesTexto = Array.from(tarjeta.querySelectorAll("ul:nth-of-type(2) li")).map(li =>
           li.textContent.toLowerCase()
         );
-  
+        // Extraer los tipos de comida del primer <ul> de la tarjeta
+        const tipoElements = tarjeta.querySelector("ul:nth-of-type(1)").querySelectorAll("li");
+        const cardTipos = Array.from(tipoElements).map(li => li.textContent.toLowerCase());
+
         const coincideNombre = nombre.includes(filtroNombre);
         const suficienteProteina = proteina >= minProteinas;
         const incluyeIngredientes = seleccionados.every(nombreIng =>
           ingredientesTexto.some(t => t.includes(nombreIng))
         );
-  
-        const mostrar = coincideNombre && suficienteProteina && incluyeIngredientes;
+        // Si no hay tipos seleccionados se muestran todos, si hay, debe coincidir al menos uno
+        const coincideTipo = selectedTipos.length === 0 || selectedTipos.some(tipo => cardTipos.includes(tipo));
+
+        const mostrar = coincideNombre && suficienteProteina && incluyeIngredientes && coincideTipo;
   
         tarjeta.style.display = mostrar ? "" : "none";
         if (mostrar) algunaVisible = true;
@@ -394,6 +425,22 @@ function confirmarEliminacion(button) {
       // Reset contador y actualización de recetas
       aplicarFiltros();
     });
+
+    // Listener para filtros de tipo de comida
+    document.querySelectorAll("input.tipo-filter").forEach(cb => {
+      cb.addEventListener("change", function () {
+        if (this.checked) {
+          // Deselecciona todos los demás
+          document.querySelectorAll("input.tipo-filter").forEach(other => {
+            if (other !== this) {
+              other.checked = false;
+            }
+          });
+        }
+        aplicarFiltros();
+      });
+    });
+
   });
   </script>    
 {% endblock %}
