@@ -7,7 +7,16 @@ from django.views.decorators.http import require_GET
 from datetime import datetime, timedelta, date
 from itertools import combinations
 import random
-
+import io
+from django.http import FileResponse
+from reportlab.pdfgen import canvas
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    ListFlowable
+)
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
 from babel.dates import format_date
 
 from ..models import Receta, TipoComida, Calendario, Calendario_Receta
