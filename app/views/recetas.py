@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from ..models import Receta
+from ..models import Receta, Ingrediente
 from ..forms import RecetaForm
 
 #RECETAS
 def listado_recetas(request):
     recetas = Receta.objects.all()
-    return render(request, 'recetas/listado_recetas.html', {'recetas': recetas})
+    ingredientes = Ingrediente.objects.all()  # 👈 Esto es lo importante
+    return render(request, 'recetas/listado_recetas.html', {'recetas': recetas, 'ingredientes': ingredientes})
 
 def detalle_receta(request, pk):
     receta = get_object_or_404(Receta, pk=pk)

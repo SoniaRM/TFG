@@ -38,6 +38,35 @@
         margin-right: 5px;
         width: 90%;
     }
+    .ingrediente-item.seleccionado {
+      background-color: #A5D6A7 !important; /* verde suave */
+      border-color: #66BB6A;
+      color: #000;
+    }
+    .chip-grande {
+      font-size: 1.0rem;
+      padding: 0.6em 1.0em;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    #ingredientes-seleccionados .badge {
+      font-size: 1.0rem;
+      padding: 0.5em 1em;
+    }
+    .ingredientes-container {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    #lista-ingredientes {
+      flex-grow: 1;
+    }
+
+    .ingredientes-container .text-end {
+      width: 100%;
+    }
+
 </style>
 
 <div class="container mt-4">
@@ -45,6 +74,46 @@
     <div class="mt-4">
         <a href="{% url 'crear_receta' %}" class="btn btn-success">Crear Nueva Receta</a>
     </div>
+
+    <button id="btn-reset-filtros" class="btn btn-outline-danger btn-sm mb-3">Borrar filtros</button>
+
+    <div class="mb-3">
+      <input type="text" id="buscar-receta" class="form-control" placeholder="Buscar receta por nombre...">
+      <p id="no-coincidencias" style="display: none; color: red;">No hay coincidencias</p>
+    </div>
+    <div class="mb-4">
+      <label class="form-label">Proteína:</label>
+      <div class="d-flex align-items-center gap-3">
+        <input type="range" id="rango-proteina" min="0" max="100" value="0" step="1" class="form-range" style="flex: 1;">
+        <input type="number" id="min-proteina" class="form-control" style="width: 70px;" value="0">
+      </div>
+    </div>
+    <div class="mb-4">
+      <label class="form-label">Ingredientes:</label>
+      <input type="text" id="buscar-ingrediente-filtro" class="form-control mb-2" placeholder="Buscar ingrediente...">
+    
+      <div class="ingredientes-container mb-2">
+        <div id="lista-ingredientes" class="d-flex flex-wrap gap-2">
+          {% for ingrediente in ingredientes %}
+            <span class="ingrediente-item chip-grande badge rounded-pill bg-light border border-secondary text-dark"
+                  data-nombre="{{ ingrediente.nombre|lower }}"
+                  style="cursor: pointer; display: none;">
+              {{ ingrediente.nombre }}
+            </span>
+          {% endfor %}
+        </div>
+        <div class="d-flex justify-content-end mt-2 w-100">
+          <button id="btn-ver-mas" class="btn btn-outline-secondary btn-sm">+ Ver más</button>
+        </div>        
+      </div>
+      
+
+      <div class="d-flex flex-wrap gap-2" id="ingredientes-seleccionados">
+        <!-- Aquí se añaden dinámicamente los ingredientes seleccionados -->
+      </div>
+    </div>
+    <p id="contador-recetas" class="text-muted">Mostrando todas las recetas</p>
+
     <div class="container-recetas">
         {% for receta in recetas %}
         <div class="card-receta">
@@ -56,7 +125,7 @@
                     <li>{{ tipo_comida.nombre }}</li>
                     {% endfor %}
                 </ul>
-                <p><strong>Proteínas:</strong> {{ receta.proteinas }}</p>
+                <p><strong>Proteínas:</strong> <span class="valor-proteina">{{ receta.proteinas }}</span></p>
                 <p><strong>Ingredientes:</strong></p>
                 <ul>
                     {% for ingrediente in receta.ingredientes.all %}
@@ -119,5 +188,212 @@ function confirmarEliminacion(button) {
     modal.show();
 }
 </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const tarjetas = document.querySelectorAll(".card-receta");
+    const inputNombre = document.getElementById("buscar-receta");
+    const noMatchMsg = document.getElementById("no-coincidencias");
+    const slider = document.getElementById("rango-proteina");
+    const inputMin = document.getElementById("min-proteina");
+  
+    // Ingredientes
+    const listaIngredientes = document.querySelectorAll(".ingrediente-item");
+    const contenedorSeleccionados = document.getElementById("ingredientes-seleccionados");
+    const buscadorIngrediente = document.getElementById("buscar-ingrediente-filtro");
+    let seleccionados = [];
+  
+    // === 1. Inicializar el máximo del slider de proteínas ===
+    let maxProteina = 0;
+    tarjetas.forEach(function (tarjeta) {
+      const proteina = parseInt(tarjeta.querySelector(".valor-proteina").textContent);
+      if (proteina > maxProteina) maxProteina = proteina;
+    });
+    slider.max = maxProteina;
+    inputMin.max = maxProteina;
+    slider.value = 0;
+    inputMin.value = 0;
+  
+    // === 2. Función central de filtrado ===
+    function aplicarFiltros() {
+      const filtroNombre = inputNombre.value.toLowerCase();
+      const minProteinas = parseInt(inputMin.value) || 0;
+  
+      let algunaVisible = false;
+  
+      tarjetas.forEach(function (tarjeta) {
+        const nombre = tarjeta.querySelector("h5").textContent.toLowerCase();
+        const proteina = parseInt(tarjeta.querySelector(".valor-proteina").textContent);
+        const ingredientesTexto = Array.from(tarjeta.querySelectorAll("ul:nth-of-type(2) li")).map(li =>
+          li.textContent.toLowerCase()
+        );
+  
+        const coincideNombre = nombre.includes(filtroNombre);
+        const suficienteProteina = proteina >= minProteinas;
+        const incluyeIngredientes = seleccionados.every(nombreIng =>
+          ingredientesTexto.some(t => t.includes(nombreIng))
+        );
+  
+        const mostrar = coincideNombre && suficienteProteina && incluyeIngredientes;
+  
+        tarjeta.style.display = mostrar ? "" : "none";
+        if (mostrar) algunaVisible = true;
+      });
+  
+      noMatchMsg.style.display = algunaVisible ? "none" : "block";
+      const contador = document.getElementById("contador-recetas");
+      const totalMostradas = Array.from(tarjetas).filter(t => t.style.display !== "none").length;
 
+      if (totalMostradas === tarjetas.length) {
+        contador.textContent = "Mostrando todas las recetas";
+      } else if (totalMostradas === 0) {
+        contador.textContent = "No hay recetas que coincidan con los filtros";
+      } else {
+        contador.textContent = `${totalMostradas} receta${totalMostradas === 1 ? "" : "s"} encontradas`;
+      }
+
+    }
+  
+    // === 3. Listeners para cada filtro ===
+  
+    // Nombre
+    inputNombre.addEventListener("keyup", aplicarFiltros);
+  
+    // Proteínas
+    slider.addEventListener("input", function () {
+      inputMin.value = this.value;
+      aplicarFiltros();
+    });
+    inputMin.addEventListener("input", function () {
+      let val = parseInt(this.value);
+      if (isNaN(val)) val = 0;
+      if (val > maxProteina) val = maxProteina;
+      slider.value = val;
+      aplicarFiltros();
+    });
+  
+    // Ingredientes seleccionables
+    function toggleIngrediente(nombre, span) {
+      const index = seleccionados.indexOf(nombre);
+      if (index === -1) {
+        seleccionados.push(nombre);
+        span.classList.add("seleccionado");
+  
+        const chip = document.createElement("span");
+        chip.className = "badge bg-success text-white";
+        chip.textContent = nombre;
+        chip.dataset.nombre = nombre;
+  
+        const close = document.createElement("span");
+        close.textContent = " ✕";
+        close.style.cursor = "pointer";
+        close.onclick = function () {
+          seleccionados = seleccionados.filter(i => i !== nombre);
+          document.querySelector(`.ingrediente-item[data-nombre="${nombre}"]`)?.classList.remove("seleccionado");
+          chip.remove();
+          aplicarFiltros();
+        };
+  
+        chip.appendChild(close);
+        contenedorSeleccionados.appendChild(chip);
+      } else {
+        seleccionados.splice(index, 1);
+        span.classList.remove("seleccionado");
+        const chip = contenedorSeleccionados.querySelector(`[data-nombre="${nombre}"]`);
+        chip?.remove();
+      }
+      aplicarFiltros();
+    }
+  
+    listaIngredientes.forEach(span => {
+      span.addEventListener("click", function () {
+        const nombre = span.dataset.nombre;
+        toggleIngrediente(nombre, span);
+      });
+    });
+  
+    // Buscar ingrediente
+    buscadorIngrediente.addEventListener("keyup", function () {
+      const filtro = buscadorIngrediente.value.toLowerCase();
+      listaIngredientes.forEach(span => {
+        const nombre = span.dataset.nombre;
+        span.style.display = nombre.includes(filtro) ? "" : "none";
+      });
+    });
+  
+    // Número de ingredientes a mostrar por tanda
+    const ingredientesPorTanda = 10;
+    let indiceActual = 0;
+    const btnVerMas = document.getElementById("btn-ver-mas");
+    const todosLosIngredientes = Array.from(listaIngredientes);
+
+    // Función que muestra la siguiente tanda de ingredientes
+    function mostrarTanda() {
+        const siguienteTanda = todosLosIngredientes.slice(indiceActual, indiceActual + ingredientesPorTanda);
+        siguienteTanda.forEach(elem => elem.style.display = "inline-block");
+        indiceActual += ingredientesPorTanda;
+        // Si se han mostrado todos, cambiar el texto a "- Ver menos"
+        if (indiceActual >= todosLosIngredientes.length) {
+            btnVerMas.textContent = "- Ver menos";
+        }
+    }
+
+    // Función que alterna entre "Ver más" y "Ver menos"
+    function toggleIngredientes() {
+        if (btnVerMas.textContent.trim() === "+ Ver más") {
+            mostrarTanda();
+        } else {
+            // Oculta todos los ingredientes excepto los primeros 10
+            todosLosIngredientes.forEach((elem, index) => {
+                if (index < ingredientesPorTanda) {
+                    elem.style.display = "inline-block";
+                } else {
+                    elem.style.display = "none";
+                }
+            });
+            // Reinicia el índice y cambia el texto a "+ Ver más"
+            indiceActual = ingredientesPorTanda;
+            btnVerMas.textContent = "+ Ver más";
+        }
+    }
+
+    // Asigna la función toggle al botón
+    btnVerMas.addEventListener("click", toggleIngredientes);
+
+    // Muestra la primera tanda al cargar la página
+    mostrarTanda();
+
+    // === Botón de reset de filtros ===
+    const btnReset = document.getElementById("btn-reset-filtros");
+
+    btnReset.addEventListener("click", function () {
+      // Reset del buscador de recetas
+      inputNombre.value = "";
+
+      // Reset del filtro de proteínas
+      slider.value = 0;
+      inputMin.value = 0;
+
+      // Reset de ingredientes: deseleccionar y ocultar todos
+      seleccionados = [];
+      listaIngredientes.forEach(span => {
+        span.classList.remove("seleccionado");
+        span.style.display = "none";
+      });
+      contenedorSeleccionados.innerHTML = "";
+
+      // Reinicia la paginación de ingredientes
+      indiceActual = 0;
+      btnVerMas.style.display = "block";
+      btnVerMas.textContent = "+ Ver más";
+      
+      document.getElementById("buscar-ingrediente-filtro").value = "";
+
+      // Muestra la primera tanda (10 ingredientes) SOLO una vez
+      mostrarTanda();
+
+      // Reset contador y actualización de recetas
+      aplicarFiltros();
+    });
+  });
+  </script>    
 {% endblock %}
