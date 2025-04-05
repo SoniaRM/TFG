@@ -66,7 +66,21 @@
     .ingredientes-container .text-end {
       width: 100%;
     }
-
+    .meal-btn {
+      background-color: #FFD9C2; /* color base */
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease-in-out;
+    }
+    .meal-btn:hover {
+      background-color: #ffc8ab;
+    }
+    .meal-btn.active {
+      background-color: #F0A681; /* color más oscuro para activo */
+      color: #fff;
+    }
 </style>
 
 <div class="container mt-4">
@@ -89,28 +103,17 @@
       </div>
     </div>
 
-    <!-- Bloque para filtrar por Tipo de Comida -->
+    <!-- Bloque para filtrar por Tipo de Comida (botones estilo pestañas) -->
     <div class="mb-4">
       <label class="form-label">Tipo de Comida:</label>
       <div id="tipo-comida-filtros" class="d-flex gap-2">
-        <div class="form-check">
-          <input class="form-check-input tipo-filter" type="checkbox" value="desayuno" id="tipoDesayuno">
-          <label class="form-check-label" for="tipoDesayuno">Desayuno</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input tipo-filter" type="checkbox" value="almuerzo" id="tipoAlmuerzo">
-          <label class="form-check-label" for="tipoAlmuerzo">Almuerzo</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input tipo-filter" type="checkbox" value="merienda" id="tipoMerienda">
-          <label class="form-check-label" for="tipoMerienda">Merienda</label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input tipo-filter" type="checkbox" value="cena" id="tipoCena">
-          <label class="form-check-label" for="tipoCena">Cena</label>
-        </div>
+        <button type="button" class="meal-btn" data-value="desayuno">Desayuno</button>
+        <button type="button" class="meal-btn" data-value="almuerzo">Almuerzo</button>
+        <button type="button" class="meal-btn" data-value="merienda">Merienda</button>
+        <button type="button" class="meal-btn" data-value="cena">Cena</button>
       </div>
     </div>
+
     <div class="mb-4">
       <label class="form-label">Ingredientes:</label>
       <input type="text" id="buscar-ingrediente-filtro" class="form-control mb-2" placeholder="Buscar ingrediente...">
@@ -236,6 +239,26 @@ function confirmarEliminacion(button) {
     slider.value = 0;
     inputMin.value = 0;
   
+    let selectedMealType = null;
+    const mealButtons = document.querySelectorAll('.meal-btn');
+  
+    mealButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        // Si se pulsa el mismo botón, se desactiva (toggle)
+        if (selectedMealType === button.dataset.value) {
+          selectedMealType = null;
+          button.classList.remove('active');
+        } else {
+          // Desactiva todos y activa solo el botón pulsado
+          mealButtons.forEach(b => b.classList.remove('active'));
+          button.classList.add('active');
+          selectedMealType = button.dataset.value;
+        }
+        aplicarFiltros();
+      });
+    });
+  
+
     // === 2. Función central de filtrado ===
     function aplicarFiltros() {
       const filtroNombre = inputNombre.value.toLowerCase();
@@ -243,6 +266,7 @@ function confirmarEliminacion(button) {
       // Obtener los tipos seleccionados
       const tipoFilters = document.querySelectorAll("input.tipo-filter:checked");
       const selectedTipos = Array.from(tipoFilters).map(cb => cb.value.toLowerCase());
+      let coincideTipo = true;
 
       let algunaVisible = false;
   
@@ -262,8 +286,12 @@ function confirmarEliminacion(button) {
           ingredientesTexto.some(t => t.includes(nombreIng))
         );
         // Si no hay tipos seleccionados se muestran todos, si hay, debe coincidir al menos uno
-        const coincideTipo = selectedTipos.length === 0 || selectedTipos.some(tipo => cardTipos.includes(tipo));
-
+        if (selectedMealType) {
+          coincideTipo = cardTipos.includes(selectedMealType);
+        } else {
+          coincideTipo = true;
+        }
+  
         const mostrar = coincideNombre && suficienteProteina && incluyeIngredientes && coincideTipo;
   
         tarjeta.style.display = mostrar ? "" : "none";
@@ -419,6 +447,9 @@ function confirmarEliminacion(button) {
       
       document.getElementById("buscar-ingrediente-filtro").value = "";
 
+      selectedMealType = null;
+      mealButtons.forEach(b => b.classList.remove("active"));
+  
       // Muestra la primera tanda (10 ingredientes) SOLO una vez
       mostrarTanda();
 
@@ -427,6 +458,7 @@ function confirmarEliminacion(button) {
     });
 
     // Listener para filtros de tipo de comida
+  /*
     document.querySelectorAll("input.tipo-filter").forEach(cb => {
       cb.addEventListener("change", function () {
         if (this.checked) {
@@ -439,7 +471,7 @@ function confirmarEliminacion(button) {
         }
         aplicarFiltros();
       });
-    });
+    });*/
 
   });
   </script>    
