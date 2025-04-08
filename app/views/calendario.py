@@ -329,17 +329,20 @@ def datos_dia(request, fecha):
 #Exportacion pdf de las recetas de la semana
 #EXPORTACION
 def exportar_semana(request):
-    """
-    Exporta un PDF con el formato:
-      - Una tabla donde la primera columna muestra los tipos de comida (Desayuno, Almuerzo, Merienda, Cena)
-        y las siguientes 7 columnas corresponden a cada día de la semana (lunes a domingo).
-      - Debajo, una lista de recetas únicas de la semana, mostrando sus ingredientes.
-      - Finalmente, una lista de la compra que agrupa los ingredientes y cuenta sus apariciones.
-    
-    Se espera un parámetro GET 'start' con la fecha de inicio de la semana (YYYY-MM-DD).
-    Si no se pasa o es inválido, se toma el lunes de la semana actual.
-    """
-    # 1. Obtener la fecha base
+    import io
+    from math import ceil
+    from datetime import datetime, timedelta
+    from babel.dates import format_date
+
+    from reportlab.pdfgen import canvas
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    )
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+
+    # 1) Obtener la fecha base
     start_str = request.GET.get('start')
     if start_str:
         try:
@@ -349,52 +352,43 @@ def exportar_semana(request):
     else:
         input_date = datetime.today().date()
 
-    # 2. Forzar que sea lunes
+    # 2) Forzar que sea lunes
     start_date = input_date - timedelta(days=input_date.weekday())
 
-    # Generar 7 días desde el lunes (lunes a domingo)
+    # Generar 7 días (lunes a domingo)
     dias = [start_date + timedelta(days=i) for i in range(7)]
     
-    # Orden de los tipos de comida
+    # Tipos de comida
     meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
 
-    # 3. Obtener los objetos Calendario para esos días
+    # 3) Obtener los calendarios de la semana
     calendarios = {cal.fecha: cal for cal in Calendario.objects.filter(fecha__in=dias)}
 
-    # 4. Construir los datos para la tabla
-    # 4.1. Dos filas de cabecera: la primera con las fechas (dd/mm) y la segunda con el nombre del día
-    #     Dejamos la primera celda vacía (para la columna de tipos de comida)
+    # 4) Construir la tabla principal (cabeceras de fechas y días)
     header_dates = [""] + [d.strftime("%d/%m") for d in dias]
     header_days = [""] + [format_date(d, format="EEEE", locale='es').capitalize() for d in dias]
-    
-    table_data = []
-    table_data.append(header_dates)
-    table_data.append(header_days)
-    
-    # 4.2. Para cada tipo de comida, la primera celda es el tipo,
-    #      y el resto son Paragraph con posibles saltos de línea <br/>
-    styles = getSampleStyleSheet()  # Para usarlo en los Paragraph
+    table_data = [header_dates, header_days]
+
+    styles = getSampleStyleSheet()
     normal_style = styles['Normal']
 
     for meal in meal_order:
-        # Primera columna: el tipo de comida
         row = [Paragraph(meal, normal_style)]
         for d in dias:
             cal = calendarios.get(d)
-            # Por defecto, la celda estará vacía
             cell_paragraph = Paragraph("", normal_style)
             if cal:
-                # Recopilar recetas de este día que coincidan con el tipo de comida
-                recetas = [cr.receta.nombre for cr in cal.calendario_recetas.all()
-                           if cr.tipo_comida.nombre.lower() == meal.lower()]
+                recetas = [
+                    cr.receta.nombre for cr in cal.calendario_recetas.all()
+                    if cr.tipo_comida.nombre.lower() == meal.lower()
+                ]
                 if recetas:
-                    # Usamos <br/> para separar las recetas en líneas distintas
                     combined_text = "<br/>".join(recetas)
                     cell_paragraph = Paragraph(combined_text, normal_style)
             row.append(cell_paragraph)
         table_data.append(row)
-    
-    # 5. Generar la lista única de recetas y la lista de la compra
+
+    # 5) Extraer recetas únicas e ingredientes para la lista de la compra
     unique_recipes = {}
     shopping_dict = {}
     for d in dias:
@@ -403,24 +397,18 @@ def exportar_semana(request):
             for cr in cal.calendario_recetas.all():
                 receta = cr.receta
                 if receta.nombre not in unique_recipes:
-                    ingredientes = list(receta.ingredientes.values_list('nombre', flat=True))
-                    unique_recipes[receta.nombre] = ingredientes
+                    ings = list(receta.ingredientes.values_list('nombre', flat=True))
+                    unique_recipes[receta.nombre] = ings
                 for ing in receta.ingredientes.all():
                     shopping_dict[ing.nombre] = shopping_dict.get(ing.nombre, 0) + 1
 
-    bullet_style = ParagraphStyle('bullet', parent=normal_style, leftIndent=10)
-    
-    recetas_flowables = []
-    for rec_name, ingredientes in unique_recipes.items():
-        ing_str = ", ".join(ingredientes)
-        recetas_flowables.append(Paragraph(f"{rec_name}: {ing_str}", bullet_style))
-    
-    compra_flowables = []
-    for ing_name in sorted(shopping_dict.keys()):
-        count = shopping_dict[ing_name]
-        compra_flowables.append(Paragraph(f"{ing_name}: {count} raciones", bullet_style))
-    
-    # 6. Crear el PDF usando Platypus
+    # 5.1) Tabla de recetas (2 columnas: Receta / Ingrediente)
+    recipes_table_data = [["Receta", "Ingrediente"]]
+    for rec_name, ing_list in unique_recipes.items():
+        ing_str = ", ".join(ing_list)
+        recipes_table_data.append([rec_name, ing_str])
+
+    # 6) Crear PDF
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -430,26 +418,81 @@ def exportar_semana(request):
         topMargin=60,
         bottomMargin=40
     )
-    
+
+    # === Tabla de Recetas ===
+    first_col_width = doc.width * 0.4
+    second_col_width = doc.width * 0.55
+    recipes_table_style = TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 10),
+        ('BOTTOMPADDING', (0,0), (-1,0), 6),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Alinear en la parte superior
+    ])
+    recipes_table = Table(recipes_table_data, colWidths=[first_col_width, second_col_width])
+    recipes_table.setStyle(recipes_table_style)
+
+    # === Dividir lista de la compra en 2 subtablas para colocar lado a lado ===
+    shopping_data = [["Ingrediente", "Raciones"]]
+    for ing_name in sorted(shopping_dict.keys()):
+        shopping_data.append([ing_name, str(shopping_dict[ing_name])])
+
+    total_items = len(shopping_data) - 1  # sin contar el header
+    mitad = ceil(total_items / 2)
+    left_table_data = [shopping_data[0]] + shopping_data[1 : 1 + mitad]
+    right_table_data = [shopping_data[0]] + shopping_data[1 + mitad :]
+
+    # Estilo para las subtablas
+    shopping_table_style = TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 10),
+        ('BOTTOMPADDING', (0,0), (-1,0), 6),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Alinear parte superior
+    ])
+
+    # Ajustar anchos de columna para que quepan en medio doc.width cada una
+    half_width = doc.width / 2
+    left_subtable = Table(left_table_data, colWidths=[half_width * 0.6, half_width * 0.4])
+    left_subtable.setStyle(shopping_table_style)
+    right_subtable = Table(right_table_data, colWidths=[half_width * 0.6, half_width * 0.4])
+    right_subtable.setStyle(shopping_table_style)
+
+    # Contenedor con 2 columnas, cada una una subtabla
+    container_table = Table(
+        [[left_subtable, right_subtable]],
+        colWidths=[half_width, half_width]
+    )
+    # Alineación vertical TOP en la tabla contenedora
+    container_table_style = TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),
+    ])
+    container_table.setStyle(container_table_style)
+
+    # === Estilos para títulos y headings ===
     custom_title = ParagraphStyle('customTitle', parent=styles['Title'], alignment=1)
     custom_heading = ParagraphStyle('customHeading', parent=styles['Heading2'], alignment=1)
-    
+
+    # === Construir el contenido (elements) ===
     elements = []
-    # Título principal en dos líneas
+
     start_formatted = format_date(dias[0], format="d 'de' MMMM 'de' y", locale='es')
     end_formatted = format_date(dias[-1], format="d 'de' MMMM 'de' y", locale='es')
     elements.append(Paragraph("Recetas de la semana", custom_title))
     elements.append(Spacer(1, 5))
     elements.append(Paragraph(f"{start_formatted} al {end_formatted}", custom_heading))
     elements.append(Spacer(1, 20))
-    
-    # Cálculo de anchos de columnas (1 para tipos y 7 para días)
+
+    # === Tabla principal (comidas por día) ===
     first_col_width = doc.width * 0.15
     other_cols_width = (doc.width - first_col_width) / len(dias)
-    col_widths = [first_col_width] + [other_cols_width] * len(dias)
-    
-    # Ajustamos el estilo de la tabla para permitir WORDWRAP y alineación vertical arriba
-    table_style = TableStyle([
+    main_table_col_widths = [first_col_width] + [other_cols_width] * len(dias)
+
+    main_table_style = TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
         ('BACKGROUND', (0, 1), (-1, 1), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
@@ -460,28 +503,25 @@ def exportar_semana(request):
         ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
     ])
-    week_table = Table(table_data, colWidths=col_widths)
-    week_table.setStyle(table_style)
-    elements.append(week_table)
+    main_table = Table(table_data, colWidths=main_table_col_widths)
+    main_table.setStyle(main_table_style)
+    elements.append(main_table)
     elements.append(Spacer(1, 20))
-    
+
+    # === Tabla de recetas
     elements.append(Paragraph("Recetas:", custom_heading))
     elements.append(Spacer(1, 10))
-    if recetas_flowables:
-        from reportlab.platypus import ListFlowable
-        elements.append(ListFlowable(recetas_flowables, bulletType='bullet'))
-    else:
-        elements.append(Paragraph("No hay recetas asignadas.", styles['Normal']))
+    elements.append(recipes_table)
     elements.append(Spacer(1, 20))
-    
+
+    # === Lista de la compra (dos subtablas lado a lado)
     elements.append(Paragraph("Lista de la compra:", custom_heading))
     elements.append(Spacer(1, 10))
-    if compra_flowables:
-        elements.append(ListFlowable(compra_flowables, bulletType='bullet'))
-    else:
-        elements.append(Paragraph("No hay ingredientes en la lista de la compra.", styles['Normal']))
+    elements.append(container_table)
     elements.append(Spacer(1, 20))
-    
+
+    # === Generar PDF
     doc.build(elements)
     buffer.seek(0)
+    from django.http import FileResponse
     return FileResponse(buffer, as_attachment=True, filename="recetas_semana.pdf")
