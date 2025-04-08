@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 
@@ -10,6 +10,14 @@ from babel.dates import format_date
 
 from ..models import ListaCompra, ListaCompraItem, Calendario
 from ..models import Ingrediente  # si lo necesitas para crear nuevos items
+#Exportacion
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+import io
+from django.utils import timezone
+
 
 #LISTA COMPRA
 def vista_lista_compra(request):
@@ -264,3 +272,82 @@ def resetear_lista_compra(request):
         return JsonResponse({"mensaje": "Lista de compra reiniciada correctamente."})
     
     return JsonResponse({"error": "Método no permitido"}, status=405)
+
+
+def exportar_lista_compra(request):
+    """
+    Exporta un PDF con la lista de la compra.
+    Se espera un parámetro GET 'start' con la fecha de inicio de la semana (YYYY-MM-DD).
+    El PDF incluirá una tabla con los ingredientes a comprar (donde compra > 0) y las raciones correspondientes.
+    """
+    # 1. Obtener fecha base del parámetro GET; si falla, se usa la fecha de hoy
+    start_str = request.GET.get('start')
+    if start_str:
+        try:
+            input_date = datetime.strptime(start_str, "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            input_date = timezone.now().date()
+    else:
+        input_date = timezone.now().date()
+
+    # 2. Forzar a lunes (suponiendo que la lista corresponde a una semana)
+    start_date = input_date - timedelta(days=input_date.weekday())
+    end_date = start_date + timedelta(days=6)
+
+    # 3. Obtener la instancia de ListaCompra para esa semana (o crearla si no existe)
+    lista_compra, created = ListaCompra.objects.get_or_create(start_date=start_date)
+
+    # 4. Filtrar los ítems con compra > 0
+    items_por_comprar = lista_compra.items.filter(compra__gt=0)
+
+    # Si no hay ítems, se puede devolver un PDF indicando "No hay ingredientes pendientes"
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=40, leftMargin=40, topMargin=60, bottomMargin=40)
+
+    styles = getSampleStyleSheet()
+    custom_title = ParagraphStyle('customTitle', parent=styles['Title'], alignment=1)
+    custom_heading = ParagraphStyle('customHeading', parent=styles['Heading2'], alignment=1)
+
+    elements = []
+    week_start_text = format_date(start_date, format="d 'de' MMMM 'de' y", locale='es')
+    week_end_text = format_date(end_date, format="d 'de' MMMM 'de' y", locale='es')
+    week_text = f"Semana del {week_start_text} al {week_end_text}"
+
+    elements.append(Paragraph("Lista de la compra", custom_title))
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(week_text, custom_heading))
+    elements.append(Spacer(1, 20))
+
+    # 5. Construir la tabla de ingredientes pendientes
+    shopping_data = [["Ingrediente", "Raciones"]]
+    if items_por_comprar.exists():
+        for item in items_por_comprar:
+            shopping_data.append([item.ingrediente.nombre, str(item.compra)])
+    else:
+        shopping_data.append(["No hay ingredientes pendientes", ""])
+    
+    col_widths = [doc.width * 0.3, doc.width * 0.2]
+    table_style = TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 10),
+        ('BOTTOMPADDING', (0,0), (-1,0), 6),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+    ])
+
+    shopping_table = Table(shopping_data, colWidths=col_widths)
+    shopping_table.setStyle(table_style)
+    elements.append(shopping_table)
+    elements.append(Spacer(1, 20))
+
+    doc.build(elements)
+    buffer.seek(0)
+    start_day = start_date.day
+    end_day = end_date.day
+    # Formatear el nombre del mes en minúsculas
+    month_text = format_date(start_date, format="MMMM", locale='es').lower()
+    file_name = f"lista_compra_{start_day}-{end_day}_{month_text}.pdf"
+    
+    return FileResponse(buffer, as_attachment=True, filename=file_name)

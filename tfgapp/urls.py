@@ -56,6 +56,7 @@ urlpatterns = [
     path('mover_despensa_compra/', lista_compra.mover_despensa_compra, name='mover_despensa_compra'),
     path('finalizar_compra/', lista_compra.finalizar_compra, name='finalizar_compra'),
     path('lista_compra/reset/', lista_compra.resetear_lista_compra, name='reset_lista_compra'),
+    path('exportar_lista_compra/', lista_compra.exportar_lista_compra, name='exportar_lista_compra'),
 
     #CONFIGURACION OBJETIVO
     path('configurar_objetivo/', configurar_objetivo.vista_configurar_objetivo, name='configurar_objetivo'),
