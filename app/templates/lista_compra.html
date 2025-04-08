@@ -77,6 +77,12 @@
 <div class="container mt-4">
     <div class="card-lista" id="vista-normal">
         <h1>Lista de la compra</h1>
+        <div class="text-end mb-3">
+            <a href="{% url 'exportar_lista_compra' %}?start={{ start_date|date:'Y-m-d' }}">
+              <i class="bi bi-download" style="font-size: 24px;"></i>
+            </a>
+          </div>
+          
         <p><strong>Semana del:</strong> {{ semana_formateada }}</p>
 
         <div class="navigation mb-3">

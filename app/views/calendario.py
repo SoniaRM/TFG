@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
@@ -523,5 +523,9 @@ def exportar_semana(request):
     # === Generar PDF
     doc.build(elements)
     buffer.seek(0)
-    from django.http import FileResponse
-    return FileResponse(buffer, as_attachment=True, filename="recetas_semana.pdf")
+    start_day = dias[0].day
+    end_day = dias[-1].day
+    month_text = format_date(dias[0], format="MMMM", locale='es').lower()
+    file_name = f"recetas_semana_{start_day}-{end_day}_{month_text}.pdf"
+
+    return FileResponse(buffer, as_attachment=True, filename=file_name)
