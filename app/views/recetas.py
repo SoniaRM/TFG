@@ -1,13 +1,16 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from ..models import Receta, Ingrediente
 from ..forms import RecetaForm
+from django.contrib.auth.decorators import login_required
 
 #RECETAS
+@login_required
 def listado_recetas(request):
     recetas = Receta.objects.all()
     ingredientes = Ingrediente.objects.all()  # 👈 Esto es lo importante
     return render(request, 'recetas/listado_recetas.html', {'recetas': recetas, 'ingredientes': ingredientes})
 
+@login_required
 def detalle_receta(request, pk):
     receta = get_object_or_404(Receta, pk=pk)
     if request.method == 'POST' and 'delete' in request.POST:
@@ -15,6 +18,7 @@ def detalle_receta(request, pk):
         return redirect('listado_recetas')
     return render(request, 'recetas/detalle_receta.html', {'receta': receta})
 
+@login_required
 def crear_receta(request):
     if request.method == 'POST':
         form = RecetaForm(request.POST)
@@ -28,6 +32,7 @@ def crear_receta(request):
         form = RecetaForm()
     return render(request, 'recetas/crear_receta.html', {'form': form})
 
+@login_required
 def editar_receta(request, pk):
     receta = get_object_or_404(Receta, pk=pk)
     if request.method == 'POST':

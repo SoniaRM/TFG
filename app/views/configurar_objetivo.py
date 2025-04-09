@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 from ..models import Calendario
 from ..forms import ObjetivoDiarioForm
+from django.contrib.auth.decorators import login_required
 
 #Configuración objetivo diario
+@login_required
 def vista_configurar_objetivo(request):
     hoy = timezone.now().date()
     calendario, _ = Calendario.objects.get_or_create(fecha=hoy)

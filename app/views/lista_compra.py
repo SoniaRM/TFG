@@ -17,9 +17,11 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 import io
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
 
 #LISTA COMPRA
+@login_required
 def vista_lista_compra(request):
     # 1) Determinamos la semana
     start_str = request.GET.get('start')
@@ -74,7 +76,7 @@ def vista_lista_compra(request):
     }
     return render(request, 'lista_compra.html', context)
 
-
+@login_required
 def mover_compra_despensa(request):
     if request.method == 'POST':
         lista_id = request.POST.get('lista_id')
@@ -92,6 +94,7 @@ def mover_compra_despensa(request):
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@login_required
 def mover_despensa_compra(request):
     if request.method == 'POST':
         lista_id = request.POST.get('lista_id')
@@ -108,6 +111,7 @@ def mover_despensa_compra(request):
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@login_required
 def lista_compra_datos(request):
     start_str = request.GET.get('start')
     if start_str:
@@ -145,6 +149,7 @@ def lista_compra_datos(request):
     })
 
 
+@login_required
 def generar_lista_compra(week_start):
     """
     Recalcula la lista de la compra para la semana que inicia en week_start.
@@ -209,6 +214,7 @@ def generar_lista_compra(week_start):
     return lista
 
 @csrf_exempt
+@login_required
 def finalizar_compra(request):
     if request.method == 'POST':
         import json
@@ -245,6 +251,7 @@ def finalizar_compra(request):
 
 
 @csrf_exempt
+@login_required
 def resetear_lista_compra(request):
     if request.method == "POST":
         # Obtener la fecha de inicio de la semana (parámetro 'start')
@@ -273,7 +280,7 @@ def resetear_lista_compra(request):
     
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
-
+@login_required
 def exportar_lista_compra(request):
     """
     Exporta un PDF con la lista de la compra.

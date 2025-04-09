@@ -21,8 +21,10 @@ from babel.dates import format_date
 
 from ..models import Receta, TipoComida, Calendario, Calendario_Receta
 from .lista_compra import generar_lista_compra
+from django.contrib.auth.decorators import login_required
 
 #CALENDARIO
+@login_required
 def calendario_semanal(request):
     """
     Muestra un calendario de 7 días (semana).
@@ -87,6 +89,7 @@ def calendario_semanal(request):
 #Filtrar las recetas por tipo Comida
 
 @csrf_exempt
+@login_required
 def recetas_por_tipo(request):
     """
     Devuelve las recetas disponibles (individuales y en pares) para agregar al calendario,
@@ -193,6 +196,7 @@ def recetas_por_tipo(request):
     return JsonResponse(recomendaciones, safe=False)
 
 @csrf_exempt
+@login_required
 def agregar_receta_calendario(request):
     """Vista para agregar una receta a una fecha específica en el calendario."""
     if request.method == "POST":
@@ -236,6 +240,7 @@ def agregar_receta_calendario(request):
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
 @csrf_exempt
+@login_required
 def recetas_en_calendario(request):
     """Devuelve las recetas ya añadidas al calendario para un día y tipo de comida."""
     fecha = request.GET.get("fecha")
@@ -250,6 +255,7 @@ def recetas_en_calendario(request):
     return JsonResponse(data, safe=False)
 
 @csrf_exempt
+@login_required
 def eliminar_receta_calendario(request):
     """Elimina una receta del calendario."""
     if request.method == "POST":
@@ -281,7 +287,7 @@ def eliminar_receta_calendario(request):
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
 
-
+@login_required
 def actualizar_calendario_dia(request):
     """
     Devuelve las recetas actualizadas de un día específico en formato JSON.
@@ -308,6 +314,7 @@ def actualizar_calendario_dia(request):
 
 #Para que el degradado de los dias del calendario se actualice solo
 @require_GET
+@login_required
 def datos_dia(request, fecha):
     """
     Retorna en JSON los datos del día: proteínas consumidas y objetivo.
@@ -328,6 +335,7 @@ def datos_dia(request, fecha):
 
 #Exportacion pdf de las recetas de la semana
 #EXPORTACION
+@login_required
 def exportar_semana(request):
     import io
     from math import ceil
