@@ -14,15 +14,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-#from django.contrib import admin
+from django.contrib import admin
 from django.urls import path
 from app.views import recetas, ingredientes, calendario, lista_compra, configurar_objetivo, colaborativos
 from django.contrib.auth import views as auth_views
-from app.views.colaborativos import SignupView
+from app.views.colaborativos import SignupView, cambiar_familia
 from django.contrib.auth.decorators import login_required
 
 urlpatterns = [
-    #path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     # RECETAS:
     path('', login_required(recetas.listado_recetas), name='listado_recetas'),
     path('recetas/', login_required(recetas.listado_recetas), name='listado_recetas'),
@@ -59,5 +59,6 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='colaborativo/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),
+    path('cambiar_familia/', cambiar_familia, name='cambiar_familia'),
 
 ]

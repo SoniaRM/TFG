@@ -6,13 +6,15 @@ from django.contrib.auth.decorators import login_required
 #RECETAS
 @login_required
 def listado_recetas(request):
-    recetas = Receta.objects.all()
-    ingredientes = Ingrediente.objects.all()  # 👈 Esto es lo importante
+    familia = request.user.familias.first()
+    recetas = Receta.objects.filter(familia=familia)
+    ingredientes = Ingrediente.objects.filter(familia=familia)
     return render(request, 'recetas/listado_recetas.html', {'recetas': recetas, 'ingredientes': ingredientes})
 
 @login_required
 def detalle_receta(request, pk):
-    receta = get_object_or_404(Receta, pk=pk)
+    familia = request.user.familias.first()
+    receta = get_object_or_404(Receta, pk=pk, familia=familia)
     if request.method == 'POST' and 'delete' in request.POST:
         receta.delete()
         return redirect('listado_recetas')
@@ -20,10 +22,14 @@ def detalle_receta(request, pk):
 
 @login_required
 def crear_receta(request):
+    familia = request.user.familias.first()
     if request.method == 'POST':
         form = RecetaForm(request.POST)
         if form.is_valid():
-            form.save()
+            receta = form.save(commit=False)
+            receta.familia = familia
+            receta.save()
+            form.save_m2m()
             return render(request, 'recetas/crear_receta.html', {
                 'form': RecetaForm(),
                 'exito': True
@@ -34,7 +40,8 @@ def crear_receta(request):
 
 @login_required
 def editar_receta(request, pk):
-    receta = get_object_or_404(Receta, pk=pk)
+    familia = request.user.familias.first()
+    receta = get_object_or_404(Receta, pk=pk, familia=familia)
     if request.method == 'POST':
         form = RecetaForm(request.POST, instance=receta)
         if form.is_valid():

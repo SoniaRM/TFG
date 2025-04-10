@@ -2,6 +2,7 @@
 from django.core.validators import RegexValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
 
 class TipoComida(models.Model):
     nombre = models.CharField(
@@ -18,6 +19,13 @@ class TipoComida(models.Model):
     def __str__(self):
         return self.nombre
 
+class Familia(models.Model):
+    nombre = models.CharField(max_length=100)
+    miembros = models.ManyToManyField(User, related_name='familias')
+
+    def __str__(self):
+        return self.nombre
+
 class Ingrediente(models.Model):
     nombre = models.CharField(
         max_length=100,
@@ -30,6 +38,7 @@ class Ingrediente(models.Model):
         ]
     )
     frec = models.IntegerField(validators=[MinValueValidator(1)])
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='ingredientes')
 
     def __str__(self):
         return self.nombre
@@ -54,6 +63,7 @@ class Receta(models.Model):
     tipo_comida = models.ManyToManyField(TipoComida, related_name='recetas')
     proteinas = models.IntegerField(validators=[MinValueValidator(0)])
     ingredientes = models.ManyToManyField(Ingrediente, related_name='recetas')
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='recetas')
 
     def __str__(self):
         return self.nombre
@@ -61,6 +71,7 @@ class Receta(models.Model):
 class Calendario(models.Model):
     fecha = models.DateField(unique=True)  # Cada día debe ser único
     objetivo_proteico = models.IntegerField(validators=[MinValueValidator(0)], default=100)
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='calendarios')
 
     def __str__(self):
         return f"Planificación del {self.fecha}"
@@ -102,7 +113,8 @@ class Calendario_Receta(models.Model):
 class ListaCompra(models.Model):
     # Por ejemplo, para identificar a qué semana pertenece
     start_date = models.DateField(default=timezone.now)
-    
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='listas_compra')
+
     # Si quieres enlazarlo a un usuario (aunque sea una app de un solo usuario),
     # podrías añadir un campo user = models.ForeignKey(User, on_delete=models.CASCADE)
     # si en el futuro quisieras multiusuario.
@@ -124,3 +136,4 @@ class ListaCompraItem(models.Model):
         
     def __str__(self):
         return f"{self.ingrediente.nombre} en {self.lista}"
+
