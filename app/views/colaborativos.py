@@ -26,15 +26,13 @@ def cambiar_familia(request):
         if form.is_valid():
             accion = form.cleaned_data['accion_familiar']
             if accion == 'crear':
-                # Crea la nueva familia (o la obtiene si ya existe), pasando el nombre en minúsculas.
+                # Se crea (o se obtiene) la familia con el nombre ingresado (se fuerza a minúsculas si así lo deseas)
                 familia, created = Familia.objects.get_or_create(
                     nombre=form.cleaned_data['nombre_familia'].strip().lower()
                 )
             elif accion == 'unirse':
-                nombre = form.cleaned_data['familia_existente'].strip()
-                # Se busca la familia de forma insensible a mayúsculas.
-                familia = Familia.objects.get(nombre__iexact=nombre)
-            # Si queremos que el usuario pertenezca solo a una familia, limpiamos sus asociaciones actuales:
+                familia = form.cleaned_data['familia_unirse']
+            # Para que el usuario pertenezca únicamente a una familia, limpiamos sus asociaciones actuales:
             user.familias.clear()
             user.familias.add(familia)
             return redirect('listado_recetas')

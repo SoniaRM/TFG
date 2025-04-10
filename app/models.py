@@ -3,6 +3,7 @@ from django.core.validators import RegexValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
+import uuid
 
 class TipoComida(models.Model):
     nombre = models.CharField(
@@ -21,7 +22,15 @@ class TipoComida(models.Model):
 
 class Familia(models.Model):
     nombre = models.CharField(max_length=100)
+    # Se genera un código único de invitación si aún no existe.
+    codigo_invitacion = models.CharField(max_length=8, unique=True, blank=True)
     miembros = models.ManyToManyField(User, related_name='familias')
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_invitacion:
+            # Genera un código aleatorio de 8 caracteres
+            self.codigo_invitacion = uuid.uuid4().hex[:8]
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nombre

@@ -25,22 +25,65 @@
                 {{ form.password2.errors }}
             </div>
             <div class="mb-3">
-                <label class="form-label">Acción familiar:</label>
-                {{ form.accion_familiar }}
-                {{ form.accion_familiar.errors }}
+              <label class="form-label">Acción familiar:</label>
+              {{ form.accion_familiar }}
+              {{ form.accion_familiar.errors }}
             </div>
-            <div class="mb-3">
-                {{ form.nombre_familia.label_tag }}
-                {{ form.nombre_familia }}
-                {{ form.nombre_familia.errors }}
+            
+            <!-- Campo para crear una nueva familia -->
+            <div class="mb-3" id="div_nombre_familia">
+              {{ form.nombre_familia.label_tag }}
+              {{ form.nombre_familia }}
+              {{ form.nombre_familia.errors }}
             </div>
-            <div class="mb-3">
-                {{ form.familia_existente.label_tag }}
-                {{ form.familia_existente }}
-                {{ form.familia_existente.errors }}
+            
+            <!-- Campo para unirse a una familia existente (input de texto) -->
+            <div class="mb-3" id="div_familia_existente">
+              {{ form.familia_existente.label_tag }}
+              {{ form.familia_existente }}
+              {{ form.familia_existente.errors }}
             </div>
+            
             <button type="submit" class="btn btn-primary w-100">Registrarse</button>
-        </form>
+          </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+        const divNombreFamilia = document.getElementById("div_nombre_familia");
+        const divFamiliaExistente = document.getElementById("div_familia_existente");
+    
+        function updateFamilyFields(){
+            // Se asume que los radios se renderizan con el name "accion_familiar"
+            const accionRadios = document.getElementsByName("accion_familiar");
+            let selectedValue = "";
+            for (let i = 0; i < accionRadios.length; i++) {
+                if (accionRadios[i].checked) {
+                    selectedValue = accionRadios[i].value;
+                    break;
+                }
+            }
+            if (selectedValue === "crear") {
+                divNombreFamilia.style.display = "block";
+                divFamiliaExistente.style.display = "none";
+            } else if (selectedValue === "unirse") {
+                divNombreFamilia.style.display = "none";
+                divFamiliaExistente.style.display = "block";
+            } else {
+                divNombreFamilia.style.display = "none";
+                divFamiliaExistente.style.display = "none";
+            }
+        }
+    
+        const accionRadios = document.getElementsByName("accion_familiar");
+        for (let i = 0; i < accionRadios.length; i++) {
+            accionRadios[i].addEventListener("change", updateFamilyFields);
+        }
+        
+        // Inicializa la visibilidad de los campos
+        updateFamilyFields();
+    });
+    </script>
+    
 {% endblock %}

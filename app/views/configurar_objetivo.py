@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from ..models import Calendario
 from ..forms import ObjetivoDiarioForm
@@ -22,3 +22,9 @@ def vista_configurar_objetivo(request):
         form = ObjetivoDiarioForm(instance=calendario)
 
     return render(request, 'configurar_objetivo.html', {'form': form})
+
+@login_required
+def ver_familia(request):
+    # Suponiendo que el usuario pertenece a una familia (y solo una)
+    familia = request.user.familias.first()  
+    return render(request, 'colaborativo/ver_familia.html', {'familia': familia})

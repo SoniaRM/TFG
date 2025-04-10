@@ -73,11 +73,11 @@ class CustomSignupForm(UserCreationForm):
         required=False,
         label="Nombre para la nueva familia"
     )
-    # Si se va a unir, se ofrece un listado de familias existentes.
-    familia_existente = forms.ModelChoiceField(
-        queryset=Familia.objects.all(),
+    # Si se va a unir, se ofrece un input de texto para el código de invitación.
+    familia_existente = forms.CharField(
+        max_length=100,
         required=False,
-        label="Familia a la que deseas unirte"
+        label="Código de invitación de la familia"
     )
 
     class Meta(UserCreationForm.Meta):
@@ -87,27 +87,37 @@ class CustomSignupForm(UserCreationForm):
     def clean(self):
         cleaned_data = super().clean()
         accion = cleaned_data.get("accion_familiar")
-        nombre = cleaned_data.get("nombre_familia")
-        familia_existente = cleaned_data.get("familia_existente")
-        if accion == 'crear' and not nombre:
-            self.add_error('nombre_familia', "Debes proporcionar un nombre para la nueva familia.")
-        if accion == 'unirse' and not familia_existente:
-            self.add_error('familia_existente', "Debes seleccionar una familia a la que unirte.")
+        if accion == 'crear':
+            nombre = cleaned_data.get("nombre_familia")
+            if not nombre:
+                self.add_error('nombre_familia', "Debes proporcionar un nombre para la nueva familia.")
+        elif accion == 'unirse':
+            codigo = cleaned_data.get("familia_existente", "").strip()
+            if not codigo:
+                self.add_error('familia_existente', "Debes ingresar el código de invitación.")
+            else:
+                try:
+                    familia = Familia.objects.get(codigo_invitacion__iexact=codigo)
+                    cleaned_data["familia_object"] = familia
+                except Familia.DoesNotExist:
+                    self.add_error('familia_existente', "No se encontró una familia con ese código.")
         return cleaned_data
 
     def save(self, commit=True):
         user = super().save(commit)
         accion = self.cleaned_data.get("accion_familiar")
         if accion == 'crear':
-            # Crea una nueva familia y añade el usuario
-            familia = Familia.objects.create(nombre=self.cleaned_data.get("nombre_familia"))
+            # Crea una nueva familia y añade el usuario.
+            familia, created = Familia.objects.get_or_create(
+                nombre=self.cleaned_data.get("nombre_familia").strip().lower()
+            )
             familia.miembros.add(user)
         elif accion == 'unirse':
-            familia = self.cleaned_data.get("familia_existente")
-            familia.miembros.add(user)
+            # Usa la familia obtenida en cleaned_data.
+            familia = self.cleaned_data.get("familia_object")
+            if familia:
+                familia.miembros.add(user)
         return user
-
-
 
 class ChangeFamilyForm(forms.Form):
     ACCION_CHOICES = (
@@ -119,16 +129,17 @@ class ChangeFamilyForm(forms.Form):
         widget=forms.RadioSelect,
         label="¿Qué acción deseas realizar?"
     )
+    # Solo se usa si se crea una nueva familia.
     nombre_familia = forms.CharField(
         max_length=100,
         required=False,
         label="Nombre para la nueva familia"
     )
-    # Cambiamos de ModelChoiceField a CharField para que el usuario escriba el nombre de la familia existente.
-    familia_existente = forms.CharField(
-        max_length=100,
+    # Para unirse, se debe introducir el código de invitación
+    codigo_invitacion = forms.CharField(
+        max_length=8,
         required=False,
-        label="Nombre de la familia a la que deseas unirte"
+        label="Código de invitación de la familia"
     )
 
     def clean(self):
@@ -138,11 +149,14 @@ class ChangeFamilyForm(forms.Form):
             if not cleaned_data.get("nombre_familia"):
                 self.add_error('nombre_familia', "Debes proporcionar el nombre para la nueva familia.")
         elif accion == 'unirse':
-            nombre = cleaned_data.get("familia_existente", "").strip()
-            if not nombre:
-                self.add_error('familia_existente', "Debes escribir el nombre de la familia a la que deseas unirte.")
+            codigo = cleaned_data.get("codigo_invitacion", "").strip()
+            if not codigo:
+                self.add_error('codigo_invitacion', "Debes ingresar el código de invitación.")
             else:
-                # Verificamos que la familia exista (búsqueda insensible a mayúsculas)
-                if not Familia.objects.filter(nombre__iexact=nombre).exists():
-                    self.add_error('familia_existente', "La familia especificada no existe.")
+                # Verifica que exista una familia con ese código (búsqueda insensible a mayúsculas)
+                try:
+                    familia = Familia.objects.get(codigo_invitacion__iexact=codigo)
+                    cleaned_data['familia_unirse'] = familia  # Guardamos la familia encontrada
+                except Familia.DoesNotExist:
+                    self.add_error('codigo_invitacion', "No se encontró una familia con ese código.")
         return cleaned_data

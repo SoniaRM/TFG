@@ -9,25 +9,21 @@
     <form method="post">
       {% csrf_token %}
       {{ form.non_field_errors }}
-      
       <div class="mb-3">
         <label class="form-label">Acción familiar:</label>
         {{ form.accion_familiar }}
         {{ form.accion_familiar.errors }}
       </div>
-      
       <div class="mb-3" id="div_nombre_familia">
         {{ form.nombre_familia.label_tag }}
         {{ form.nombre_familia }}
         {{ form.nombre_familia.errors }}
       </div>
-      
-      <div class="mb-3" id="div_familia_existente">
-        {{ form.familia_existente.label_tag }}
-        {{ form.familia_existente }}
-        {{ form.familia_existente.errors }}
+      <div class="mb-3" id="div_codigo_invitacion">
+        {{ form.codigo_invitacion.label_tag }}
+        {{ form.codigo_invitacion }}
+        {{ form.codigo_invitacion.errors }}
       </div>
-      
       <button type="submit" class="btn btn-primary w-100">Guardar cambios</button>
     </form>
   </div>
@@ -36,7 +32,7 @@
 <script>
 document.addEventListener("DOMContentLoaded", function(){
     const divNombreFamilia = document.getElementById("div_nombre_familia");
-    const divFamiliaExistente = document.getElementById("div_familia_existente");
+    const divCodigoInvitacion = document.getElementById("div_codigo_invitacion");
 
     function updateFamilyFields(){
         const accionRadios = document.getElementsByName("accion_familiar");
@@ -49,13 +45,13 @@ document.addEventListener("DOMContentLoaded", function(){
         }
         if(selectedValue === "crear"){
             divNombreFamilia.style.display = "block";
-            divFamiliaExistente.style.display = "none";
+            divCodigoInvitacion.style.display = "none";
         } else if(selectedValue === "unirse"){
             divNombreFamilia.style.display = "none";
-            divFamiliaExistente.style.display = "block";
+            divCodigoInvitacion.style.display = "block";
         } else {
             divNombreFamilia.style.display = "none";
-            divFamiliaExistente.style.display = "none";
+            divCodigoInvitacion.style.display = "none";
         }
     }
 
