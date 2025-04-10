@@ -1,5 +1,5 @@
 from django import forms
-from .models import Receta, Ingrediente, TipoComida, Calendario, Familia
+from .models import Receta, Ingrediente, TipoComida, Calendario, Familia, SolicitudUniónFamilia
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 
@@ -67,13 +67,11 @@ class CustomSignupForm(UserCreationForm):
         widget=forms.RadioSelect,
         label="¿Qué acción familiar deseas realizar?"
     )
-    # Si se crea una familia, se solicita un nombre.
     nombre_familia = forms.CharField(
         max_length=100,
         required=False,
         label="Nombre para la nueva familia"
     )
-    # Si se va a unir, se ofrece un input de texto para el código de invitación.
     familia_existente = forms.CharField(
         max_length=100,
         required=False,
@@ -82,14 +80,13 @@ class CustomSignupForm(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = UserCreationForm.Meta.fields  # Por defecto 'username', 'password1' y 'password2'
+        fields = UserCreationForm.Meta.fields  # 'username', 'password1', 'password2'
 
     def clean(self):
         cleaned_data = super().clean()
         accion = cleaned_data.get("accion_familiar")
         if accion == 'crear':
-            nombre = cleaned_data.get("nombre_familia")
-            if not nombre:
+            if not cleaned_data.get("nombre_familia"):
                 self.add_error('nombre_familia', "Debes proporcionar un nombre para la nueva familia.")
         elif accion == 'unirse':
             codigo = cleaned_data.get("familia_existente", "").strip()
@@ -104,19 +101,23 @@ class CustomSignupForm(UserCreationForm):
         return cleaned_data
 
     def save(self, commit=True):
+        # Guarda el usuario de manera normal
         user = super().save(commit)
         accion = self.cleaned_data.get("accion_familiar")
         if accion == 'crear':
-            # Crea una nueva familia y añade el usuario.
+            # Crea la nueva familia y añade al usuario
             familia, created = Familia.objects.get_or_create(
                 nombre=self.cleaned_data.get("nombre_familia").strip().lower()
             )
             familia.miembros.add(user)
+            if created:
+                familia.administrador = user
+                familia.save()
         elif accion == 'unirse':
-            # Usa la familia obtenida en cleaned_data.
+            # En lugar de agregar el usuario directamente, crea una solicitud de unión
             familia = self.cleaned_data.get("familia_object")
-            if familia:
-                familia.miembros.add(user)
+            # Crea la solicitud con estado "pendiente"
+            SolicitudUniónFamilia.objects.create(usuario=user, familia=familia)
         return user
 
 class ChangeFamilyForm(forms.Form):
@@ -160,3 +161,18 @@ class ChangeFamilyForm(forms.Form):
                 except Familia.DoesNotExist:
                     self.add_error('codigo_invitacion', "No se encontró una familia con ese código.")
         return cleaned_data
+
+
+class ReenviarSolicitudForm(forms.Form):
+    familia_existente = forms.CharField(
+        max_length=100,
+        label="Código de invitación de la familia"
+    )
+
+    def clean_familia_existente(self):
+        codigo = self.cleaned_data.get('familia_existente', '').strip()
+        try:
+            familia = Familia.objects.get(codigo_invitacion__iexact=codigo)
+        except Familia.DoesNotExist:
+            raise forms.ValidationError("No se encontró una familia con ese código.")
+        return familia

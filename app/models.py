@@ -25,6 +25,13 @@ class Familia(models.Model):
     # Se genera un código único de invitación si aún no existe.
     codigo_invitacion = models.CharField(max_length=8, unique=True, blank=True)
     miembros = models.ManyToManyField(User, related_name='familias')
+    administrador = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_familias'
+    )
 
     def save(self, *args, **kwargs):
         if not self.codigo_invitacion:
@@ -146,3 +153,17 @@ class ListaCompraItem(models.Model):
     def __str__(self):
         return f"{self.ingrediente.nombre} en {self.lista}"
 
+
+class SolicitudUniónFamilia(models.Model):
+    ESTADOS = (
+        ('pendiente', 'Pendiente'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+    )
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes_familia')
+    familia = models.ForeignKey('Familia', on_delete=models.CASCADE, related_name='solicitudes')
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='pendiente')
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Solicitud de {self.usuario.username} a {self.familia.nombre} ({self.estado})"

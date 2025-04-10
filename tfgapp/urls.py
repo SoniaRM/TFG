@@ -60,5 +60,10 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),
     path('cambiar_familia/', cambiar_familia, name='cambiar_familia'),
+    path('lista_solicitudes_familia/', colaborativos.lista_solicitudes_familia, name='lista_solicitudes_familia'),
+    path('aprobar_solicitud/<int:solicitud_id>/', colaborativos.aprobar_solicitud, name='aprobar_solicitud'),
+    path('rechazar_solicitud/<int:solicitud_id>/', colaborativos.rechazar_solicitud, name='rechazar_solicitud'),
+    path('esperando_aprobacion/', colaborativos.esperando_aprobacion, name='esperando_aprobacion'),
+    path('reenviar_solicitud/', colaborativos.reenviar_solicitud, name='reenviar_solicitud'),
 
 ]

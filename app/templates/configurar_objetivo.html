@@ -49,6 +49,9 @@
           <ul>
             {% for miembro in familia.miembros.all %}
               <li>{{ miembro.username }}</li>
+              {% if miembro == familia.administrador %}
+              <span style="color: red;">(Administrador)</span>
+            {% endif %}
             {% empty %}
               <li>No hay miembros asignados aún.</li>
             {% endfor %}

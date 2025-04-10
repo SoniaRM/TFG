@@ -36,6 +36,9 @@
                 <li class="{% if request.resolver_match.url_name == 'cambiar_familia' %}activo{% endif %}">
                     <a href="{% url 'cambiar_familia' %}">Cambiar familia</a>
                 </li>
+                <li class="{% if request.resolver_match.url_name == 'lista_solicitudes_familia' %}activo{% endif %}">
+                    <a href="{% url 'lista_solicitudes_familia' %}">Solicitudes</a>
+                </li>
                 <!-- Aquí mostramos el enlace según si el usuario está autenticado o no -->
                 {% if user.is_authenticated %}
                 <!-- Mostrar el nombre del usuario -->
