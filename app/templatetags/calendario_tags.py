@@ -3,13 +3,28 @@ from app.models import Calendario
 
 register = template.Library()
 
-@register.simple_tag
-def get_calendario_for_date(fecha):
+@register.simple_tag(takes_context=True)
+def get_calendario_for_date(context, fecha):
     """
-    Dado un objeto fecha, devuelve la instancia de Calendario correspondiente.
-    Si no existe, la crea con el objetivo_proteico por defecto (100).
+    Dado un objeto fecha y el contexto (para obtener el request y la familia),
+    devuelve la instancia de Calendario correspondiente para esa familia.
+    Si no existe, la crea con objetivo_proteico por defecto (100).
     """
-    calendario, created = Calendario.objects.get_or_create(fecha=fecha, defaults={'objetivo_proteico': 100})
+    request = context.get('request')
+    # Intenta obtener la familia ya pasada en el contexto, de lo contrario la del usuario.
+    familia = context.get('familia')
+    if not familia and request and hasattr(request, 'user'):
+        familia = request.user.familias.first()
+    
+    if not familia:
+        return None  # O bien devolver un objeto vacío si no se pudo determinar la familia
+    
+    calendario, created = Calendario.objects.get_or_create(
+        fecha=fecha,
+        familia=familia,
+        defaults={'objetivo_proteico': 100}
+    )
+
     print(calendario)
     return calendario
 

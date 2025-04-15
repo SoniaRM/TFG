@@ -85,12 +85,15 @@ class Receta(models.Model):
         return self.nombre
         
 class Calendario(models.Model):
-    fecha = models.DateField(unique=True)  # Cada día debe ser único
+    fecha = models.DateField()
     objetivo_proteico = models.IntegerField(validators=[MinValueValidator(0)], default=100)
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='calendarios')
 
+    class Meta:
+        unique_together = ('familia', 'fecha')  # Cada familia solo puede tener un calendario por día
+
     def __str__(self):
-        return f"Planificación del {self.fecha}"
+        return f"Planificación del {self.fecha} para {self.familia}"
 
     def calcular_proteinas_restantes(self):
         """Calcula cuántas proteínas faltan para alcanzar el objetivo diario."""

@@ -6,6 +6,10 @@ from django.contrib.auth.decorators import login_required
 from ..models import Familia, SolicitudUniónFamilia
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+
+#Para eliminar_miembro
+User = get_user_model()
 
 
 class SignupView(CreateView):
@@ -87,6 +91,8 @@ def rechazar_solicitud(request, solicitud_id):
 def esperando_aprobacion(request):
     # Se busca la solicitud pendiente del usuario.
     solicitud = SolicitudUniónFamilia.objects.filter(usuario=request.user).order_by('-fecha_solicitud').first()
+    if solicitud and solicitud.estado == "aprobada":
+        return redirect('listado_recetas')
     return render(request, 'colaborativo/esperando_aprobacion.html', {'solicitud': solicitud})
 
 @login_required
@@ -104,3 +110,63 @@ def reenviar_solicitud(request):
         form = ReenviarSolicitudForm()
 
     return render(request, "colaborativo/reenviar_solicitud.html", {"form": form})
+
+@login_required
+def eliminar_miembro(request, miembro_id):
+    admin = request.user
+    # Se obtiene la familia donde el usuario es administrador.
+    # Se asume que tu modelo Familia tiene el campo "administrador" y una relación many-to-many con "miembros"
+    familia = get_object_or_404(Familia, administrador=admin)
+    
+    miembro = get_object_or_404(User, id=miembro_id)
+    # Verificar que el usuario a eliminar pertenezca a la familia
+    if miembro not in familia.miembros.all():
+        messages.error(request, "El usuario seleccionado no pertenece a tu familia.")
+        return redirect('configurar_objetivo')  # O la vista donde se liste a los miembros
+    
+    # Si se desea evitar eliminar al propio administrador:
+    if miembro == admin:
+        messages.error(request, "No puedes eliminarte a ti mismo.")
+        return redirect('configurar_objetivo')
+    
+    # Remover el miembro de la familia
+    familia.miembros.remove(miembro)
+    
+    # Opcional: Si quieres que, en caso de que el usuario eliminado esté conectado, se le "marque" como eliminado para que al hacer siguiente petición se le redirija a la página correspondiente,
+    # puedes implementar un mecanismo basado en una marca en la base de datos o, de forma más sencilla, notificarlo en el mensaje (ver punto 2).
+    
+    messages.success(request, f"El usuario {miembro.username} ha sido eliminado de la familia.")
+    return redirect('configurar_objetivo')
+    
+@login_required
+def eliminado_familia(request):
+    user = request.user
+    if request.method == 'POST':
+        form = ChangeFamilyForm(request.POST)
+        if form.is_valid():
+            accion = form.cleaned_data['accion_familiar']
+            if accion == 'crear':
+                # Si el usuario decide crear una nueva familia:
+                nombre = form.cleaned_data['nombre_familia'].strip().lower()
+                familia, created = Familia.objects.get_or_create(nombre=nombre)
+                # Asignar la familia al usuario eliminado:
+                user.familias.clear()
+                user.familias.add(familia)
+                messages.success(request, "Familia creada y asignada correctamente.")
+                return redirect('listado_recetas')
+            elif accion == 'unirse':
+                # Se obtiene el código de invitación y se busca la familia correspondiente.
+                codigo = form.cleaned_data['codigo_invitacion'].strip()
+                try:
+                    familia = Familia.objects.get(codigo_invitacion=codigo)
+                except Familia.DoesNotExist:
+                    form.add_error('codigo_invitacion', "No se encontró una familia con este código.")
+                    return render(request, 'colaborativo/eliminado_familia.html', {'form': form})
+                # En lugar de asignar directamente la familia, se crea una solicitud pendiente.
+                SolicitudUniónFamilia.objects.create(usuario=user, familia=familia)
+                messages.info(request, "Solicitud enviada. Espera a que el administrador la apruebe.")
+                return redirect('esperando_aprobacion')
+    else:
+        form = ChangeFamilyForm()
+
+    return render(request, 'colaborativo/eliminado_familia.html', {'form': form})

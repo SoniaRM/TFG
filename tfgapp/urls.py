@@ -65,5 +65,6 @@ urlpatterns = [
     path('rechazar_solicitud/<int:solicitud_id>/', colaborativos.rechazar_solicitud, name='rechazar_solicitud'),
     path('esperando_aprobacion/', colaborativos.esperando_aprobacion, name='esperando_aprobacion'),
     path('reenviar_solicitud/', colaborativos.reenviar_solicitud, name='reenviar_solicitud'),
-
+    path('eliminar_miembro/<int:miembro_id>/', login_required(colaborativos.eliminar_miembro), name='eliminar_miembro'),
+    path('eliminado_familia/',login_required(colaborativos.eliminado_familia), name='eliminado_familia'),
 ]
