@@ -40,16 +40,33 @@ def cambiar_familia(request):
                 familia, created = Familia.objects.get_or_create(
                     nombre=form.cleaned_data['nombre_familia'].strip().lower()
                 )
+                # Se actualiza la familia actual del usuario de forma inmediata
+                user.familias.clear()
+                user.familias.add(familia)
+                messages.success(request, "Familia creada y asignada correctamente.")
+                return redirect('listado_recetas')
+
             elif accion == 'unirse':
-                familia = form.cleaned_data['familia_unirse']
-                if familia:
-                    # En lugar de agregar el usuario directamente, crea una solicitud pendiente.
-                    SolicitudUniónFamilia.objects.create(usuario=user, familia=familia)
+                # Aquí se obtiene la familia a la que se quiere unir por el código de invitación
+                # Por ejemplo, si en el formulario el campo es 'codigo_invitacion'
+                codigo = form.cleaned_data['codigo_invitacion'].strip()
+                try:
+                    familia = Familia.objects.get(codigo_invitacion=codigo)
+                except Familia.DoesNotExist:
+                    form.add_error('codigo_invitacion', "No se encontró una familia con este código.")
+                    return render(request, 'colaborativo/cambiar_familia.html', {'form': form})
                 
-            # Para que el usuario pertenezca únicamente a una familia, limpiamos sus asociaciones actuales:
-            user.familias.clear()
-            user.familias.add(familia)
-            return redirect('listado_recetas')
+                # Opcional: Verificar si ya existe una solicitud pendiente para esa familia
+                solicitud_existente = SolicitudUniónFamilia.objects.filter(usuario=user, familia=familia, estado='pendiente').first()
+                if solicitud_existente:
+                    messages.info(request, "Ya tienes una solicitud pendiente para esta familia.")
+                else:
+                    # Se crea la solicitud pendiente sin quitarle la familia actual al usuario
+                    SolicitudUniónFamilia.objects.create(usuario=user, familia=familia)
+                    messages.info(request, "Solicitud enviada. Espera a la aprobación del administrador.")
+                
+                # Se redirige al usuario a la vista de espera de aprobación
+                return redirect('esperando_aprobacion')
     else:
         form = ChangeFamilyForm()
     return render(request, 'colaborativo/cambiar_familia.html', {'form': form})
@@ -71,7 +88,27 @@ def aprobar_solicitud(request, solicitud_id):
     if solicitud.familia.administrador != request.user:
         # Si no es administrador, podrías devolver un error o redirigir
         return redirect('lista_solicitudes_familia')
-    solicitud.familia.miembros.add(solicitud.usuario)
+    
+    user = solicitud.usuario
+    # Si el usuario pertenece a una familia diferente a la de la solicitud aprobada,
+    # y era administrador en ella, se debe reasignar el rol de administrador.
+    if user.familias.exists():
+        current_family = user.familias.first()
+        # Verificar que la familia actual no sea ya la de la solicitud aprobada
+        if current_family != solicitud.familia and current_family.administrador == user:
+            otros_miembros = current_family.miembros.exclude(id=user.id)
+            if otros_miembros.exists():
+                current_family.administrador = otros_miembros.first()
+                current_family.save()
+            else:
+                # Si no hay otros miembros, puedes decidir dejarlo como administrador
+                # o gestionar de otra forma según la lógica de tu aplicación.
+                pass
+
+    # Actualiza la relación: elimina las familias actuales y asigna la nueva
+    user.familias.clear()
+    user.familias.add(solicitud.familia)
+
     solicitud.estado = 'aprobada'
     solicitud.save()
     return redirect('lista_solicitudes_familia')
