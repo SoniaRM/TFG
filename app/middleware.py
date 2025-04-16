@@ -20,6 +20,7 @@ class CheckFamilyMiddleware:
                 reverse('logout'),
                 reverse('reenviar_solicitud'),
                 reverse('cambiar_familia'),
+                reverse('crear_familia'),
             ]
             if request.path not in allowed_paths and not request.user.familias.exists():
                 # Consultamos directamente el modelo para ver si existe alguna solicitud pendiente.

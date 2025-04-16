@@ -36,14 +36,29 @@ def cambiar_familia(request):
         if form.is_valid():
             accion = form.cleaned_data['accion_familiar']
             if accion == 'crear':
-                # Se crea (o se obtiene) la familia con el nombre ingresado (se fuerza a minúsculas si así lo deseas)
-                familia, created = Familia.objects.get_or_create(
-                    nombre=form.cleaned_data['nombre_familia'].strip().lower()
-                )
-                # Se actualiza la familia actual del usuario de forma inmediata
+                nombre_familia = form.cleaned_data['nombre_familia'].strip().lower()
+                # Si ya existe una familia con ese nombre, se notifica el error.
+                if Familia.objects.filter(nombre=nombre_familia).exists():
+                    form.add_error('nombre_familia', 'Esa familia ya existe, por favor elige otro nombre.')
+                    return render(request, 'colaborativo/cambiar_familia.html', {'form': form})
+                # Antes de crear la nueva familia y quitar la relación con la(s) familia(s) actual(es),
+                # si el usuario es administrador en alguna de ellas se debe reasignar el rol.
+                for f in user.familias.all():
+                    if f.administrador == user:
+                        nuevo_admin = f.miembros.exclude(id=user.id).first()
+                        if nuevo_admin:
+                            f.administrador = nuevo_admin
+                            f.save()
+                        # Si no hay otro miembro, podrías decidir no realizar el cambio o dejar al usuario como admin.
+                        # En este ejemplo, si no hay otro miembro, se mantiene el admin pero se elimina la relación
+                        # al cambiar de familia el usuario perderá su membresía en esa familia.
+                
+                # Crear una nueva familia y asignar el usuario como administrador
+                familia = Familia.objects.create(nombre=nombre_familia, administrador=user)
+                # Asignar la familia creada al usuario
                 user.familias.clear()
                 user.familias.add(familia)
-                messages.success(request, "Familia creada y asignada correctamente.")
+                messages.success(request, "Familia creada y asignada correctamente. Ahora eres el administrador.")
                 return redirect('listado_recetas')
 
             elif accion == 'unirse':
@@ -151,9 +166,11 @@ def reenviar_solicitud(request):
 @login_required
 def eliminar_miembro(request, miembro_id):
     admin = request.user
+    miembro = get_object_or_404(User, id=miembro_id)
+
     # Se obtiene la familia donde el usuario es administrador.
     # Se asume que tu modelo Familia tiene el campo "administrador" y una relación many-to-many con "miembros"
-    familia = get_object_or_404(Familia, administrador=admin)
+    familia = get_object_or_404(Familia, administrador=admin, miembros=miembro)
     
     miembro = get_object_or_404(User, id=miembro_id)
     # Verificar que el usuario a eliminar pertenezca a la familia
@@ -183,14 +200,19 @@ def eliminado_familia(request):
         if form.is_valid():
             accion = form.cleaned_data['accion_familiar']
             if accion == 'crear':
-                # Si el usuario decide crear una nueva familia:
-                nombre = form.cleaned_data['nombre_familia'].strip().lower()
-                familia, created = Familia.objects.get_or_create(nombre=nombre)
-                # Asignar la familia al usuario eliminado:
+                nombre_familia = form.cleaned_data['nombre_familia'].strip().lower()
+                # Si ya existe una familia con ese nombre, se notifica el error.
+                if Familia.objects.filter(nombre=nombre_familia).exists():
+                    form.add_error('nombre_familia', 'Esa familia ya existe, por favor elige otro nombre.')
+                    return render(request, 'colaborativo/eliminado_familia.html', {'form': form})
+                # Crear una nueva familia y asignar el usuario como administrador
+                familia = Familia.objects.create(nombre=nombre_familia, administrador=user)
+                # Asignar la familia creada al usuario
                 user.familias.clear()
                 user.familias.add(familia)
-                messages.success(request, "Familia creada y asignada correctamente.")
+                messages.success(request, "Familia creada y asignada correctamente. Ahora eres el administrador.")
                 return redirect('listado_recetas')
+
             elif accion == 'unirse':
                 # Se obtiene el código de invitación y se busca la familia correspondiente.
                 codigo = form.cleaned_data['codigo_invitacion'].strip()
@@ -207,3 +229,29 @@ def eliminado_familia(request):
         form = ChangeFamilyForm()
 
     return render(request, 'colaborativo/eliminado_familia.html', {'form': form})
+
+
+@login_required
+def crear_familia(request):
+    if request.method == 'POST':
+        nombre_familia = request.POST.get("nombre_familia", "").strip().lower()
+        if not nombre_familia:
+            messages.error(request, "El nombre de la familia es obligatorio.")
+            return render(request, "colaborativo/crear_familia.html")
+        
+        # Verificar si ya existe una familia con ese nombre
+        if Familia.objects.filter(nombre=nombre_familia).exists():
+            messages.error(request, "Ya existe una familia con ese nombre, por favor elige otro nombre.")
+            return render(request, "colaborativo/crear_familia.html")
+        
+        # Crear la nueva familia y asignar el usuario actual como administrador
+        familia = Familia.objects.create(nombre=nombre_familia, administrador=request.user)
+        
+        # Actualizar la familia del usuario: se elimina cualquier asociación previa y se añade la nueva
+        request.user.familias.clear()
+        request.user.familias.add(familia)
+        
+        messages.success(request, "Familia creada y asignada correctamente. Ahora eres el administrador.")
+        return redirect("listado_recetas")
+    
+    return render(request, "colaborativo/crear_familia.html")
