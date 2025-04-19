@@ -17,10 +17,13 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 import io
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
 
 #LISTA COMPRA
+@login_required
 def vista_lista_compra(request):
+    familia = request.user.familias.first()
     # 1) Determinamos la semana
     start_str = request.GET.get('start')
     if start_str:
@@ -36,7 +39,7 @@ def vista_lista_compra(request):
     dias = [start_date + timedelta(days=i) for i in range(7)]
 
     # 2) Obtenemos (o creamos) la ListaCompra para esa semana
-    lista_compra_obj, _ = ListaCompra.objects.get_or_create(start_date=start_date)
+    lista_compra_obj, _ = ListaCompra.objects.get_or_create(start_date=start_date, familia=familia)
 
     # 3) Obtenemos todos los items y separamos en:
     #    - ingredientes por comprar (compra>0)
@@ -74,13 +77,18 @@ def vista_lista_compra(request):
     }
     return render(request, 'lista_compra.html', context)
 
-
+@login_required
 def mover_compra_despensa(request):
     if request.method == 'POST':
         lista_id = request.POST.get('lista_id')
         item_id = request.POST.get('item_id')
         raciones = int(request.POST.get('raciones', 0))
         item = get_object_or_404(ListaCompraItem, id=item_id, lista_id=lista_id)
+        familia = request.user.familias.first()
+        # Verificamos que el item pertenezca a la familia del usuario
+        if item.lista.familia != familia:
+            return JsonResponse({'error': 'No tienes permiso para modificar este elemento.'}, status=403)
+        
         # Recalcular: Aumentar despensa y ajustar compra según el valor original.
         nuevo_despensa = item.despensa + raciones
         # No puede superar el total original:
@@ -92,12 +100,17 @@ def mover_compra_despensa(request):
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@login_required
 def mover_despensa_compra(request):
     if request.method == 'POST':
         lista_id = request.POST.get('lista_id')
         item_id = request.POST.get('item_id')
         raciones = int(request.POST.get('raciones', 0))
         item = get_object_or_404(ListaCompraItem, id=item_id, lista_id=lista_id)
+        familia = request.user.familias.first()
+        if item.lista.familia != familia:
+            return JsonResponse({'error': 'No tienes permiso para modificar este elemento.'}, status=403)
+        
         # Recalcular: Disminuir despensa y ajustar compra.
         nuevo_despensa = item.despensa - raciones
         if nuevo_despensa < 0:
@@ -108,14 +121,16 @@ def mover_despensa_compra(request):
         return JsonResponse({'status': 'ok'})
     return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+@login_required
 def lista_compra_datos(request):
     start_str = request.GET.get('start')
     if start_str:
         start_date = datetime.strptime(start_str, "%Y-%m-%d").date()
     else:
         start_date = now().date() - timedelta(days=now().date().weekday())
-
-    lista_compra_obj = get_object_or_404(ListaCompra, start_date=start_date)
+    
+    familia = request.user.familias.first()
+    lista_compra_obj = get_object_or_404(ListaCompra, start_date=start_date, familia=familia)
     items = lista_compra_obj.items.select_related('ingrediente')
 
     por_comprar = []
@@ -145,7 +160,8 @@ def lista_compra_datos(request):
     })
 
 
-def generar_lista_compra(week_start):
+@login_required
+def generar_lista_compra(week_start, familia):
     """
     Recalcula la lista de la compra para la semana que inicia en week_start.
     Cada asignación de receta suma 1 para cada ingrediente de la receta.
@@ -157,10 +173,10 @@ def generar_lista_compra(week_start):
     end_date = week_start + timedelta(days=6)
 
     # Obtén (o crea) la ListaCompra para esa semana
-    lista, created = ListaCompra.objects.get_or_create(start_date=week_start)
+    lista, created = ListaCompra.objects.get_or_create(start_date=week_start, familia=familia)
 
     # Calcula los nuevos totales a partir del calendario
-    calendarios = Calendario.objects.filter(fecha__range=(week_start, end_date)) \
+    calendarios = Calendario.objects.filter(fecha__range=(week_start, end_date), familia=familia) \
                                     .prefetch_related('calendario_recetas__receta__ingredientes')
 
     nuevos_totales = {}
@@ -209,6 +225,7 @@ def generar_lista_compra(week_start):
     return lista
 
 @csrf_exempt
+@login_required
 def finalizar_compra(request):
     if request.method == 'POST':
         import json
@@ -221,7 +238,8 @@ def finalizar_compra(request):
         except:
             return JsonResponse({"error": "Fecha inválida"}, status=400)
 
-        lista = ListaCompra.objects.get(start_date=start_date)
+        familia = request.user.familias.first()
+        lista = ListaCompra.objects.get(start_date=start_date, familia=familia)
 
         for item_info in items:
             item_id = item_info.get('item_id')
@@ -245,6 +263,7 @@ def finalizar_compra(request):
 
 
 @csrf_exempt
+@login_required
 def resetear_lista_compra(request):
     if request.method == "POST":
         # Obtener la fecha de inicio de la semana (parámetro 'start')
@@ -258,8 +277,9 @@ def resetear_lista_compra(request):
             # Si no se proporciona, tomar el lunes de la semana actual
             start_date = now().date() - timedelta(days=now().date().weekday())
         
+        familia = request.user.familias.first()
         try:
-            lista = ListaCompra.objects.get(start_date=start_date)
+            lista = ListaCompra.objects.get(start_date=start_date, familia=familia)
         except ListaCompra.DoesNotExist:
             return JsonResponse({"error": "Lista de compra no encontrada para la fecha especificada."}, status=404)
         
@@ -273,7 +293,7 @@ def resetear_lista_compra(request):
     
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
-
+@login_required
 def exportar_lista_compra(request):
     """
     Exporta un PDF con la lista de la compra.
@@ -293,9 +313,9 @@ def exportar_lista_compra(request):
     # 2. Forzar a lunes (suponiendo que la lista corresponde a una semana)
     start_date = input_date - timedelta(days=input_date.weekday())
     end_date = start_date + timedelta(days=6)
-
+    familia = request.user.familias.first()
     # 3. Obtener la instancia de ListaCompra para esa semana (o crearla si no existe)
-    lista_compra, created = ListaCompra.objects.get_or_create(start_date=start_date)
+    lista_compra, created = ListaCompra.objects.get_or_create(start_date=start_date, familia=familia)
 
     # 4. Filtrar los ítems con compra > 0
     items_por_comprar = lista_compra.items.filter(compra__gt=0)

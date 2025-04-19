@@ -21,13 +21,17 @@ from babel.dates import format_date
 
 from ..models import Receta, TipoComida, Calendario, Calendario_Receta
 from .lista_compra import generar_lista_compra
+from django.contrib.auth.decorators import login_required
 
 #CALENDARIO
+@login_required
 def calendario_semanal(request):
     """
     Muestra un calendario de 7 días (semana).
     Permite navegar entre semanas usando un parámetro GET 'start' en formato YYYY-MM-DD.
-    """
+    """    
+    familia = request.user.familias.first()  # Obtener la familia del usuario
+
     # 1) Leemos el parámetro GET 'start' que indicará el lunes (o día inicial) de la semana.
     start_date_str = request.GET.get('start', None)
 
@@ -47,7 +51,7 @@ def calendario_semanal(request):
     dias_context = [(dia, dias_semana_es[dia.weekday()]) for dia in dias]
 
     # 4) Obtenemos todos los objetos Calendario que caigan en esos 7 días
-    calendarios = Calendario.objects.filter(fecha__range=[dias[0], dias[-1]]) \
+    calendarios = Calendario.objects.filter(familia=familia, fecha__range=[dias[0], dias[-1]],) \
                                     .prefetch_related('calendario_recetas__receta',
                                                       'calendario_recetas__tipo_comida')
 
@@ -87,12 +91,14 @@ def calendario_semanal(request):
 #Filtrar las recetas por tipo Comida
 
 @csrf_exempt
+@login_required
 def recetas_por_tipo(request):
     """
     Devuelve las recetas disponibles (individuales y en pares) para agregar al calendario,
     excluyendo las que ya han sido añadidas en la fecha y tipo de comida seleccionados,
     y ordenándolas según un score que combina el ajuste proteico y la penalización por frecuencia.
     """
+    familia = request.user.familias.first()
     tipo = request.GET.get("tipo")
     fecha = request.GET.get("fecha")
 
@@ -102,19 +108,20 @@ def recetas_por_tipo(request):
     # 1. Recetas del tipo seleccionado, excluyendo las ya asignadas en esa fecha y comida
 
     # Obtener todas las recetas del tipo de comida seleccionado
-    recetas_disponibles = Receta.objects.filter(tipo_comida__nombre=tipo).distinct()
+    recetas_disponibles = Receta.objects.filter(familia=familia, tipo_comida__nombre=tipo).distinct()
 
     # Obtener las recetas que ya están en el calendario en esa fecha y tipo de comida
     recetas_ya_agregadas = Receta.objects.filter(
         recetas_calendario__calendario__fecha=fecha,
-        recetas_calendario__tipo_comida__nombre=tipo
+        recetas_calendario__tipo_comida__nombre=tipo,
+        familia=familia  # Aseguramos que pertenezcan a la familia
     ).distinct()
 
     # Excluir las recetas ya añadidas
     recetas_filtradas = recetas_disponibles.exclude(id__in=recetas_ya_agregadas.values_list('id', flat=True))
     # 2. Calcular el saldo proteico para el día indicado
 
-    calendario = Calendario.objects.filter(fecha=fecha).first()
+    calendario = Calendario.objects.filter(fecha=fecha, familia=familia).first()
     if calendario:
         objetivo_proteico = calendario.objetivo_proteico
         proteinas_consumidas = calendario.proteinas_consumidas
@@ -142,7 +149,8 @@ def recetas_por_tipo(request):
             used_recently = Calendario_Receta.objects.filter(
                 calendario__fecha__gte=start_period,
                 calendario__fecha__lt=end_period,
-                receta__ingredientes=ingrediente
+                receta__ingredientes=ingrediente,
+                calendario__familia=familia  # Filtrar por familia
             ).exists()
             if used_recently:
                 penalty += PENALTY_PER_INGREDIENT
@@ -175,7 +183,8 @@ def recetas_por_tipo(request):
             used_recently = Calendario_Receta.objects.filter(
                 calendario__fecha__gte=start_period,
                 calendario__fecha__lt=end_period,
-                receta__ingredientes=ingrediente
+                receta__ingredientes=ingrediente,
+                calendario__familia=familia
             ).exists()
             if used_recently:
                 penalty_pair += PENALTY_PER_INGREDIENT
@@ -189,10 +198,10 @@ def recetas_por_tipo(request):
 
     # 7. Ordenar todas las recomendaciones por score (de mayor a menor)
     recomendaciones.sort(key=lambda x: x["score"], reverse=True)
-
     return JsonResponse(recomendaciones, safe=False)
 
 @csrf_exempt
+@login_required
 def agregar_receta_calendario(request):
     """Vista para agregar una receta a una fecha específica en el calendario."""
     if request.method == "POST":
@@ -206,12 +215,14 @@ def agregar_receta_calendario(request):
             if not fecha or not receta_id or not tipo_comida_id:
                 return JsonResponse({"error": "Faltan datos en la solicitud"}, status=400)
 
+            familia = request.user.familias.first()
+
             # Obtener objetos desde la base de datos
-            receta = get_object_or_404(Receta, id=receta_id)
+            receta = get_object_or_404(Receta, id=receta_id, familia=familia)
             tipo_comida = get_object_or_404(TipoComida, id=tipo_comida_id)
 
             # Obtener o crear la instancia de calendario para esa fecha
-            calendario, created = Calendario.objects.get_or_create(fecha=fecha)
+            calendario, created = Calendario.objects.get_or_create(fecha=fecha, familia=familia)
 
             # Verificar si la receta ya está asignada para evitar duplicados
             if Calendario_Receta.objects.filter(calendario=calendario, receta=receta, tipo_comida=tipo_comida).exists():
@@ -226,7 +237,7 @@ def agregar_receta_calendario(request):
             week_start = fecha_date - timedelta(days=fecha_date.weekday())
 
             # 2) Llamar a generar_lista_compra(week_start)
-            generar_lista_compra(week_start)
+            generar_lista_compra(week_start, familia)
 
             return JsonResponse({"mensaje": "Receta agregada exitosamente."}, status=200)
 
@@ -236,12 +247,14 @@ def agregar_receta_calendario(request):
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
 @csrf_exempt
+@login_required
 def recetas_en_calendario(request):
     """Devuelve las recetas ya añadidas al calendario para un día y tipo de comida."""
     fecha = request.GET.get("fecha")
     tipo = request.GET.get("tipo")
+    familia = request.user.familias.first()
 
-    calendario = Calendario.objects.filter(fecha=fecha).first()
+    calendario = Calendario.objects.filter(fecha=fecha, familia=familia).first()
     if not calendario:
         return JsonResponse([], safe=False)
 
@@ -250,6 +263,7 @@ def recetas_en_calendario(request):
     return JsonResponse(data, safe=False)
 
 @csrf_exempt
+@login_required
 def eliminar_receta_calendario(request):
     """Elimina una receta del calendario."""
     if request.method == "POST":
@@ -259,10 +273,11 @@ def eliminar_receta_calendario(request):
 
         if not fecha or not receta_id:
             return JsonResponse({"error": "Faltan parámetros."}, status=400)
-
+        
+        familia = request.user.familias.first()
         # Eliminar la receta de la fecha y tipo de comida correspondiente
         eliminados, _ = Calendario_Receta.objects.filter(
-            calendario__fecha=fecha, receta__id=receta_id, tipo_comida__nombre=tipo_comida
+            calendario__fecha=fecha, calendario__familia=familia, receta__id=receta_id, tipo_comida__nombre=tipo_comida
         ).delete()
 
         # 1) Obtener el lunes de la semana
@@ -271,7 +286,7 @@ def eliminar_receta_calendario(request):
         week_start = fecha_date - timedelta(days=fecha_date.weekday())
 
         # 2) Llamar a generar_lista_compra(week_start)
-        generar_lista_compra(week_start)
+        generar_lista_compra(week_start, familia)
 
         if eliminados:
             return JsonResponse({"mensaje": "Receta eliminada correctamente."}, status=200)
@@ -281,7 +296,7 @@ def eliminar_receta_calendario(request):
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
 
-
+@login_required
 def actualizar_calendario_dia(request):
     """
     Devuelve las recetas actualizadas de un día específico en formato JSON.
@@ -289,8 +304,9 @@ def actualizar_calendario_dia(request):
     fecha = request.GET.get("fecha")
     if not fecha:
         return JsonResponse({"error": "Fecha no proporcionada."}, status=400)
-
-    calendario = Calendario.objects.filter(fecha=fecha).first()
+    
+    familia = request.user.familias.first()
+    calendario = Calendario.objects.filter(fecha=fecha, familia=familia).first()
     if not calendario:
         return JsonResponse({"recetas": {}}, status=200)
 
@@ -308,6 +324,7 @@ def actualizar_calendario_dia(request):
 
 #Para que el degradado de los dias del calendario se actualice solo
 @require_GET
+@login_required
 def datos_dia(request, fecha):
     """
     Retorna en JSON los datos del día: proteínas consumidas y objetivo.
@@ -318,8 +335,9 @@ def datos_dia(request, fecha):
         fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
     except ValueError:
         return JsonResponse({'error': 'Fecha inválida'}, status=400)
-
-    calendario, _ = Calendario.objects.get_or_create(fecha=fecha_obj, defaults={'objetivo_proteico': 100})
+    
+    familia = request.user.familias.first()
+    calendario, _ = Calendario.objects.get_or_create(fecha=fecha_obj, familia=familia, defaults={'objetivo_proteico': 100})
     data = {
         'proteinas_consumidas': calendario.proteinas_consumidas,
         'objetivo_proteico': calendario.objetivo_proteico
@@ -328,6 +346,7 @@ def datos_dia(request, fecha):
 
 #Exportacion pdf de las recetas de la semana
 #EXPORTACION
+@login_required
 def exportar_semana(request):
     import io
     from math import ceil
@@ -361,8 +380,9 @@ def exportar_semana(request):
     # Tipos de comida
     meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
 
+    familia = request.user.familias.first()
     # 3) Obtener los calendarios de la semana
-    calendarios = {cal.fecha: cal for cal in Calendario.objects.filter(fecha__in=dias)}
+    calendarios = {cal.fecha: cal for cal in Calendario.objects.filter(fecha__in=dias, familia=familia)}
 
     # 4) Construir la tabla principal (cabeceras de fechas y días)
     header_dates = [""] + [d.strftime("%d/%m") for d in dias]

@@ -2,6 +2,8 @@
 from django.core.validators import RegexValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
+import uuid
 
 class TipoComida(models.Model):
     nombre = models.CharField(
@@ -18,6 +20,28 @@ class TipoComida(models.Model):
     def __str__(self):
         return self.nombre
 
+class Familia(models.Model):
+    nombre = models.CharField(max_length=100)
+    # Se genera un código único de invitación si aún no existe.
+    codigo_invitacion = models.CharField(max_length=8, unique=True, blank=True)
+    miembros = models.ManyToManyField(User, related_name='familias')
+    administrador = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='admin_familias'
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.codigo_invitacion:
+            # Genera un código aleatorio de 8 caracteres
+            self.codigo_invitacion = uuid.uuid4().hex[:8]
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.nombre
+
 class Ingrediente(models.Model):
     nombre = models.CharField(
         max_length=100,
@@ -30,6 +54,7 @@ class Ingrediente(models.Model):
         ]
     )
     frec = models.IntegerField(validators=[MinValueValidator(1)])
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='ingredientes')
 
     def __str__(self):
         return self.nombre
@@ -54,16 +79,21 @@ class Receta(models.Model):
     tipo_comida = models.ManyToManyField(TipoComida, related_name='recetas')
     proteinas = models.IntegerField(validators=[MinValueValidator(0)])
     ingredientes = models.ManyToManyField(Ingrediente, related_name='recetas')
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='recetas')
 
     def __str__(self):
         return self.nombre
         
 class Calendario(models.Model):
-    fecha = models.DateField(unique=True)  # Cada día debe ser único
+    fecha = models.DateField()
     objetivo_proteico = models.IntegerField(validators=[MinValueValidator(0)], default=100)
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='calendarios')
+
+    class Meta:
+        unique_together = ('familia', 'fecha')  # Cada familia solo puede tener un calendario por día
 
     def __str__(self):
-        return f"Planificación del {self.fecha}"
+        return f"Planificación del {self.fecha} para {self.familia}"
 
     def calcular_proteinas_restantes(self):
         """Calcula cuántas proteínas faltan para alcanzar el objetivo diario."""
@@ -102,7 +132,8 @@ class Calendario_Receta(models.Model):
 class ListaCompra(models.Model):
     # Por ejemplo, para identificar a qué semana pertenece
     start_date = models.DateField(default=timezone.now)
-    
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='listas_compra')
+
     # Si quieres enlazarlo a un usuario (aunque sea una app de un solo usuario),
     # podrías añadir un campo user = models.ForeignKey(User, on_delete=models.CASCADE)
     # si en el futuro quisieras multiusuario.
@@ -124,3 +155,18 @@ class ListaCompraItem(models.Model):
         
     def __str__(self):
         return f"{self.ingrediente.nombre} en {self.lista}"
+
+
+class SolicitudUniónFamilia(models.Model):
+    ESTADOS = (
+        ('pendiente', 'Pendiente'),
+        ('aprobada', 'Aprobada'),
+        ('rechazada', 'Rechazada'),
+    )
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='solicitudes_familia')
+    familia = models.ForeignKey('Familia', on_delete=models.CASCADE, related_name='solicitudes')
+    estado = models.CharField(max_length=10, choices=ESTADOS, default='pendiente')
+    fecha_solicitud = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Solicitud de {self.usuario.username} a {self.familia.nombre} ({self.estado})"

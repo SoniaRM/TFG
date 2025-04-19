@@ -50,7 +50,7 @@
       padding: 10px;
       border-radius: 15px;
       transition: background 0.5s ease-in-out;
-      border: 0.5px solid #333;
+      border: 0.5px solid #cccccc;
     }
 
     .day-header {
@@ -188,7 +188,7 @@
 
     <div class="week-container">
       {% for day, nombre_corto in dias_context %}
-        {% get_calendario_for_date day as calendario %}
+        {% get_calendario_for_date fecha=day as calendario %}
 
       <div class="day-column" id="day-column-{{ day|date:'Y-m-d' }}" style="{{ calendario|get_vertical_gradient_style }}">
         <div class="day-header">
