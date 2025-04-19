@@ -80,7 +80,13 @@ class Receta(models.Model):
     proteinas = models.IntegerField(validators=[MinValueValidator(0)])
     ingredientes = models.ManyToManyField(Ingrediente, related_name='recetas')
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='recetas')
-
+    descripcion = models.TextField(
+        verbose_name="Descripción",
+        blank=True,
+        null=True,
+        help_text="Descripción de la receta (opcional)."
+    )
+    
     def __str__(self):
         return self.nombre
         

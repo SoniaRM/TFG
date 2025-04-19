@@ -6,10 +6,19 @@ from django.contrib.auth.models import User
 class RecetaForm(forms.ModelForm):
     nombre = forms.CharField(max_length=100)
     proteinas = forms.IntegerField()
+    descripcion = forms.CharField(
+        label="Descripción (opcional)",
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Añade aquí una descripción de tu receta...'
+        })
+    )
 
     class Meta:
         model = Receta
-        fields = ['nombre', 'tipo_comida', 'proteinas', 'ingredientes']
+        fields = ['nombre', 'tipo_comida', 'proteinas','descripcion', 'ingredientes']
         widgets = {
             'tipo_comida': forms.CheckboxSelectMultiple,
             'ingredientes': forms.CheckboxSelectMultiple,

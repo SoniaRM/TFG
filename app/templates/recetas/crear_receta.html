@@ -50,6 +50,12 @@
             </div>
             
             <div class="mb-3">
+                {{ form.descripcion.label_tag }}
+                {{ form.descripcion }}  {# tu widget <textarea> ya lleva class="form-control" y rows #}
+                {{ form.descripcion.errors }}
+            </div>
+            
+            <div class="mb-3">
                 <label for="buscar-ingrediente">{{ form.ingredientes.label }}:</label>
                 <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente..." style="margin-bottom: 0.5em;">
                 <div class="row" id="ingrediente-checkboxes">
