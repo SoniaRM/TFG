@@ -145,6 +145,22 @@
     border-radius: 50%;
   }
   /*******************************************/
+    @keyframes shake {
+    0%, 100%   { transform: translateX(0); }
+    25%        { transform: translateX(-2px); }
+    75%        { transform: translateX(2px); }
+  }
+
+  .carbs-exceso {
+    animation: shake 0.5s ease-in-out infinite;
+    border: 2px solid #e74c3c;
+    border-radius: 5px;
+  }
+  /* Aseguramos que el texto dentro de .carbohidratos-valor también se ponga rojo */
+  .carbohidratos-valor.carbs-exceso {
+    color: #e74c3c;
+  }
+
 
   </style>
 </head>
@@ -194,11 +210,17 @@
         <div class="day-header">
           {{ nombre_corto }}<br>
           {{ day|date:"d/m" }}<br>
-          <span class="proteinas-valor">
-
-          {{ calendario.proteinas_consumidas }}g / {{ calendario.objetivo_proteico }}g
-        </span>
-
+          <p class="proteinas-valor mb-1">
+            <strong>P:</strong> {{ calendario.proteinas_consumidas }}g / {{ calendario.objetivo_proteico }}g
+          </p>
+          <p class="carbohidratos-valor mb-0
+            {% if calendario.carbohidratos_consumidos > calendario.objetivo_carbohidratos %}
+                    carbs-exceso
+            {% endif %}">
+            <strong>C:</strong> {{ calendario.carbohidratos_consumidos }}g /
+            {{ calendario.objetivo_carbohidratos }}g
+          </p>
+        
         </div>
 
         {% for meal in meal_order %}
@@ -346,7 +368,7 @@
         .then(data => {
           const objetivo = data.objetivo_proteico || 100;
           const consumidas = data.proteinas_consumidas || 0;
-    
+
           // Llamamos a las dos funciones
           actualizarDonut(consumidas, objetivo);
           actualizarTextoColor(consumidas, objetivo);
@@ -641,6 +663,8 @@
       } else {
         recipesContainer.innerHTML = "";
       }
+
+
       //actualizarBarraProteinas(fecha);
       actualizarDegradado(fecha);
       actualizarIndicadores(new Date().toISOString().split('T')[0]);
@@ -650,9 +674,28 @@
       if (dayColumn) {
         const proteinaValor = dayColumn.querySelector('.proteinas-valor');
         if (proteinaValor) {
-          proteinaValor.textContent = `${data.proteinas_consumidas}g / ${data.objetivo_proteico}g`;
+          proteinaValor.textContent = `P: ${data.proteinas_consumidas}g / ${data.objetivo_proteico}g`;
+        }
+        const carboValor = dayColumn.querySelector('.carbohidratos-valor');
+        if (carboValor) {
+          carboValor.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
+        }
+        // 3) **Actualiza los carbohidratos**:
+        const carbsElem = dayColumn.querySelector('.carbohidratos-valor');
+        if (carbsElem) {
+          carbsElem.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
+
+          // 4) Aplica el “shake” si hemos excedido
+          if (data.carbohidratos_consumidos > data.objetivo_carbohidratos) {
+            carbsElem.classList.add('carbs-exceso');
+          } else {
+            carbsElem.classList.remove('carbs-exceso');
+          }
+
         }
       }
+      
+
     })
     .catch(error => console.error("❌ Error al actualizar el calendario:", error));
 }

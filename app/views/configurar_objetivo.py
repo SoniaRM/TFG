@@ -14,9 +14,12 @@ def vista_configurar_objetivo(request):
     if request.method == 'POST':
         form = ObjetivoDiarioForm(request.POST, instance=calendario)
         if form.is_valid():
-            nuevo_objetivo = form.cleaned_data['objetivo_proteico']
+            datos = form.cleaned_data
             # Actualizamos todos los días desde hoy en adelante
-            Calendario.objects.filter(fecha__gte=hoy, familia=familia).update(objetivo_proteico=nuevo_objetivo)
+            Calendario.objects.filter(fecha__gte=hoy, familia=familia).update(
+                objetivo_proteico=datos['objetivo_proteico'],
+                objetivo_carbohidratos=datos['objetivo_carbohidratos']
+            )
             return render(request, 'configurar_objetivo.html', {'form': form, 'exito': True})  # Mostrar modal
     else:
         form = ObjetivoDiarioForm(instance=calendario)

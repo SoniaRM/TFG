@@ -37,12 +37,14 @@ class IngredienteForm(forms.ModelForm):
 class ObjetivoDiarioForm(forms.ModelForm):
     class Meta:
         model = Calendario
-        fields = ['objetivo_proteico']
+        fields = ['objetivo_proteico', 'objetivo_carbohidratos']
         widgets = {
             'objetivo_proteico': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'objetivo_carbohidratos': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
         }
         labels = {
-            'objetivo_proteico': 'Objetivo diario de proteínas (g)'
+            'objetivo_proteico': 'Objetivo diario de proteínas (g)',
+            'objetivo_carbohidratos': 'Objetivo diario de carbohidratos (g)',
         }
 
 class CustomUserCreationForm(UserCreationForm):

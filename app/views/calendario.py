@@ -125,11 +125,17 @@ def recetas_por_tipo(request):
     if calendario:
         objetivo_proteico = calendario.objetivo_proteico
         proteinas_consumidas = calendario.proteinas_consumidas
+        objetivo_carbohidratos  = calendario.objetivo_carbohidratos
+        carbohidratos_consumidos = calendario.carbohidratos_consumidos
     else:
         # Si no existe un calendario para ese día, usamos valores por defecto (por ejemplo, 100g de proteína)
         objetivo_proteico = 100
         proteinas_consumidas = 0
+        objetivo_carbohidratos   = 250   # valor por defecto
+        carbohidratos_consumidos = 0
+
     remaining_protein = objetivo_proteico - proteinas_consumidas
+    remaining_carbs   = objetivo_carbohidratos - carbohidratos_consumidos
 
     # 3. Parámetros y preparación
     PENALTY_PER_INGREDIENT = 50
@@ -142,6 +148,9 @@ def recetas_por_tipo(request):
     individual_scores = []  # lista de tuplas (total_score, receta)
     for receta in recetas_filtradas:
         protein_score = 100 - abs(remaining_protein - receta.proteinas)
+        carb_score    = 100 - abs(remaining_carbs   - receta.carbohidratos)
+        base_score    = (protein_score + carb_score) / 2
+
         penalty = 0
         for ingrediente in receta.ingredientes.all():
             start_period = fecha_date - timedelta(days=ingrediente.frec)
@@ -154,7 +163,7 @@ def recetas_por_tipo(request):
             ).exists()
             if used_recently:
                 penalty += PENALTY_PER_INGREDIENT
-        total_score = protein_score - penalty
+        total_score = base_score - penalty
         individual_scores.append((total_score, receta))
         recomendaciones.append({
             "ids": [receta.id],
@@ -173,7 +182,11 @@ def recetas_por_tipo(request):
     # 6. Evaluación de pares (se forman combinaciones del pool para pares)
     for rec1, rec2 in combinations(pool_for_pairs, 2):
         combined_protein = rec1.proteinas + rec2.proteinas
+        combined_carbs    = rec1.carbohidratos + rec2.carbohidratos
+
         protein_score_pair = 100 - abs(remaining_protein - combined_protein)
+        carb_score_pair    = 100 - abs(remaining_carbs           - combined_carbs)
+        base_score_pair    = (protein_score_pair + carb_score_pair) / 2
         # Unión de ingredientes para evitar contar dos veces
         ingredientes_pair = set(list(rec1.ingredientes.all()) + list(rec2.ingredientes.all()))
         penalty_pair = 0
@@ -188,7 +201,8 @@ def recetas_por_tipo(request):
             ).exists()
             if used_recently:
                 penalty_pair += PENALTY_PER_INGREDIENT
-        total_score_pair = protein_score_pair - penalty_pair
+        total_score_pair = base_score_pair - penalty_pair
+
         recomendaciones.append({
             "ids": [rec1.id, rec2.id],
             "nombre": f"{rec1.nombre} + {rec2.nombre}",
@@ -235,10 +249,12 @@ def agregar_receta_calendario(request):
             from datetime import datetime, timedelta
             fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
             week_start = fecha_date - timedelta(days=fecha_date.weekday())
-
-            # 2) Llamar a generar_lista_compra(week_start)
-            generar_lista_compra(week_start, familia)
-
+            try:
+                # 2) Llamar a generar_lista_compra(week_start)
+                generar_lista_compra(week_start, familia)
+            except Exception as e:
+                # opcional: loggea el error, pero no lo devuelvas al cliente
+                print("⚠️ Error generando lista de compra:", e)
             return JsonResponse({"mensaje": "Receta agregada exitosamente."}, status=200)
 
         except Exception as e:
@@ -317,10 +333,14 @@ def actualizar_calendario_dia(request):
         recetas_por_tipo[cr.tipo_comida.nombre].append(cr.receta.nombre)
 
     proteinas_consumidas = sum(cr.receta.proteinas for cr in Calendario_Receta.objects.filter(calendario=calendario))
+    carbohidratos_consumidos  = sum(cr.receta.carbohidratos for cr in Calendario_Receta.objects.filter(calendario=calendario))
 
     return JsonResponse({"recetas": recetas_por_tipo,  
         "objetivo_proteico": calendario.objetivo_proteico,
-        "proteinas_consumidas": proteinas_consumidas})
+        "proteinas_consumidas": proteinas_consumidas,
+        "objetivo_carbohidratos":  calendario.objetivo_carbohidratos,
+        "carbohidratos_consumidos": carbohidratos_consumidos
+    })
 
 #Para que el degradado de los dias del calendario se actualice solo
 @require_GET
@@ -337,10 +357,12 @@ def datos_dia(request, fecha):
         return JsonResponse({'error': 'Fecha inválida'}, status=400)
     
     familia = request.user.familias.first()
-    calendario, _ = Calendario.objects.get_or_create(fecha=fecha_obj, familia=familia, defaults={'objetivo_proteico': 100})
+    calendario, _ = Calendario.objects.get_or_create(fecha=fecha_obj, familia=familia, defaults={'objetivo_proteico': 100, 'objetivo_carbohidratos': 250})
     data = {
         'proteinas_consumidas': calendario.proteinas_consumidas,
-        'objetivo_proteico': calendario.objetivo_proteico
+        'objetivo_proteico': calendario.objetivo_proteico,
+        'carbohidratos_consumidos': calendario.carbohidratos_consumidos,
+        'objetivo_carbohidratos':   calendario.objetivo_carbohidratos,
     }
     return JsonResponse(data)
 
