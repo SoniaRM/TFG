@@ -16,10 +16,15 @@ class RecetaForm(forms.ModelForm):
             'placeholder': 'Añade aquí una descripción de tu receta...'
         })
     )
+    combinable = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
 
     class Meta:
         model = Receta
-        fields = ['nombre', 'tipo_comida', 'proteinas', 'carbohidratos', 'descripcion', 'ingredientes']
+        fields = ['nombre', 'tipo_comida', 'proteinas', 'carbohidratos', 'descripcion', 'combinable', 'ingredientes']
         widgets = {
             'tipo_comida': forms.CheckboxSelectMultiple,
             'ingredientes': forms.CheckboxSelectMultiple,

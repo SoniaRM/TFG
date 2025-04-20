@@ -87,6 +87,10 @@ class Receta(models.Model):
         null=True,
         help_text="Descripción de la receta (opcional)."
     )
+    combinable = models.BooleanField(
+        default=True,
+        help_text="Indica si la receta puede combinarse con otras."
+    )
 
     def __str__(self):
         return self.nombre

@@ -61,6 +61,14 @@
                 {{ form.descripcion.errors }}
             </div>
             
+            <div class="form-check mb-3">
+                {{ form.combinable }}
+                <label class="form-check-label" for="{{ form.combinable.id_for_label }}">
+                    {{ form.combinable.label }}
+                </label>
+                {{ form.combinable.errors }}
+            </div>
+
             <div class="mb-3">
                 <label for="buscar-ingrediente">{{ form.ingredientes.label }}:</label>
                 <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente..." style="margin-bottom: 0.5em;">
