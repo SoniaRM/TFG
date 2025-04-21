@@ -161,6 +161,19 @@ def recetas_por_tipo(request):
     remaining_protein = objetivo_proteico - proteinas_consumidas
     remaining_carbs   = objetivo_carbohidratos - carbohidratos_consumidos
 
+    # —— Reparto equitativo entre huecos libres ——
+    meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
+    ocupados = set()
+    if calendario:
+        ocupados = { cr.tipo_comida.nombre for cr in calendario.calendario_recetas.all() }
+    slots_libres = sum(1 for m in meal_order if m not in ocupados)
+    if slots_libres > 0:
+        target_protein = remaining_protein / slots_libres
+        target_carbs   = remaining_carbs   / slots_libres
+    else:
+        target_protein = remaining_protein
+        target_carbs   = remaining_carbs
+
     # 3. Parámetros y preparación
     PENALTY_PER_INGREDIENT = 50
     ##################################################
@@ -174,8 +187,8 @@ def recetas_por_tipo(request):
     PESO_PROTEINA = 0.7
     PESO_CARBOHIDRATO = 0.3
     for receta in recetas_filtradas:
-        protein_score = 100 - abs(remaining_protein - receta.proteinas)
-        carb_score    = 100 - abs(remaining_carbs   - receta.carbohidratos)
+        protein_score = 100 - abs(target_protein - receta.proteinas)
+        carb_score    = 100 - abs(target_carbs   - receta.carbohidratos)
         base_score    = (protein_score * PESO_PROTEINA) + (carb_score * PESO_CARBOHIDRATO)
         penalty     = calcular_penalty(receta.ingredientes.all(), fecha_date, familia)
         total_score   = base_score - penalty
@@ -201,8 +214,8 @@ def recetas_por_tipo(request):
         combined_protein = rec1.proteinas + rec2.proteinas
         combined_carbs    = rec1.carbohidratos + rec2.carbohidratos
 
-        protein_score_pair = 100 - abs(remaining_protein - combined_protein)
-        carb_score_pair    = 100 - abs(remaining_carbs           - combined_carbs)
+        protein_score_pair = 100 - abs(target_protein - combined_protein)
+        carb_score_pair    = 100 - abs(target_carbs           - combined_carbs)
         base_score_pair    = (protein_score_pair * PESO_PROTEINA) + (carb_score_pair * PESO_CARBOHIDRATO)
        
         # Unión de ingredientes en un set
@@ -223,7 +236,6 @@ def recetas_por_tipo(request):
     # Si no hay ninguna recomendación, devolvemos lista vacía
     if not recomendaciones:
         return JsonResponse([], safe=False)
-
 
     # Extraemos todos los raw scores
     raw_scores = [item["score"] for item in recomendaciones]
