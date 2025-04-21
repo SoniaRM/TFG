@@ -6,10 +6,25 @@ from django.contrib.auth.models import User
 class RecetaForm(forms.ModelForm):
     nombre = forms.CharField(max_length=100)
     proteinas = forms.IntegerField()
+    carbohidratos = forms.IntegerField()
+    descripcion = forms.CharField(
+        label="Descripción (opcional)",
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Añade aquí una descripción de tu receta...'
+        })
+    )
+    combinable = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
 
     class Meta:
         model = Receta
-        fields = ['nombre', 'tipo_comida', 'proteinas', 'ingredientes']
+        fields = ['nombre', 'tipo_comida', 'proteinas', 'carbohidratos', 'descripcion', 'combinable', 'ingredientes']
         widgets = {
             'tipo_comida': forms.CheckboxSelectMultiple,
             'ingredientes': forms.CheckboxSelectMultiple,
@@ -27,12 +42,14 @@ class IngredienteForm(forms.ModelForm):
 class ObjetivoDiarioForm(forms.ModelForm):
     class Meta:
         model = Calendario
-        fields = ['objetivo_proteico']
+        fields = ['objetivo_proteico', 'objetivo_carbohidratos']
         widgets = {
             'objetivo_proteico': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'objetivo_carbohidratos': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
         }
         labels = {
-            'objetivo_proteico': 'Objetivo diario de proteínas (g)'
+            'objetivo_proteico': 'Objetivo diario de proteínas (g)',
+            'objetivo_carbohidratos': 'Objetivo diario de carbohidratos (g)',
         }
 
 class CustomUserCreationForm(UserCreationForm):

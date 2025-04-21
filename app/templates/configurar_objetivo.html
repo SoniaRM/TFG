@@ -55,10 +55,13 @@
           <span style="color: red;">(Administrador)</span>
           {% elif request.user == familia.administrador %}
           <!-- Solo muestra el botón si el usuario actual es el administrador -->
-          <form method="post" action="{% url 'eliminar_miembro' miembro.id %}" style="display: inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
-          </form>
+          <button
+            type="button"
+            class="btn btn-sm btn-danger"
+            data-url="{% url 'eliminar_miembro' miembro.id %}"
+            onclick="confirmarEliminacion(this)">
+            Eliminar
+          </button>
           {% endif %}
         </li>
         {% empty %}
@@ -83,7 +86,36 @@
   </div>
 
 </div>
+<!-- Modal de Confirmación para eliminar miembro -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center" style="border-radius: 15px; background-color: #FFF8F5;">
+      <div class="modal-header">
+        <h5 class="modal-title w-100" id="confirmDeleteModalLabel">¿Eliminar miembro?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar a este miembro de la familia?</p>
+        <form id="deleteForm" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+          <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">Cancelar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
+<script>
+  // Función que asigna la URL al form del modal y lo muestra
+  function confirmarEliminacion(button) {
+    const url = button.getAttribute('data-url');
+    const form = document.getElementById('deleteForm');
+    form.action = url;
+    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+    modal.show();
+  }
+  </script>
 
 {% if exito %}
 <script>

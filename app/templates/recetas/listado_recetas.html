@@ -102,6 +102,13 @@
         <input type="number" id="min-proteina" class="form-control" style="width: 70px;" value="0">
       </div>
     </div>
+    <div class="mb-4">
+      <label class="form-label">Carbohidratos:</label>
+      <div class="d-flex align-items-center gap-3">
+        <input type="range" id="rango-carbohidratos" min="0" max="100" value="0" step="1" class="form-range" style="flex: 1;">
+        <input type="number" id="min-carbohidratos" class="form-control" style="width: 70px;" value="0">
+      </div>
+    </div>
 
     <!-- Bloque para filtrar por Tipo de Comida (botones estilo pestañas) -->
     <div class="mb-4">
@@ -152,6 +159,7 @@
                     {% endfor %}
                 </ul>
                 <p><strong>Proteínas:</strong> <span class="valor-proteina">{{ receta.proteinas }}</span></p>
+                <p><strong>Carbohidratos:</strong> <span class="valor-carbohidratos">{{ receta.carbohidratos }}</span></p>
                 <p><strong>Ingredientes:</strong></p>
                 <ul>
                     {% for ingrediente in receta.ingredientes.all %}
@@ -229,15 +237,22 @@ function confirmarEliminacion(button) {
     let seleccionados = [];
   
     // === 1. Inicializar el máximo del slider de proteínas ===
-    let maxProteina = 0;
+    let maxProteina = 0, maxCarbo = 0;
     tarjetas.forEach(function (tarjeta) {
       const proteina = parseInt(tarjeta.querySelector(".valor-proteina").textContent);
+      const carbo = parseInt(tarjeta.querySelector(".valor-carbohidratos").textContent);
       if (proteina > maxProteina) maxProteina = proteina;
+      if (carbo > maxCarbo) maxCarbo = carbo;
     });
     slider.max = maxProteina;
     inputMin.max = maxProteina;
     slider.value = 0;
     inputMin.value = 0;
+
+    document.getElementById("rango-carbohidratos").max = maxCarbo;
+    document.getElementById("min-carbohidratos").max = maxCarbo;
+    document.getElementById("rango-carbohidratos").value = 0;
+    document.getElementById("min-carbohidratos").value = 0;
   
     let selectedMealType = null;
     const mealButtons = document.querySelectorAll('.meal-btn');
@@ -263,6 +278,8 @@ function confirmarEliminacion(button) {
     function aplicarFiltros() {
       const filtroNombre = inputNombre.value.toLowerCase();
       const minProteinas = parseInt(inputMin.value) || 0;
+      const minCarbohidratos = parseInt(document.getElementById("min-carbohidratos").value) || 0;
+
       // Obtener los tipos seleccionados
       const tipoFilters = document.querySelectorAll("input.tipo-filter:checked");
       const selectedTipos = Array.from(tipoFilters).map(cb => cb.value.toLowerCase());
@@ -273,6 +290,7 @@ function confirmarEliminacion(button) {
       tarjetas.forEach(function (tarjeta) {
         const nombre = tarjeta.querySelector("h5").textContent.toLowerCase();
         const proteina = parseInt(tarjeta.querySelector(".valor-proteina").textContent);
+        const carbo = parseInt(tarjeta.querySelector(".valor-carbohidratos").textContent);
         const ingredientesTexto = Array.from(tarjeta.querySelectorAll("ul:nth-of-type(2) li")).map(li =>
           li.textContent.toLowerCase()
         );
@@ -282,6 +300,8 @@ function confirmarEliminacion(button) {
 
         const coincideNombre = nombre.includes(filtroNombre);
         const suficienteProteina = proteina >= minProteinas;
+        const suficienteCarbohidratos = carbo >= minCarbohidratos;
+
         const incluyeIngredientes = seleccionados.every(nombreIng =>
           ingredientesTexto.some(t => t.includes(nombreIng))
         );
@@ -292,7 +312,7 @@ function confirmarEliminacion(button) {
           coincideTipo = true;
         }
   
-        const mostrar = coincideNombre && suficienteProteina && incluyeIngredientes && coincideTipo;
+        const mostrar = coincideNombre && suficienteProteina && suficienteCarbohidratos && incluyeIngredientes && coincideTipo;
   
         tarjeta.style.display = mostrar ? "" : "none";
         if (mostrar) algunaVisible = true;
@@ -329,7 +349,21 @@ function confirmarEliminacion(button) {
       slider.value = val;
       aplicarFiltros();
     });
-  
+    
+    // Carbohidratos
+    const sliderCarb = document.getElementById("rango-carbohidratos");
+    const inputMinCarb = document.getElementById("min-carbohidratos");
+    sliderCarb.addEventListener("input", function() {
+      inputMinCarb.value = this.value;
+      aplicarFiltros();
+    });
+    inputMinCarb.addEventListener("input", function() {
+      let v = parseInt(this.value)||0;
+      if (v>maxCarbo) v = maxCarbo;
+      sliderCarb.value = v;
+      aplicarFiltros();
+    });
+
     // Ingredientes seleccionables
     function toggleIngrediente(nombre, span) {
       const index = seleccionados.indexOf(nombre);
@@ -431,7 +465,10 @@ function confirmarEliminacion(button) {
       // Reset del filtro de proteínas
       slider.value = 0;
       inputMin.value = 0;
-
+      // — reset carbohidratos
+      sliderCarb.value   = 0;
+      inputMinCarb.value = 0;
+      
       // Reset de ingredientes: deseleccionar y ocultar todos
       seleccionados = [];
       listaIngredientes.forEach(span => {

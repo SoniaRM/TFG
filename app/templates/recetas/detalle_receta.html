@@ -37,6 +37,16 @@
             {% endfor %}
         </ul>
         <p><strong>Proteínas:</strong> {{ receta.proteinas }}</p>
+
+        <p><strong>Carbohidratos:</strong> {{ receta.carbohidratos }}</p>
+        
+        {% if receta.descripcion %}
+            <p><strong>Descripción:</strong> {{ receta.descripcion }}</p>
+        {% endif %}
+        
+        <p><strong>Combinable:</strong>
+            {% if receta.combinable %}Sí{% else %}No{% endif %}
+        </p>
         <div>
             <h4>Ingredientes</h4>
             <ul>

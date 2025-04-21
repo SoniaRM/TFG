@@ -160,7 +160,6 @@ def lista_compra_datos(request):
     })
 
 
-@login_required
 def generar_lista_compra(week_start, familia):
     """
     Recalcula la lista de la compra para la semana que inicia en week_start.
@@ -170,6 +169,9 @@ def generar_lista_compra(week_start, familia):
       compra = (nuevo total) – despensa,
       y si la despensa supera el nuevo total se ajusta a éste.
     """
+    if familia is None:
+        raise PermissionDenied("Debes iniciar sesión para generar la lista de compra.")
+        
     end_date = week_start + timedelta(days=6)
 
     # Obtén (o crea) la ListaCompra para esa semana

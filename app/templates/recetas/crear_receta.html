@@ -50,6 +50,26 @@
             </div>
             
             <div class="mb-3">
+                {{ form.carbohidratos.label_tag }}
+                <input type="number" name="{{ form.carbohidratos.name }}" id="{{ form.carbohidratos.id_for_label }}" value="{{ form.carbohidratos.value|default_if_none:'' }}" class="form-control">
+                {{ form.carbohidratos.errors }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.descripcion.label_tag }}
+                {{ form.descripcion }}  {# tu widget <textarea> ya lleva class="form-control" y rows #}
+                {{ form.descripcion.errors }}
+            </div>
+            
+            <div class="form-check mb-3">
+                {{ form.combinable }}
+                <label class="form-check-label" for="{{ form.combinable.id_for_label }}">
+                    {{ form.combinable.label }}
+                </label>
+                {{ form.combinable.errors }}
+            </div>
+
+            <div class="mb-3">
                 <label for="buscar-ingrediente">{{ form.ingredientes.label }}:</label>
                 <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente..." style="margin-bottom: 0.5em;">
                 <div class="row" id="ingrediente-checkboxes">

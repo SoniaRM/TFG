@@ -78,8 +78,19 @@ class Receta(models.Model):
     )
     tipo_comida = models.ManyToManyField(TipoComida, related_name='recetas')
     proteinas = models.IntegerField(validators=[MinValueValidator(0)])
+    carbohidratos = models.IntegerField(validators=[MinValueValidator(0)])
     ingredientes = models.ManyToManyField(Ingrediente, related_name='recetas')
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='recetas')
+    descripcion = models.TextField(
+        verbose_name="Descripción",
+        blank=True,
+        null=True,
+        help_text="Descripción de la receta (opcional)."
+    )
+    combinable = models.BooleanField(
+        default=True,
+        help_text="Indica si la receta puede combinarse con otras."
+    )
 
     def __str__(self):
         return self.nombre
@@ -87,6 +98,8 @@ class Receta(models.Model):
 class Calendario(models.Model):
     fecha = models.DateField()
     objetivo_proteico = models.IntegerField(validators=[MinValueValidator(0)], default=100)
+    objetivo_carbohidratos = models.IntegerField(validators=[MinValueValidator(0)], default=250)
+
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='calendarios')
 
     class Meta:
@@ -102,12 +115,27 @@ class Calendario(models.Model):
         )
         return max(0, self.objetivo_proteico - proteinas_consumidas)
 
+    def calcular_carbos_restantes(self):
+        """Calcula cuántos carbos faltan para alcanzar el objetivo diario."""
+        carbos_consumidos = sum(
+            cr.receta.carbohidratos for cr in self.calendario_recetas.all()
+        )
+        return max(0, self.objetivo_carbohidratos - carbos_consumidos)
+
     @property
     def proteinas_consumidas(self):
         """Calcula las proteínas ya consumidas."""
         return sum(
             cr.receta.proteinas for cr in self.calendario_recetas.all()
         )
+
+    @property
+    def carbohidratos_consumidos(self):
+        """Calcula los carbohidratos ya consumidos."""
+        return sum(
+            cr.receta.carbohidratos for cr in self.calendario_recetas.all()
+        )
+
     def asignar_receta(self, receta, tipo_comida):
         """Asigna una receta a una fecha con su tipo de comida."""
         Calendario_Receta.objects.create(calendario=self, receta=receta, tipo_comida=tipo_comida)
