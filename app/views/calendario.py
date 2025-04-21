@@ -89,8 +89,32 @@ def calendario_semanal(request):
 
 #Añadir receta al calendario desde el calendario
 #Filtrar las recetas por tipo Comida
+PENALTY_BASE = 50   # Máxima penalización
 
-@csrf_exempt
+def calcular_penalty(ingredientes, fecha_date, familia):
+    """
+    Penalización = PENALTY_BASE * (ingredientes_repetidos / total_ingredientes)
+    """
+    ings = list(ingredientes)
+    total = len(ings)
+    if total == 0:
+        return 0
+
+    # Contamos cuántos ingredientes están en su periodo de descanso
+    repetidos = 0
+    for ing in ings:
+        inicio = fecha_date - timedelta(days=ing.frec)
+        fin    = fecha_date + timedelta(days=ing.frec)
+        if Calendario_Receta.objects.filter(
+            calendario__fecha__gte=inicio,
+            calendario__fecha__lt=fin,
+            receta__ingredientes=ing,
+            calendario__familia=familia
+        ).exists():
+            repetidos += 1
+
+    return PENALTY_BASE * (repetidos / total)
+    
 @login_required
 def recetas_por_tipo(request):
     """
@@ -139,43 +163,36 @@ def recetas_por_tipo(request):
 
     # 3. Parámetros y preparación
     PENALTY_PER_INGREDIENT = 50
-
+    ##################################################
+    
     recetas_con_score = []
     fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
     recomendaciones = []  # Aquí almacenaremos tanto individuales como pares
 
     # 4. Evaluación individual (se calcula el score para cada receta)
     individual_scores = []  # lista de tuplas (total_score, receta)
+    PESO_PROTEINA = 0.7
+    PESO_CARBOHIDRATO = 0.3
     for receta in recetas_filtradas:
         protein_score = 100 - abs(remaining_protein - receta.proteinas)
         carb_score    = 100 - abs(remaining_carbs   - receta.carbohidratos)
-        base_score    = (protein_score + carb_score) / 2
-
-        penalty = 0
-        for ingrediente in receta.ingredientes.all():
-            start_period = fecha_date - timedelta(days=ingrediente.frec)
-            end_period = fecha_date + timedelta(days=ingrediente.frec)
-            used_recently = Calendario_Receta.objects.filter(
-                calendario__fecha__gte=start_period,
-                calendario__fecha__lt=end_period,
-                receta__ingredientes=ingrediente,
-                calendario__familia=familia  # Filtrar por familia
-            ).exists()
-            if used_recently:
-                penalty += PENALTY_PER_INGREDIENT
-        total_score = base_score - penalty
-        individual_scores.append((total_score, receta))
+        base_score    = (protein_score * PESO_PROTEINA) + (carb_score * PESO_CARBOHIDRATO)
+        penalty     = calcular_penalty(receta.ingredientes.all(), fecha_date, familia)
+        total_score   = base_score - penalty
         recomendaciones.append({
             "ids": [receta.id],
             "nombre": receta.nombre,
-            "score": total_score,
+            "score": round(total_score, 2),
             "tipo": "single"
         })
+
+    # 🔧 Filtrar solo las recetas combinables
+    recetas_combinables = recetas_filtradas.filter(combinable=True)
 
     # 5. Para la generación de pares: si hay demasiadas recetas candidatas,
     # se selecciona un pool aleatorio (para incluir también recetas con menor score individual)
     MAX_POOL = 20  # Ajusta este número según tus necesidades
-    pool_for_pairs = list(recetas_filtradas)
+    pool_for_pairs = list(recetas_combinables)
     if len(pool_for_pairs) > MAX_POOL:
         pool_for_pairs = random.sample(pool_for_pairs, MAX_POOL)
 
@@ -186,35 +203,50 @@ def recetas_por_tipo(request):
 
         protein_score_pair = 100 - abs(remaining_protein - combined_protein)
         carb_score_pair    = 100 - abs(remaining_carbs           - combined_carbs)
-        base_score_pair    = (protein_score_pair + carb_score_pair) / 2
-        # Unión de ingredientes para evitar contar dos veces
-        ingredientes_pair = set(list(rec1.ingredientes.all()) + list(rec2.ingredientes.all()))
-        penalty_pair = 0
-        for ingrediente in ingredientes_pair:
-            start_period = fecha_date - timedelta(days=ingrediente.frec)
-            end_period = fecha_date + timedelta(days=ingrediente.frec)
-            used_recently = Calendario_Receta.objects.filter(
-                calendario__fecha__gte=start_period,
-                calendario__fecha__lt=end_period,
-                receta__ingredientes=ingrediente,
-                calendario__familia=familia
-            ).exists()
-            if used_recently:
-                penalty_pair += PENALTY_PER_INGREDIENT
+        base_score_pair    = (protein_score_pair * PESO_PROTEINA) + (carb_score_pair * PESO_CARBOHIDRATO)
+       
+        # Unión de ingredientes en un set
+        ings_pair = set(rec1.ingredientes.all()) | set(rec2.ingredientes.all())
+        # pásalo directamente a la función
+        penalty_pair     = calcular_penalty(ings_pair, fecha_date, familia)
         total_score_pair = base_score_pair - penalty_pair
+
 
         recomendaciones.append({
             "ids": [rec1.id, rec2.id],
             "nombre": f"{rec1.nombre} + {rec2.nombre}",
-            "score": total_score_pair,
+            "score": round(total_score_pair, 2),
             "tipo": "pair"
         })
+    # 7. Una vez has llenado `recomendaciones` con todos los scores absolutos:
+    # ------------------------------------------------------------
+    # Si no hay ninguna recomendación, devolvemos lista vacía
+    if not recomendaciones:
+        return JsonResponse([], safe=False)
 
-    # 7. Ordenar todas las recomendaciones por score (de mayor a menor)
+
+    # Extraemos todos los raw scores
+    raw_scores = [item["score"] for item in recomendaciones]
+    min_sc, max_sc = min(raw_scores), max(raw_scores)
+
+    # Si solo hay una recomendación
+    if len(recomendaciones) == 1:
+        recomendaciones[0]["score"] = 100
+    else:
+        if max_sc == min_sc:
+            # Todos iguales => damos 100% a todas
+            for item in recomendaciones:
+                item["score"] = 100
+        else:
+            # Normalización min-max
+            for item in recomendaciones:
+                raw = item["score"]
+                item["score"] = round((raw - min_sc) / (max_sc - min_sc) * 100, 2)
+
+    # Ordenamos y devolvemos
     recomendaciones.sort(key=lambda x: x["score"], reverse=True)
     return JsonResponse(recomendaciones, safe=False)
 
-@csrf_exempt
 @login_required
 def agregar_receta_calendario(request):
     """Vista para agregar una receta a una fecha específica en el calendario."""
@@ -262,7 +294,6 @@ def agregar_receta_calendario(request):
 
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
-@csrf_exempt
 @login_required
 def recetas_en_calendario(request):
     """Devuelve las recetas ya añadidas al calendario para un día y tipo de comida."""
@@ -278,7 +309,6 @@ def recetas_en_calendario(request):
     data = [{"id": cr.receta.id, "nombre": cr.receta.nombre} for cr in recetas]
     return JsonResponse(data, safe=False)
 
-@csrf_exempt
 @login_required
 def eliminar_receta_calendario(request):
     """Elimina una receta del calendario."""
