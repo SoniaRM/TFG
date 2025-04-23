@@ -1,155 +1,157 @@
 {% extends 'navbar.html' %}
+{% load static %}
 
 {% block title %}Lista de la compra{% endblock %}
 
 {% block content %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}">
+<link rel="stylesheet" href="{% static 'css/lista_compra.css' %}">
+<style>
+    .descarga-btn {
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.875rem !important;
+    }
 
+    .descarga-btn .bi {
+        font-size: 1rem !important;
+    }
+
+    .navigation a {
+        text-decoration: none !important;
+    }
+
+    .navigation a:hover {
+        text-decoration: none !important;
+    }
+</style>
 <form id="dummy-form" style="display:none;">
     {% csrf_token %}
 </form>
 
+<div id="vista-normal" class="container mt-4">
 
-<style>
-    .card-lista {
-        background-color: #FFF8F5;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        padding: 20px;
-        margin: 30px auto;
-        max-width: 800px;
-    }
+    <div class="position-relative mb-4">
+        <h1 class="text-center m-0">Lista de la compra</h1>
+        <a href="{% url 'exportar_lista_compra' %}?start={{ start_date|date:'Y-m-d' }}"
+            class="btn btn-outline-primary descarga-btn position-absolute top-50 end-0 translate-middle-y"
+            aria-label="Descargar lista de la compra semanal">
+            <i class="bi bi-download fs-4"></i>
+        </a>
+    </div>
 
-    .card-lista h1, .card-lista h2, .card-lista h3  {
-        background-color: #FFD9C2;
-        padding: 10px;
-        border-radius: 5px;
-        text-align: center;
-        margin-bottom: 20px;
-    }
+    <div class="position-relative mb-4">
+        <!-- Texto centrado -->
+        <h5 class="text-center m-0">
+            <strong>Semana del: {{ semana_formateada }}</strong>
+        </h5>
+        <!-- Botón a la derecha, con carrito y estilo btn-primary -->
+        <button type="button" class="btn btn-primary btn-modo-super position-absolute end-0 top-50 translate-middle-y"
+            onclick="activarModoSuper()">
+            <i class="bi bi-cart-fill me-1"></i>
+            Modo supermercado
+        </button>
+    </div>
 
-    .navigation a {
-        margin: 0 10px;
-        font-weight: bold;
-        color: #333;
-        text-decoration: none;
-    }
 
-    ul li {
-        margin-bottom: 10px;
-    }
+    <div class="navigation">
+        <a href="{{ prev_week_url }}">← Anterior</a>
+        <a href="?start={{ today|date:'Y-m-d' }}">→ Esta semana</a>
+        <a href="{{ next_week_url }}">Siguiente →</a>
+    </div>
 
-    /* Modo Super */
-    #modo-super {
-        display: none;
-    }
-    .card-modo-super {
-        background-color: #FFF8F5;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        padding: 20px;
-        margin: 30px auto;
-        max-width: 800px;
-    }
-
-    /* Estilos para los modales personalizados */
-    .modal-custom {
-        display: none; 
-        position: fixed; 
-        top: 0;
-        left: 0; 
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.5); 
-        z-index: 1050;
-    }
-    .modal-custom .modal-dialog {
-        margin: 100px auto;
-        max-width: 320px;
-    }
-    .modal-custom .modal-content {
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-    }
-</style>
-
-<div class="container mt-4">
-    <div class="card-lista" id="vista-normal">
-        <h1>Lista de la compra</h1>
-        <div class="text-end mb-3">
-            <a href="{% url 'exportar_lista_compra' %}?start={{ start_date|date:'Y-m-d' }}">
-              <i class="bi bi-download" style="font-size: 24px;"></i>
-            </a>
-          </div>
-          
-        <p><strong>Semana del:</strong> {{ semana_formateada }}</p>
-
-        <div class="navigation mb-3">
-            <a href="{{ prev_week_url }}">← Semana anterior</a> |
-            <a href="?start={{ today|date:'Y-m-d' }}">Esta semana</a> |
-            <a href="{{ next_week_url }}">Semana siguiente →</a>
-        </div>
-
-        <div class="mb-3">
-            <button class="btn btn-secondary" onclick="activarModoSuper()">Modo super</button>
-        </div>
-
-        {% if ingredientes_por_comprar or ingredientes_en_despensa %}
-            <h2>Ingredientes por comprar</h2>
-            <ul id="lista-compra" class="list-group mb-4">
-                {% for item in ingredientes_por_comprar %}
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
+    {% if ingredientes_por_comprar %}
+    <h2>Ingredientes por comprar</h2>
+    <div id="lista-compra" class="row row-cols-3 g-3 mb-4">
+        {% for item in ingredientes_por_comprar %}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center" data-item-id="{{ item.id }}"
+                    data-lista-id="{{ item.lista_id }}">
                     <div>
-                        <strong>{{ item.ingrediente.nombre }}</strong> – <span class="compra-value">{{ item.compra }}</span> raciones
+                        <h6 class="card-title mb-1">{{ item.ingrediente.nombre }}</h6>
+                        <small class="text-muted">{{ item.compra }} raciones</small>
                     </div>
-                    <button class="btn btn-sm btn-outline-success" onclick="abrirModalCompra({{ item.id }}, {{ item.compra }})">Ya lo tengo</button>
-                </li>
-                {% endfor %}
-            </ul>
-
-            <h2>Ingredientes en la despensa</h2>
-            <ul id="ingredientes-despensa" class="list-group mb-4">
-                {% for item in ingredientes_en_despensa %}
-                <li class="list-group-item d-flex justify-content-between align-items-center" data-item-id="{{ item.id }}" data-lista-id="{{ item.lista_id }}">
-                    <div>
-                        <strong>{{ item.ingrediente.nombre }}</strong> – Tengo <span class="despensa-value">{{ item.despensa }}</span> (Faltan {{ item.faltan }})
-                    </div>
-                    <button class="btn btn-sm btn-outline-warning" onclick="abrirModalDespensa({{ item.id }}, {{ item.despensa }})">Devolver</button>
-                </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No hay ingredientes para esta semana.</p>
-        {% endif %}
-
-        <div class="text-center">
-            <button class="btn btn-danger mt-3" onclick="abrirModalReset()">Reiniciar Lista</button>
+                    <button class="btn btn-sm btn-outline-success"
+                        onclick="abrirModalCompra({{ item.id }}, {{ item.compra }})">
+                        <i class="bi bi-check2-circle"></i>
+                    </button>
+                </div>
+            </div>
         </div>
+
+        {% endfor %}
+    </div>
+    {% else %}
+    <h2>Ingredientes por comprar</h2>
+    <p class="text-muted mb-4">No hay ingredientes pendientes de compra esta semana.</p>
+    {% endif %}
+    {% if ingredientes_en_despensa %}
+
+    <h2>Ingredientes en la despensa</h2>
+    <div id="ingredientes-despensa" class="row row-cols-3 g-3 mb-4">
+        {% for item in ingredientes_en_despensa %}
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex justify-content-between align-items-center" data-item-id="{{ item.id }}"
+                    data-lista-id="{{ item.lista_id }}">
+                    <div>
+                        <h6 class="card-title mb-1">{{ item.ingrediente.nombre }}</h6>
+                        <small class="text-muted">Tengo {{ item.despensa }} (Faltan {{ item.faltan }})</small>
+                    </div>
+                    <button class="btn btn-outline-warning btn-sm"
+                        onclick="abrirModalDespensa({{ item.id }}, {{ item.despensa }})">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <h2>Ingredientes en la despensa</h2>
+    <p class="text-muted mb-4">No hay ingredientes guardados en la despensa.</p>
+    {% endif %}
+
+    <div class="text-center reset-container">
+        <button class="btn btn-danger mt-3" onclick="abrirModalReset()">Reiniciar Lista</button>
     </div>
 </div>
-
 
 <!-- SECCIÓN MODO SUPER (OCULTA POR DEFECTO) -->
-<div id="modo-super" class="card-modo-super">
-    <h2>Modo supermercado</h2>
-    <div class="d-flex justify-content-end mb-3">
-        <button id="btn-atras" class="btn btn-secondary" onclick="desactivarModoSuper()">Atrás</button>
-    </div>
-    <div class="row">
-        <div class="col-md-6">
-            <h3>Ingredientes por comprar</h3>
-            <ul id="super-por-comprar" class="list-group"></ul>
+<div id="modo-super">
+    <div class="container mt-4">
+        <div class="position-relative mb-4">
+            <button id="btn-atras" class="btn btn-secondary position-absolute start-0 top-50 translate-middle-y ms-4"
+                onclick="desactivarModoSuper()">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <h1 class="text-center m-0">Modo supermercado</h1>
         </div>
-        <div class="col-md-6">
-            <h3>Ingredientes en la cesta</h3>
-            <ul id="super-cesta" class="list-group"></ul>
+
+        <div class="card card-modo-super mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3>Ingredientes por comprar</h3>
+                        <ul id="super-por-comprar" class="list-group"></ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h3>Ingredientes en la cesta</h3>
+                        <ul id="super-cesta" class="list-group"></ul>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <button id="btn-comprar" class="btn btn-success" onclick="finalizarCompra()">
+                        Comprar
+                    </button>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="text-center mt-3">
-        <button id="btn-comprar" class="btn btn-success" onclick="finalizarCompra()">Comprar</button>
     </div>
 </div>
+
+
 
 <!-- Modal para mover de compra a despensa -->
 <div id="modal-compra" class="modal-custom">
@@ -189,349 +191,421 @@
     </div>
 </div>
 
-<script>
-function abrirModalCompra(itemId, compraActual) {
-    if (compraActual === 1) {
-        // Si solo hay una ración, mover directamente sin mostrar modal
-        moverCompraADespensa(itemId, 1);
-        return;
-    }
-
-    // Mostramos el overlay
-    const modal = document.getElementById('modal-compra');
-    modal.style.display = 'block';
-
-    document.getElementById('modal-compra-titulo').textContent = "¿Cuántas raciones tienes?";
-
-    // Generar botones
-    let cont = document.getElementById('raciones-opciones-compra');
-    cont.innerHTML = '';
-    for (let i = 1; i <= compraActual; i++) {
-        let btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = 'btn btn-outline-primary';
-        btn.style.margin = '5px';
-        btn.onclick = () => moverCompraADespensa(itemId, i);
-        cont.appendChild(btn);
-    }
-}
-function cerrarModalCompra() {
-    document.getElementById('modal-compra').style.display = 'none';
-}
-
-function abrirModalDespensa(itemId, despensaActual) {
-    if (despensaActual === 1) {
-        // Si solo hay una ración, mover directamente sin mostrar modal
-        moverDespensaACompra(itemId, 1);
-        return;
-    }
-    
-    const modal = document.getElementById('modal-despensa');
-    modal.style.display = 'block';
-
-    document.getElementById('modal-despensa-titulo').textContent = "¿Cuántas raciones devuelves a la compra?";
-
-    let cont = document.getElementById('raciones-opciones-despensa');
-    cont.innerHTML = '';
-    for (let i = 1; i <= despensaActual; i++) {
-        let btn = document.createElement('button');
-        btn.textContent = i;
-        btn.className = 'btn btn-outline-primary';
-        btn.style.margin = '5px';
-        btn.onclick = () => moverDespensaACompra(itemId, i);
-        cont.appendChild(btn);
-    }
-}
-
-function cerrarModalDespensa() {
-    document.getElementById('modal-despensa').style.display = 'none';
-}
-
-function moverCompraADespensa(itemId, raciones) {
-    // 1) Recogemos el lista_id del <li>
-    let li = document.querySelector(`[data-item-id='${itemId}']`);
-    let listaId = li.dataset.listaId;
-
-    // 2) POST a /mover_compra_despensa/
-    fetch("/mover_compra_despensa/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: new URLSearchParams({
-            'lista_id': listaId,
-            'item_id': itemId,
-            'raciones': raciones
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.error) {
-            alert("Error: " + data.error);
-        } else {
-            cerrarModalCompra();
-            refrescarDatos();
-        }
-    })
-    .catch(err => console.error(err));
-}
-
-function moverDespensaACompra(itemId, raciones) {
-    let li = document.querySelector(`[data-item-id='${itemId}']`);
-    let listaId = li.dataset.listaId;
-
-    fetch("/mover_despensa_compra/", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRFToken": "{{ csrf_token }}"
-        },
-        body: new URLSearchParams({
-            'lista_id': listaId,
-            'item_id': itemId,
-            'raciones': raciones
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.error) {
-            alert("Error: " + data.error);
-        } else {
-            cerrarModalDespensa();
-            refrescarDatos();
-        }
-    })
-    .catch(err => console.error(err));
-}
-
-function refrescarDatos() {
-    // Hacemos un GET a /lista_compra/datos?start=...
-    // Extraemos la "start_date" actual desde la URL
-    let urlParams = new URLSearchParams(window.location.search);
-    let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
-    fetch(`/lista_compra/datos?start=${start}`)
-      .then(res => res.json())
-      .then(data => {
-          // 1) Vaciar los UL
-          document.getElementById("lista-compra").innerHTML = "";
-          document.getElementById("ingredientes-despensa").innerHTML = "";
-          // 2) Llenar con data.por_comprar y data.en_despensa
-          data.por_comprar.forEach(item => {
-              let li = document.createElement('li');
-              li.className = 'list-group-item d-flex justify-content-between align-items-center';
-              li.dataset.itemId = item.item_id;
-              li.dataset.listaId = item.lista_id;
-              li.innerHTML = `<div><strong>${item.ingrediente}</strong> – <span class="compra-value">${item.compra}</span> raciones</div>
-                <button class="btn btn-sm btn-outline-success" onclick="abrirModalCompra(${item.item_id}, ${item.compra})">Ya lo tengo</button>`;
-              document.getElementById("lista-compra").appendChild(li);
-          });
-
-          data.en_despensa.forEach(item => {
-              let li = document.createElement('li');
-              li.className = 'list-group-item d-flex justify-content-between align-items-center';
-              li.dataset.itemId = item.item_id;
-              li.dataset.listaId = item.lista_id;
-              li.innerHTML = `<div><strong>${item.ingrediente}</strong> – Tengo <span class="despensa-value">${item.despensa}</span> (Faltan ${item.faltan})</div>
-                <button class="btn btn-sm btn-outline-warning" onclick="abrirModalDespensa(${item.item_id}, ${item.despensa})">Devolver</button>`;
-              document.getElementById("ingredientes-despensa").appendChild(li);
-          });
-      })
-      .catch(err => console.error(err));
-}
-
-function resetearLista() {
-    if (!confirm("¿Estás seguro de que quieres reiniciar la lista de la compra?")) return;
-    
-    // Obtener la fecha de inicio desde la URL o usar el start_date
-    let urlParams = new URLSearchParams(window.location.search);
-    let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
-    
-    fetch(`/lista_compra/reset/?start=${start}`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}"
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.error) {
-            alert("Error: " + data.error);
-        } else {
-            alert(data.mensaje);
-            location.reload();
-        }
-    })
-    .catch(err => console.error(err));
-}
-
-// ========== BOTÓN PARA ACTIVAR MODO SUPER ==========
-function activarModoSuper() {
-    document.getElementById('vista-normal').style.display = 'none';
-    document.getElementById('modo-super').style.display = 'block';
-    inicializarModoSuper();
-}
-
- // ========== INICIALIZAR MODO SUPER ==========
- function inicializarModoSuper() {
-      // 1) Limpiamos las listas
-      document.getElementById('super-por-comprar').innerHTML = "";
-      document.getElementById('super-cesta').innerHTML = "";
-
-      // 2) Recorremos la lista de compra actual del DOM
-      let porComprarItems = document.querySelectorAll('#lista-compra li[data-item-id]');
-      porComprarItems.forEach(li => {
-          let itemId = li.dataset.itemId;
-          let listaId = li.dataset.listaId;
-          let nombre = li.querySelector('strong').textContent.trim();
-          let compra = li.querySelector('.compra-value').textContent.trim();
-
-          // Crear un li en super-por-comprar
-          let nuevoLi = document.createElement('li');
-          nuevoLi.dataset.itemId = itemId;
-          nuevoLi.dataset.listaId = listaId;
-          nuevoLi.dataset.nombre = nombre;
-          nuevoLi.dataset.cantidad = compra;
-          nuevoLi.innerHTML = `
-            <div class="d-flex align-items-center">
-                <button class="btn btn-sm btn-outline-success me-2" onclick="moverACesta('${itemId}')">✔</button>
-                <div>
-                <strong>${nombre}</strong> – <span>${compra}</span> raciones
-                </div>
-            </div>
-            `;
-          document.getElementById('super-por-comprar').appendChild(nuevoLi);
-      });
-  }
-
-  
-  // ========== MOVER A CESTA ==========
-  function moverACesta(itemId) {
-      // Buscamos el li en super-por-comprar
-      let li = document.querySelector(`#super-por-comprar li[data-item-id='${itemId}']`);
-      if (!li) return;
-
-      // Lo quitamos de super-por-comprar y lo metemos en super-cesta
-      li.remove();
-      li.innerHTML = `
-        <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-danger me-2" onclick="moverAListaPorComprar('${itemId}')">❌</button>
-            <div>
-            <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
-            </div>
-        </div>
-        `;
-      document.getElementById('super-cesta').appendChild(li);
-  }
-
-  
-  // ========== MOVER A LISTA POR COMPRAR ==========
-  function moverAListaPorComprar(itemId) {
-      let li = document.querySelector(`#super-cesta li[data-item-id='${itemId}']`);
-      if (!li) return;
-      li.remove();
-      li.innerHTML = `
-        <div class="d-flex align-items-center">
-            <button class="btn btn-sm btn-outline-success me-2" onclick="moverACesta('${itemId}')">✔</button>
-            <div>
-            <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
-            </div>
-        </div>
-        `;
-      document.getElementById('super-por-comprar').appendChild(li);
-  }
-
-   // ========== BOTÓN "COMPRAR" ==========
-   function finalizarCompra() {
-      // Recorrer la super-cesta y obtener los ingredientes
-      let cestaItems = document.querySelectorAll('#super-cesta li[data-item-id]');
-      let cestaData = [];
-      cestaItems.forEach(li => {
-          cestaData.push({
-              item_id: li.dataset.itemId,
-              lista_id: li.dataset.listaId,
-              nombre: li.dataset.nombre,
-              cantidad: li.dataset.cantidad
-          });
-      });
-
-      // Hacemos un fetch POST a un nuevo endpoint, por ejemplo "/finalizar_compra/"
-      // que en el servidor actualiza la despensa de esa semana para esos ingredientes.
-      // Te sugiero crear una vista "finalizar_compra" que reciba la lista de items y 
-      // haga item.despensa += X en la BD, o como tú desees.
-      fetch("/finalizar_compra/", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              "X-CSRFToken": "{{ csrf_token }}"
-          },
-          body: JSON.stringify({ items: cestaData, start: "{{ start_date|date:'Y-m-d' }}" })
-      })
-      .then(res => res.json())
-      .then(data => {
-          if (data.error) {
-              alert("Error al comprar: " + data.error);
-          } else {
-            mostrarSuccessModal("");
-            setTimeout(() => location.reload(), 1000);  // recarga luego de 2.5s
-          }
-      })
-      .catch(err => console.error(err));
-  }
-  
-  function desactivarModoSuper() {
-    document.getElementById('modo-super').style.display = 'none';
-    document.getElementById('vista-normal').style.display = 'block';
-}
-
-
-
-function abrirModalReset() {
-    const modal = new bootstrap.Modal(document.getElementById('resetListaModal'));
-    modal.show();
-}
-
-function confirmarResetLista() {
-    let urlParams = new URLSearchParams(window.location.search);
-    let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
-
-    fetch(`/lista_compra/reset/?start=${start}`, {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}"
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.error) {
-            alert("Error: " + data.error);
-        } else {
-            location.reload();
-        }
-    })
-    .catch(err => console.error(err));
-}
-
-</script>
-
 <!-- MODAL para confirmar reinicio de lista -->
 <div class="modal fade" id="resetListaModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content text-center animate-zoom" style="border-radius: 15px; background-color: #FFF8F5;">
-        <div class="modal-header">
-          <h5 class="modal-title w-100">¿Reiniciar lista de la compra?</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <div class="modal-content text-center animate-zoom" style="border-radius: 15px; background-color: #FFF8F5;">
+            <div class="modal-header">
+                <h5 class="modal-title w-100">¿Reiniciar lista de la compra?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Esta acción vaciará la lista de la despensa y restablecerá las cantidades.<br>¿Estás seguro?</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-danger" onclick="confirmarResetLista()">Sí, reiniciar</button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-          <p>Esta acción vaciará la lista de la despensa y restablecerá las cantidades.<br>¿Estás seguro?</p>
-          <div class="d-flex justify-content-center gap-2">
-            <button class="btn btn-danger" onclick="confirmarResetLista()">Sí, reiniciar</button>
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          </div>
-        </div>
-      </div>
     </div>
 </div>
-  
 
+<script>
+    function abrirModalCompra(itemId, compraActual) {
+        if (compraActual === 1) {
+            // Si solo hay una ración, mover directamente sin mostrar modal
+            moverCompraADespensa(itemId, 1);
+            return;
+        }
+
+        // Mostramos el overlay
+        const modal = document.getElementById('modal-compra');
+        modal.style.display = 'block';
+
+        document.getElementById('modal-compra-titulo').textContent = "¿Cuántas raciones tienes?";
+
+        // Generar botones
+        let cont = document.getElementById('raciones-opciones-compra');
+        cont.innerHTML = '';
+        for (let i = 1; i <= compraActual; i++) {
+            let btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = 'btn btn-outline-primary';
+            btn.style.margin = '5px';
+            btn.onclick = () => moverCompraADespensa(itemId, i);
+            cont.appendChild(btn);
+        }
+    }
+    function cerrarModalCompra() {
+        document.getElementById('modal-compra').style.display = 'none';
+    }
+
+    function abrirModalDespensa(itemId, despensaActual) {
+        if (despensaActual === 1) {
+            // Si solo hay una ración, mover directamente sin mostrar modal
+            moverDespensaACompra(itemId, 1);
+            return;
+        }
+
+        const modal = document.getElementById('modal-despensa');
+        modal.style.display = 'block';
+
+        document.getElementById('modal-despensa-titulo').textContent = "¿Cuántas raciones devuelves a la compra?";
+
+        let cont = document.getElementById('raciones-opciones-despensa');
+        cont.innerHTML = '';
+        for (let i = 1; i <= despensaActual; i++) {
+            let btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = 'btn btn-outline-primary';
+            btn.style.margin = '5px';
+            btn.onclick = () => moverDespensaACompra(itemId, i);
+            cont.appendChild(btn);
+        }
+    }
+
+    function cerrarModalDespensa() {
+        document.getElementById('modal-despensa').style.display = 'none';
+    }
+
+    function moverCompraADespensa(itemId, raciones) {
+        // 1) Recogemos el lista_id del <li>
+        let li = document.querySelector(`[data-item-id='${itemId}']`);
+        let listaId = li.dataset.listaId;
+
+        // 2) POST a /mover_compra_despensa/
+        fetch("/mover_compra_despensa/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: new URLSearchParams({
+                'lista_id': listaId,
+                'item_id': itemId,
+                'raciones': raciones
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);
+                } else {
+                    cerrarModalCompra();
+                    refrescarDatos();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function moverDespensaACompra(itemId, raciones) {
+        let li = document.querySelector(`[data-item-id='${itemId}']`);
+        let listaId = li.dataset.listaId;
+
+        fetch("/mover_despensa_compra/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: new URLSearchParams({
+                'lista_id': listaId,
+                'item_id': itemId,
+                'raciones': raciones
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);
+                } else {
+                    cerrarModalDespensa();
+                    refrescarDatos();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function refrescarDatos() {
+        // Hacemos un GET a /lista_compra/datos?start=...
+        // Extraemos la "start_date" actual desde la URL
+        let urlParams = new URLSearchParams(window.location.search);
+        let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
+        fetch(`/lista_compra/datos?start=${start}`)
+            .then(res => res.json())
+            .then(data => {
+                // 1) Vaciar los UL
+                // Contenedores grid
+                const contComprar = document.getElementById("lista-compra");
+                const contDespensa = document.getElementById("ingredientes-despensa");
+
+                // Vaciamos
+                contComprar.innerHTML = "";
+                contDespensa.innerHTML = "";
+                // 2) Llenar con data.por_comprar y data.en_despensa
+                data.por_comprar.forEach(item => {
+                    const col = document.createElement('div');
+                    col.className = 'col';
+                    col.innerHTML = `
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body d-flex justify-content-between align-items-center"
+                                data-item-id="${item.item_id}" data-lista-id="${item.lista_id}">
+                            <div>
+                                <h6 class="card-title mb-1">${item.ingrediente}</h6>
+                                <small class="text-muted">${item.compra} raciones</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success"
+                                    onclick="abrirModalCompra(${item.item_id}, ${item.compra})">
+                                <i class="bi bi-check2-circle"></i>
+                            </button>
+                            </div>
+                        </div>`;
+                    contComprar.appendChild(col);
+                });
+
+                data.en_despensa.forEach(item => {
+                    const col = document.createElement('div');
+                    col.className = 'col';
+                    col.innerHTML = `
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body d-flex justify-content-between align-items-center"
+                                data-item-id="${item.item_id}" data-lista-id="${item.lista_id}">
+                            <div>
+                                <h6 class="card-title mb-1">${item.ingrediente}</h6>
+                                <small class="text-muted">Tengo ${item.despensa} (Faltan ${item.faltan})</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-warning"
+                                    onclick="abrirModalDespensa(${item.item_id}, ${item.despensa})">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </button>
+                            </div>
+                        </div>`;
+                    contDespensa.appendChild(col);
+                });
+            })
+            .catch(err => console.error(err));
+    }
+
+    function resetearLista() {
+        if (!confirm("¿Estás seguro de que quieres reiniciar la lista de la compra?")) return;
+
+        // Obtener la fecha de inicio desde la URL o usar el start_date
+        let urlParams = new URLSearchParams(window.location.search);
+        let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
+
+        fetch(`/lista_compra/reset/?start=${start}`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);
+                } else {
+                    alert(data.mensaje);
+                    location.reload();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    // ========== BOTÓN PARA ACTIVAR MODO SUPER ==========
+    function activarModoSuper() {
+        document.getElementById('vista-normal').style.display = 'none';
+        document.getElementById('modo-super').style.display = 'block';
+        inicializarModoSuper();
+    }
+    // Llamamos siempre a esto tras inicializar o mover
+    function actualizarPlaceholders() {
+        const porContainer = document.getElementById('super-por-comprar').parentNode;
+        const cestaContainer = document.getElementById('super-cesta').parentNode;
+
+        // — Ingredientes por comprar — 
+        const ulPor = document.getElementById('super-por-comprar');
+        // si hay <li data-item-id>, lo dejamos. Si no, ocultamos el UL y ponemos <p>
+        const hayPor = Array.from(ulPor.children).some(li => li.dataset.itemId);
+        ulPor.style.display = hayPor ? '' : 'none';
+        // Quitamos cualquier mensaje previo
+        porContainer.querySelectorAll('p.empty-msg').forEach(p => p.remove());
+        if (!hayPor) {
+            const p = document.createElement('p');
+            p.className = 'text-center text-muted empty-msg';
+            p.textContent = 'No hay ingredientes por comprar.';
+            porContainer.appendChild(p);
+        }
+
+        // — Ingredientes en la cesta — 
+        const ulCes = document.getElementById('super-cesta');
+        const hayCes = Array.from(ulCes.children).some(li => li.dataset.itemId);
+        ulCes.style.display = hayCes ? '' : 'none';
+        cestaContainer.querySelectorAll('p.empty-msg').forEach(p => p.remove());
+        if (!hayCes) {
+            const p2 = document.createElement('p');
+            p2.className = 'text-center text-muted empty-msg';
+            p2.textContent = 'No hay ingredientes en la cesta.';
+            cestaContainer.appendChild(p2);
+        }
+    }
+
+
+    // ========== INICIALIZAR MODO SUPER ==========
+    function inicializarModoSuper() {
+        const ulPorComprar = document.getElementById('super-por-comprar');
+        const ulCesta = document.getElementById('super-cesta');
+        // Vaciamos ambas listas
+        ulPorComprar.innerHTML = '';
+        ulCesta.innerHTML = '';
+
+        // Buscamos TODOS los elementos con data-item-id dentro de #lista-compra
+        document.querySelectorAll('#lista-compra [data-item-id]').forEach(el => {
+            const itemId = el.dataset.itemId;
+            const listaId = el.dataset.listaId;
+            // Nombre viene en .card-title
+            const nombre = el.querySelector('.card-title').textContent.trim();
+            // Cantidad viene en el small.text-muted como "X raciones"
+            const compra = el.querySelector('.text-muted').textContent.trim().split(' ')[0];
+
+            // Creamos el <li> igual que antes
+            const li = document.createElement('li');
+            li.dataset.itemId = itemId;
+            li.dataset.listaId = listaId;
+            li.dataset.nombre = nombre;
+            li.dataset.cantidad = compra;
+            li.className = 'list-group-item';
+
+            li.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-success me-2"
+                            onclick="moverACesta('${itemId}')">
+                            <i class="bi bi-check2-circle"></i>        
+                    </button>
+                    <div><strong>${nombre}</strong> – <span>${compra}</span> raciones</div>
+                </div>
+                `;
+            ulPorComprar.appendChild(li);
+        });
+
+        actualizarPlaceholders();
+    }
+
+
+
+    // ========== MOVER A CESTA ==========
+    function moverACesta(itemId) {
+        // Buscamos el li en super-por-comprar
+        let li = document.querySelector(`#super-por-comprar li[data-item-id='${itemId}']`);
+        if (!li) return;
+
+        // Lo quitamos de super-por-comprar y lo metemos en super-cesta
+        li.remove();
+        li.innerHTML = `
+        <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-danger me-2" 
+                onclick="moverAListaPorComprar('${itemId}')">
+                <i class="bi bi-x-circle"></i>
+            </button>
+            <div>
+                <strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones
+            </div>
+        </div>
+        `;
+        document.getElementById('super-cesta').appendChild(li);
+
+        actualizarPlaceholders();
+    }
+
+
+    // ========== MOVER A LISTA POR COMPRAR ==========
+    function moverAListaPorComprar(itemId) {
+        let li = document.querySelector(`#super-cesta li[data-item-id='${itemId}']`);
+        if (!li) return;
+        li.remove();
+        li.innerHTML = `
+            <div class="d-flex align-items-center">
+            <button class="btn btn-sm btn-outline-success me-2"
+                    onclick="moverACesta('${itemId}')">
+                <i class="bi bi-check2-circle"></i>
+            </button>
+            <div><strong>${li.dataset.nombre}</strong> – <span>${li.dataset.cantidad}</span> raciones</div>
+            </div>
+        `;
+        document.getElementById('super-por-comprar').appendChild(li);
+
+        actualizarPlaceholders();
+    }
+
+    // ========== BOTÓN "COMPRAR" ==========
+    function finalizarCompra() {
+        // Recorrer la super-cesta y obtener los ingredientes
+        let cestaItems = document.querySelectorAll('#super-cesta li[data-item-id]');
+        let cestaData = [];
+        cestaItems.forEach(li => {
+            cestaData.push({
+                item_id: li.dataset.itemId,
+                lista_id: li.dataset.listaId,
+                nombre: li.dataset.nombre,
+                cantidad: li.dataset.cantidad
+            });
+        });
+
+        // Hacemos un fetch POST a un nuevo endpoint, por ejemplo "/finalizar_compra/"
+        // que en el servidor actualiza la despensa de esa semana para esos ingredientes.
+        // Te sugiero crear una vista "finalizar_compra" que reciba la lista de items y 
+        // haga item.despensa += X en la BD, o como tú desees.
+        fetch("/finalizar_compra/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ items: cestaData, start: "{{ start_date|date:'Y-m-d' }}" })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error al comprar: " + data.error);
+                } else {
+                    mostrarSuccessModal("");
+                    setTimeout(() => location.reload(), 1000);  // recarga luego de 2.5s
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+    function desactivarModoSuper() {
+        document.getElementById('modo-super').style.display = 'none';
+        document.getElementById('vista-normal').style.display = 'block';
+    }
+
+
+
+    function abrirModalReset() {
+        const modal = new bootstrap.Modal(document.getElementById('resetListaModal'));
+        modal.show();
+    }
+
+    function confirmarResetLista() {
+        let urlParams = new URLSearchParams(window.location.search);
+        let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
+
+        fetch(`/lista_compra/reset/?start=${start}`, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);
+                } else {
+                    location.reload();
+                }
+            })
+            .catch(err => console.error(err));
+    }
+
+</script>
 {% endblock %}

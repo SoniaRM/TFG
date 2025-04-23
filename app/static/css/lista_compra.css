@@ -1,0 +1,110 @@
+/* static/css/lista_compra.css */
+#tituloSemana {
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Card principal */
+.card-lista {
+    background-color: var(--white);
+    border: 1px solid var(--blue-dark);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin: 2rem auto;
+    max-width: 800px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-lista h1 {
+    padding: 0.75rem;
+    border-radius: 0.25rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--blue-dark);
+}
+
+/* Secciones de lista */
+.card-lista h2 {
+    margin-top: 1.5rem;
+    color: var(--blue-dark);
+}
+
+.list-group-item {
+    border-radius: 0.25rem;
+}
+
+/* Botones generales */
+.btn-modo-super {
+    margin-bottom: 1rem;
+}
+
+/* Modo super (oculto por defecto) */
+#modo-super {
+    display: none;
+}
+
+.card-modo-super {
+    background-color: var(--white);
+    border: 1px solid var(--blue-dark);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    margin: 2rem auto;
+    max-width: 800px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Modales personalizados */
+.modal-custom {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1050;
+}
+
+.modal-custom .modal-dialog {
+    margin: 6rem auto;
+    max-width: 320px;
+}
+
+.modal-custom .modal-content {
+    background: var(--white);
+    padding: 1.25rem;
+    border-radius: 0.75rem;
+}
+
+/* en lista_compra.css */
+.card {
+    border-radius: 0.75rem;
+}
+
+.card-body h6 {
+    font-weight: 600;
+}
+
+/* Override para que el borde de “Modo super” sea del mismo azul oscuro */
+.btn-modo-super {
+    /* si usas btn-primary, hereda el fondo y color de texto */
+    background-color: var(--blue-dark) !important;
+    color: var(--white) !important;
+
+    /* ahora sí el borde */
+    border: 1px solid var(--blue-dark) !important;
+}
+
+/* En hover, mantenemos la misma sombra de selección */
+.btn-modo-super:hover {
+    background-color: var(--blue-dark) !important;
+    border-color: var(--blue-dark) !important;
+}
+
+/* Más espacio bajo el reset button */
+.text-center.reset-container {
+    margin-bottom: 3rem;
+    /* ajusta el valor a tu gusto */
+}
+
+.empty-msg {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+}

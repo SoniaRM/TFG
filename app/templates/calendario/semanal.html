@@ -2,203 +2,58 @@
 
 {% load dict_extras %}
 {% load calendario_tags %}
+{% load static %}
 
 {% block content %}
-
 <form id="dummy-form" style="display:none;">
   {% csrf_token %}
 </form>
-<!DOCTYPE html>
-<html lang="es">
 
-<head>
-  <meta charset="UTF-8">
-  <title>Calendario Semanal</title>
   <!-- CSS de Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{% static 'css/calendario.css' %}">
 
-
-
-  <style>
-    .navigation {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 20px;
-    }
-
-    .navigation a {
-      text-decoration: none;
-      font-weight: bold;
-      color: #333;
-      padding: 5px 10px;
-      border: 2px solid #ccc;
-      border-radius: 5px;
-    }
-
-    .week-container {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    .day-column {
-      flex: 1;
-      background-color: #FFEFE2;
-      padding: 10px;
-      border-radius: 15px;
-      transition: background 0.5s ease-in-out;
-      border: 0.5px solid #cccccc;
-    }
-
-    .day-header {
-      background-color: #FFD9C2;
-      border-radius: 10px;
-      padding: 5px;
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-align: center;
-    }
-
-    .meal-block {
-      background-color: #FFF8F5;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      padding: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .meal-block:hover {
-      background-color: #F8F1F0;
-    }
-
-    .meal-block h4 {
-      margin: 0 0 5px;
-    }
-
-    .meal-item {
-      background-color: #FFFFFF;
-      padding: 8px;
-      margin-bottom: 5px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Estilos para la lista de recetas en el modal */
-    .recipe-list {
-      max-height: 300px;
-      overflow-y: auto;
-    }
-
-    .recipe-button {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 5px;
-      background-color: #f8f9fa;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      text-align: left;
-      cursor: pointer;
-    }
-
-    .recipe-button:hover {
-      background-color: #e2e6ea;
-    }
-
-    .day-column.today .day-header {
-      background-color: #FFB29A; /* Por ejemplo, resaltar con el mismo rosa claro */
-      color: #fff;
-      font-size: 1.1em;
-    }
-
-    .circular-progress {
-      position: relative;
-      width: 100px;       /* Ajusta el tamaño */
-      height: 100px;
-      border-radius: 50%;
-      background: conic-gradient(
-        #ddd 0%,  /* color base */
-        #ddd 100%
-      );
-    }
-
-    /* Texto en el centro */
-    .circular-progress .progress-value {
-      position: absolute;
-      inset: 0; /* top: 0; left: 0; right: 0; bottom: 0; */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-weight: bold;
-      font-size: 1rem;
-    }
-    .circular-progress::before {
-    content: "";
-    position: absolute;
-    /* Ajusta el inset para el grosor del anillo (cuanto más grande, más delgado el anillo) */
-    inset: 15px;
-    background: #fff; /* Color del "agujero" */
-    border-radius: 50%;
-  }
-  /*******************************************/
-    @keyframes shake {
-    0%, 100%   { transform: translateX(0); }
-    25%        { transform: translateX(-2px); }
-    75%        { transform: translateX(2px); }
-  }
-
-  .carbs-exceso {
-    animation: shake 0.5s ease-in-out infinite;
-    border: 2px solid #e74c3c;
-    border-radius: 5px;
-  }
-  /* Aseguramos que el texto dentro de .carbohidratos-valor también se ponga rojo */
-  .carbohidratos-valor.carbs-exceso {
-    color: #e74c3c;
-  }
-
-
-  </style>
-</head>
-
-<body>
-  <h1>Calendario Semanal</h1>
-  <div class="text-end">
-    <a href="{% url 'exportar_semana' %}?start={{ start_date|date:'Y-m-d' }}">
-      <i class="bi bi-download" style="font-size: 24px;"></i>
-    </a>
-  </div>
+  <div class="text-center my-3">
+    <h1 class="mb-2">Calendario Semanal</h1>
+  </div>  
 
   <div class="container my-4">
-    <h5 id="tituloProteinas"></h5>
+    <h5 id="tituloProteinas" class="lead text-center mb-4"></h5>
     <!--
     <div class="progress">
       <div id="barraProteinas" class="progress-bar bg-success" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
     </div>
     <p class="mt-2"><span id="consumidas">0</span>g consumidas</p>-->
-    <div id="indicadorProteinas" style="display: flex; align-items: center; gap: 20px;">
-      <svg class="donut-chart" id="donutChart" viewBox="0 0 100 100" width="100" height="100">
-        <!-- Círculo de fondo -->
-        <circle class="donut-bg" cx="50" cy="50" r="45" fill="none" stroke="#ddd" stroke-width="10" />
-        <!-- Círculo de progreso con extremos redondeados -->
-        <circle class="donut-progress" id="donutProgress" cx="50" cy="50" r="45" fill="none"
-          stroke="#FFD9C2" stroke-width="10" stroke-linecap="round"
-          stroke-dasharray="282.743" stroke-dashoffset="282.743" />
-        <!-- Texto centrado -->
-        <text id="donutText" x="50" y="50" text-anchor="middle" dy=".35em" font-size="18" fill="#333">0%</text>
-      </svg>
-      <!-- Texto extra (color-coded) opcional -->
-      <p id="proteinaText" style="margin:0; font-size:1.2rem;"></p>
+
+    <div class="position-relative my-4" style="height: 120px;">
+      <!-- Indicador a la izquierda -->
+      <div id="indicadorProteinas"
+            class="indicador-proteinas position-absolute top-50 start-50 translate-middle">
+        <svg class="donut-chart" id="donutChart" viewBox="0 0 100 100" width="100" height="100">
+          <!-- Fondo -->
+          <circle class="donut-bg" cx="50" cy="50" r="45" />
+          <!-- Progreso -->
+          <circle class="donut-progress" id="donutProgress" cx="50" cy="50" r="45" />
+          <!-- Texto central -->
+          <text id="donutText" class="donut-text" x="50" y="50" text-anchor="middle" dy=".35em">0%</text>
+        </svg>
+        <p id="proteinaText" class="proteina-text"></p>      
+      </div>
+      <!-- Espacio flexible para empujar el botón a la derecha -->
+      <div class="flex-grow-1"></div>
+      <!-- Botón de descarga -->
+      <a href="{% url 'exportar_semana' %}?start={{ start_date|date:'Y-m-d' }}"
+        class="btn btn-outline-primary btn-lg descarga-btn position-absolute top-50 end-0 translate-middle-y"
+        aria-label="Descargar calendario semanal">
+        <i class="bi bi-download"></i>
+      </a>
     </div>
     
-
     <div class="navigation">
       <a href="{{ prev_week_url }}">← Anterior</a>
-      <a href="{% url 'calendario_semanal' %}">Hoy</a>
+      <a href="{% url 'calendario_semanal' %}">→ Esta semana</a>
       <a href="{{ next_week_url }}">Siguiente →</a>
     </div>
 
@@ -302,7 +157,7 @@
   
       // Insertamos el texto resultante
       document.getElementById("tituloProteinas").textContent =
-        `Objetivo diario del ${fechaFormateada}`;
+        `Registro proteico para hoy ${fechaFormateada}`;
     });
   </script>
   
@@ -402,7 +257,8 @@
           }
           
           // Define los colores (ajusta según tu paleta)
-          const colorSolido = "#FFD9C2";  // o el color que hayas elegido
+          const estilos = getComputedStyle(document.documentElement);
+          const colorSolido = estilos.getPropertyValue('--blue-dark').trim();
           // Para un fade sutil: de colorSolido a transparente
           const colorTransparente = "rgba(0, 0, 0, 0)";
           
@@ -519,11 +375,12 @@
           data.forEach(receta => {
             var button = document.createElement("button");
             button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
-            if (receta.nombre.includes(" + ")) {
-              button.innerHTML = `<strong>Par:</strong> ${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
-            } else {
-              button.innerHTML = `${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
-            }
+            button.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="flex-grow-1 text-start recipe-name">${receta.nombre}</span>
+                  <span class="badge score-badge">${receta.score}</span>
+                </div>
+              `;
             button.dataset.recetaIds = JSON.stringify(receta.ids);
 
             button.addEventListener("click", function () {
@@ -604,11 +461,12 @@
             var button = document.createElement("button");
             button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
             // Diferenciar si es un par de recetas o una receta individual
-            if (receta.tipo === "pair") {
-              button.innerHTML = `<strong>Par:</strong> ${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
-            } else {
-              button.innerHTML = `${receta.nombre} <span class="badge bg-secondary">${receta.score}</span>`;
-            }
+            button.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                  <span class="flex-grow-1 text-start recipe-name">${receta.nombre}</span>
+                  <span class="badge score-badge">${receta.score}</span>
+                </div>
+              `;
             // Guardamos el/los ID(s) en el atributo data, usando JSON para mayor flexibilidad
             button.dataset.recetaIds = JSON.stringify(receta.ids);
             // Al hacer clic, se recupera el arreglo de IDs y se llama a la función de agregar recetas
@@ -835,9 +693,5 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
-
-</body>
-
-</html>
 
 {% endblock %}

@@ -1,0 +1,243 @@
+/* Calendario Semanal */
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.navigation a {
+    display: inline-block;
+    border: 1px solid var(--blue-dark);   /* el recuadro */
+    border-radius: 0.25rem;
+    /* para que el padding funcione */
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    color: var(--blue-dark);
+    /* color por defecto */
+    text-decoration: none;
+    /* quita subrayado */
+}
+
+.navigation a:hover {
+    background-color: var(--blue-dark);
+    color: var(--white);
+}
+
+.week-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.day-column {
+    background-color: var(--gray-light);
+    padding: 10px;
+    border-radius: 15px;
+    transition: background 0.5s ease-in-out;
+    border: 0.5px solid var(--blue-dark);
+}
+
+.day-header {
+    background-color: var(--blue-dark);
+    border-radius: 10px;
+    padding: 5px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: center;
+    color: var(--white);
+}
+
+.meal-block {
+    background-color: var(--white);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    padding: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+    border: 1px solid var(--gray-light);
+}
+
+.meal-block:hover {
+    background-color: var(--gray-light);
+}
+
+.meal-item {
+    background-color: var(--white);
+    padding: 8px;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.recipe-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.recipe-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: var(--white);
+    border: 1px solid var(--blue-dark);
+    border-radius: 5px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--blue-dark);
+}
+
+.recipe-button:hover {
+    background-color: var(--gray-light);
+}
+
+.day-column.today .day-header {
+    background-color: var(--blue-darker);
+    color: var(--white);
+    font-size: 1.1em;
+}
+
+.circular-progress {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: conic-gradient(var(--gray-light) 0%, var(--gray-light) 100%);
+}
+
+.circular-progress .progress-value {
+    position: absolute;
+    inset: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1rem;
+    color: var(--blue-dark);
+}
+
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-2px);
+    }
+
+    75% {
+        transform: translateX(2px);
+    }
+}
+
+.carbs-exceso {
+    animation: shake 0.5s ease-in-out infinite;
+    border: 2px solid #e74c3c;
+    border-radius: 5px;
+}
+
+.carbohidratos-valor.carbs-exceso {
+    color: #e74c3c;
+}
+
+/*DONUT PROGRESO*/
+/* Contenedor flex */
+.indicador-proteinas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* centra horizontalmente */
+    gap: 1.25rem;
+    /* 20px */
+}
+
+#tituloProteinas {
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Fondo del donut */
+/* Base del donut */
+.donut-bg {
+    fill: none;
+    stroke: var(--gray-light);
+    stroke-width: 10;
+}
+
+/* Progreso del donut */
+.donut-progress {
+    fill: none;
+    stroke: var(--blue-dark);
+    stroke-width: 10;
+    stroke-linecap: round;
+
+    /* Circunferencia ≃ 2·π·45 ≃ 282.743 */
+    stroke-dasharray: 282.743;
+    stroke-dashoffset: 282.743;
+
+    /* Para animar suavemente */
+    transition: stroke-dashoffset 0.3s ease;
+}
+
+
+/* Texto (%) dentro */
+.donut-text {
+    font-size: 1.125rem;
+    /* 18px */
+    fill: var(--black);
+    font-weight: bold;
+}
+
+/* Texto extra al lado */
+.proteina-text {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--blue-dark);
+}
+
+/*Para cuando pase el cursor por las recetas para elegir en el calendario*/
+/* Sobreescribe el hover de .recipe-button */
+.recipe-button:hover {
+    background-color: var(--blue-dark) !important;
+    /* fondo azul */
+    color: var(--white) !important;
+    /* texto blanco */
+    border-color: var(--blue-dark) !important;
+    /* borde azul para que encaje */
+}
+
+/* Badge personalizado para el puntaje */
+.score-badge {
+    background-color: var(--blue-dark) !important;
+    /* azul del navbar */
+    color: var(--white) !important;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: bold;
+    line-height: 1;
+    margin-left: 0.5rem;
+}
+
+/* Estilo al botón de descarga */
+.descarga-btn {
+    /* Tamaño */
+    padding: 0.5rem 1rem;
+    font-size: 1.25rem;
+    /* Color y borde en tu azul del navbar */
+    color: var(--blue-dark);
+    border-color: var(--blue-dark);
+    transition: background 0.2s, color 0.2s;
+}
+
+.descarga-btn:hover {
+    background-color: var(--blue-dark);
+    color: var(--white);
+}

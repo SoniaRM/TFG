@@ -3,128 +3,77 @@
 {% block title %}Listado de Ingredientes{% endblock %}
 
 {% block content %}
-<!-- Incluimos Bootstrap para aprovechar sus clases -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-  /* Inspirado en semanal.html y los estilos de las recetas */
-  .card-ingrediente {
-      background-color: #FFF8F5;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      padding: 15px;
-      margin-bottom: 20px;
-  }
-  .card-ingrediente h5 {
-      background-color: #FFD9C2;
-      padding: 10px;
-      border-radius: 5px;
-      text-align: center;
-      margin-bottom: 10px;
-  }
-  .btn-action {
-      margin-right: 5px;
-      width: 90%;
+  /* Rejilla de 4 columnas para los ingredientes */
+  .container-recetas {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1rem;
+    padding: 1rem 0;
   }
 </style>
 
 <div class="container mt-4">
-    <h1 class="mb-4">Listado de Ingredientes</h1>
-    <div class="mb-4">
-        <a href="{% url 'crear_ingrediente' %}" class="btn btn-success">Crear Nuevo Ingrediente</a>
+  <div class="row">
+    <div class="col-12">
+      <h1 class="text-center mb-4">Listado de Ingredientes</h1>
     </div>
+  </div>
 
-    <div class="mb-3">
-      <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente por nombre...">
-      <p id="no-coincidencias" style="display: none; color: red;">No hay coincidencias</p>
-    </div>
-  
-    <div class="row">
-        {% for ingrediente in ingredientes %}
-        <div class="col-md-3">
-            <div class="card-ingrediente">
-                <h5>{{ ingrediente.nombre }}</h5>
-                <p><strong>Frecuencia:</strong> {{ ingrediente.frec }}</p>
-                <div class="d-flex">
-                    <div class="flex-fill text-center">
-                      <a href="{% url 'detalle_ingrediente' ingrediente.pk %}" class="btn btn-primary btn-action">Ver</a>
-                    </div>
-                    <div class="flex-fill text-center">
-                      <a href="{% url 'editar_ingrediente' ingrediente.pk %}" class="btn btn-warning btn-action">Editar</a>
-                    </div>
-                    <div class="flex-fill text-center">
-                      <form method="post" action="{% url 'detalle_ingrediente' ingrediente.pk %}" style="display:inline-block; width:100%;">
-                        {% csrf_token %}
-                          <button type="button"
-                                  class="btn btn-danger btn-action"
-                                  style="width:100%;"
-                                  data-url="{% url 'detalle_ingrediente' ingrediente.pk %}"
-                                  onclick="confirmarEliminacion(this)">
-                              Eliminar
-                          </button>
-                        </form>
-                    </div>
-                </div> 
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Modal de Confirmación para eliminar ingrediente -->
-<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center animate-zoom" style="border-radius: 15px; background-color: #FFF8F5;">
-      <div class="modal-header">
-        <h5 class="modal-title w-100" id="confirmDeleteModalLabel">¿Eliminar ingrediente?</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <p>¿Estás seguro de que deseas eliminar este ingrediente? Se borrarán todas las recetas que lo contengan.</p>
-        <form id="deleteForm" method="post">
-          {% csrf_token %}
-          <button type="submit" name="delete" class="btn btn-danger">Sí, eliminar</button>
-          <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">Cancelar</button>
-        </form>
+  <div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+      <a href="{% url 'crear_ingrediente' %}" class="btn btn-primary">Crear Nuevo Ingrediente</a>
+      <div class="input-group" style="max-width: 300px;">
+        <input type="text" id="buscar-ingrediente" class="form-control" placeholder="Buscar ingrediente...">
+        <button class="btn" type="button" id="clear-ingrediente" title="Limpiar búsqueda">
+          <i class="bi bi-x-circle"></i>
+        </button>
       </div>
     </div>
+  </div>
+
+  <p id="no-coincidencias" class="text-danger text-center" style="display:none;">
+    No hay coincidencias
+  </p>
+
+  <div class="container-recetas">
+    {% for ingrediente in ingredientes %}
+    <a href="{% url 'detalle_ingrediente' ingrediente.pk %}" class="card-link">
+      <div class="card-receta">
+        <h5 class="text-center">{{ ingrediente.nombre }}</h5>
+        <p><strong>Frecuencia:</strong> {{ ingrediente.frec }}</p>
+      </div>
+    </a>
+    {% endfor %}
   </div>
 </div>
 
 <script>
-  function confirmarEliminacion(button) {
-      const url = button.getAttribute('data-url');
-      const form = document.getElementById('deleteForm');
-      form.action = url;
-      const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
-      modal.show();
-  }
-</script>
+  // Botón “X” para limpiar búsqueda
+  document.getElementById('clear-ingrediente').addEventListener('click', () => {
+    const inp = document.getElementById('buscar-ingrediente');
+    inp.value = '';
+    inp.dispatchEvent(new Event('input'));
+    inp.focus();
+  });
 
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const input = document.getElementById("buscar-ingrediente");
-    const tarjetas = document.querySelectorAll(".card-ingrediente");
-    const noMatchMsg = document.getElementById("no-coincidencias");
-
-    input.addEventListener("keyup", function () {
-      const filtro = input.value.toLowerCase();
-      let algunaVisible = false;
-
-      tarjetas.forEach(function (tarjeta) {
-        const nombre = tarjeta.querySelector("h5").textContent.toLowerCase();
-        if (nombre.includes(filtro)) {
-          tarjeta.parentElement.style.display = "";
-          algunaVisible = true;
-        } else {
-          tarjeta.parentElement.style.display = "none";
-        }
-      });
-
-      noMatchMsg.style.display = algunaVisible ? "none" : "block";
+  // Filtro de búsqueda
+  document.getElementById('buscar-ingrediente').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    const cards = document.querySelectorAll('.card-receta');
+    let any = false;
+    cards.forEach(card => {
+      const name = card.querySelector('h5').textContent.toLowerCase();
+      if (!q || name.includes(q)) {
+        card.parentElement.style.display = '';
+        any = true;
+      } else {
+        card.parentElement.style.display = 'none';
+      }
     });
+    document.getElementById('no-coincidencias').style.display = any ? 'none' : 'block';
   });
 </script>
-
-
 {% endblock %}

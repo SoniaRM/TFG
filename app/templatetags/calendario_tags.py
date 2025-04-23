@@ -50,7 +50,7 @@ def get_vertical_gradient_style(calendario):
     porcentaje = min(max((consumido / objetivo) * 100, 0), 100)
     
     # Ajusta estos colores a los de tu paleta
-    color_solido = "#FFD9C2"  # Color de la parte "rellena" (abajo)
+    color_solido = "var(--blue-dark)"
     color_transparente = "rgba(0, 0, 0, 0)"  # Mismo tono pero transparente
 
     # Generamos un gradiente vertical que va de color_solido en la parte inferior a transparente en la parte superior.

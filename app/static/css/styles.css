@@ -1,0 +1,365 @@
+/* static/css/styles.css */
+/*NAVBAR*/
+/* Variables de color */
+:root {
+    --blue-dark: #1E3A8A;
+    --white: #FFFFFF;
+    --black: #000000;
+    --gray-light: #F5F5F5;
+    --blue-darker: #162a72; /* nuevo */
+}
+
+/* Reset y tipografía */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Gidole', sans-serif;
+    background-color: var(--white);
+    color: var(--black);
+}
+
+/* Navbar */
+.container-nav {
+    background-color: var(--blue-dark);
+}
+
+/* NAVBAR MINIMALISTA */
+nav {
+    background-color: var(--blue-dark);
+    padding: 0.75rem 0;
+}
+
+nav ul {
+    list-style: none;
+    /* quita bullets */
+    margin: 0;
+    padding: 0 1rem;
+    /* acolchado lateral */
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    /* separación constante */
+}
+
+nav ul li {
+    margin: 0;
+}
+
+nav ul li a {
+    display: block;
+    /* todo el bloque clicable */
+    padding: 0.35rem 1rem;
+    color: var(--white);
+    text-decoration: none;
+    border-radius: 20px;
+    transition: background 0.2s, color 0.2s;
+}
+
+nav ul li a:hover {
+    background-color: var(--white);
+    color: var(--blue-dark);
+}
+
+/* Elemento activo */
+nav ul li.activo a {
+    background-color: var(--white);
+    color: var(--blue-dark);
+    font-weight: bold;
+}
+
+/* Empuja todo lo que viene a la derecha */
+nav ul li.nav-user {
+    margin-left: auto;
+    color: var(--white);
+}
+
+
+/* Botones */
+.btn-primary {
+    background-color: var(--blue-dark) !important;
+    color: var(--white) !important;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+}
+
+.btn-primary:hover {
+    background-color: var(--blue-darker) !important;
+    color: var(--white) !important;
+  }
+
+.btn-secondary {
+    background-color: var(--white) !important;
+    color: var(--blue-dark) !important;
+    border: 1px solid var(--blue-dark) !important;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+}
+
+.btn-secondary:hover {
+    background-color: var(--gray-light) !important;
+}
+
+/*LISTADO RECETAS*/
+/* ── LISTADO DE RECETAS EN GRID ────────────── */
+.container-recetas {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+/* Tarjeta clicable */
+.card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Estilo de la tarjeta*/
+.card-receta {
+    background-color: var(--white);
+    border: 1px solid var(--blue-dark);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+    cursor: pointer;
+}
+
+.card-receta:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Encabezado de la tarjeta */
+.card-receta h5 {
+    color: var(--blue-dark);
+    margin-bottom: 0.5rem;
+}
+
+/* Oculta los botones de acción */
+.btn-action {
+    display: none !important;
+}
+
+/* Content dentro de la tarjeta */
+.card-receta p,
+.card-receta ul {
+    color: var(--black);
+    margin-bottom: 0.5rem;
+}
+
+.card-receta ul {
+    padding-left: 1.2rem;
+}
+
+/*Filtro ingredientes seleccionados y no*/
+/* Ingredientes en la lista */
+.ingrediente-item {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    margin: 0.2rem;
+    border: 1px solid var(--blue-dark);
+    /* borde azul */
+    background-color: var(--white);
+    /* fondo blanco */
+    color: var(--blue-dark);
+    /* texto azul */
+    border-radius: 0.5rem;
+    /* recuadro redondeado */
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+/* Hover leve para guiar al usuario */
+.ingrediente-item:hover {
+    background-color: var(--gray-light);
+}
+
+/* Ingredientes seleccionados */
+.ingrediente-item.seleccionado {
+    background-color: var(--blue-dark);
+    /* azul oscuro */
+    color: var(--white);
+    /* texto blanco */
+    border-color: var(--blue-dark);
+}
+
+/* Badges bajo “#ingredientes-seleccionados” */
+#ingredientes-seleccionados .badge {
+    display: inline-block;
+    /* como los spans */
+    font-size: 1rem;
+    /* mismo tamaño de texto */
+    line-height: 1.2;
+    /* alinea el texto verticalmente */
+    padding: 0.4rem 0.8rem;
+    /* mismo acolchado */
+    margin: 0.2rem;
+    /* mismo espaciado */
+    border: 1px solid var(--blue-dark);
+    /* igual borde azul */
+    background-color: var(--blue-dark);
+    color: var(--white);
+    border-radius: 1rem;
+    /* mismo redondeo */
+    text-decoration: none;
+    /* quita subrayados si hubiera */
+}
+
+/* Cerrar más visible en las badges de ingredientes */
+.badge.ingrediente-badge>span {
+    font-size: 1.25rem;
+    /* ajusta a lo que prefieras */
+    line-height: 1;
+    /* centrar verticalmente */
+    margin-left: 0.3rem;
+    /* separa un poco del texto */
+    cursor: pointer;
+}
+
+/*Botones tipo de comida en filtros recetas*/
+/* ── TIPO DE COMIDA como INGREDIENTES ─────────────────────────────────────── */
+.meal-btn {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    margin: 0.2rem;
+    border: 1px solid var(--blue-dark);
+    background-color: var(--white);
+    color: var(--blue-dark);
+    border-radius: 1rem;
+    font-size: 1rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    text-transform: capitalize;
+    /* Desayuno en lugar de DESAYUNO, si lo prefieres */
+}
+
+.meal-btn:hover {
+    background-color: var(--gray-light);
+}
+
+.meal-btn.active {
+    background-color: var(--blue-dark);
+    color: var(--white);
+    border-color: var(--blue-dark);
+}
+
+/*Circulo de filtro proteinas y carbos*/
+/* ─── CUSTOM SLIDER ───────────────────────────────────────────────────────── */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+    margin: 0.5rem 0;
+}
+
+/* WebKit */
+input[type="range"]::-webkit-slider-runnable-track {
+    height: 0.4rem;
+    background: var(--gray-light);
+    border-radius: 0.2rem;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 1rem;
+    height: 1rem;
+    background: var(--blue-dark);
+    border-radius: 50%;
+    margin-top: -0.3rem;
+    /* centra el thumb verticalmente */
+    cursor: pointer;
+}
+
+/* Firefox */
+input[type="range"]::-moz-range-track {
+    height: 0.4rem;
+    background: var(--gray-light);
+    border-radius: 0.2rem;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 1rem;
+    height: 1rem;
+    background: var(--blue-dark);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Edge / IE */
+input[type="range"]::-ms-track {
+    height: 0.4rem;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+}
+
+input[type="range"]::-ms-fill-lower,
+input[type="range"]::-ms-fill-upper {
+    background: var(--gray-light);
+    border-radius: 0.2rem;
+}
+
+input[type="range"]::-ms-thumb {
+    width: 1rem;
+    height: 1rem;
+    background: var(--blue-dark);
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: 0;
+    /* ajuste si hiciera falta */
+}
+
+/*Boton borrar filtros*/
+#btn-reset-filtros {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+/*CREAR RECETAS*/
+#clear-ingrediente {
+    background-color: var(--gray-light) !important;
+    border: 1px solid var(--gray-light) !important;
+    color: var(--black) !important;
+}
+
+#clear-ingrediente:hover {
+    background-color: var(--white) !important;
+    border-color: var(--gray-light) !important;
+}
+
+/* Estilo personalizado para el checkbox “Combinable” */
+.form-check-input {
+    /* Tamaño un poco mayor */
+    width: 1.2rem;
+    height: 1.2rem;
+    /* Borde y radio iguales a los chips */
+    border: 2px solid var(--blue-dark) !important;
+    border-radius: 0.25rem;
+    /* Color del check interno (Chrome/Edge/Firefox modernos) */
+    accent-color: var(--blue-dark);
+    /* Fondo blanco para estado “no checked” */
+    background-color: var(--white) !important;
+}
+
+.form-check-input:checked {
+    /* Fondo azul oscuro cuando está marcado */
+    background-color: var(--blue-dark) !important;
+}
+
+.form-check-label {
+    /* Texto azul oscuro y un poco de padding */
+    color: var(--blue-dark);
+    margin-left: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}

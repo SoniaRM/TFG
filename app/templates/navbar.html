@@ -10,8 +10,10 @@
     <title>{% block title %}Navbar{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-    <!-- Cargar CSS -->
-    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+    <!-- Cargar CSS 
+    <link rel="stylesheet" href="{% static 'css/componentes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">-->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 
 <body>
@@ -42,7 +44,7 @@
                 <!-- Aquí mostramos el enlace según si el usuario está autenticado o no -->
                 {% if user.is_authenticated %}
                 <!-- Mostrar el nombre del usuario -->
-                <li style="margin-left: auto;">
+                <li class="nav-user">
                     <span>Hola, {{ user.username }}</span>
                 </li>
                 <!-- Formulario para cerrar sesión -->
@@ -52,8 +54,7 @@
                     <a href="{% url 'login' %}">Inicia sesión</a>
                 </li>
                 {% endif %}
-                <li style="margin-left: auto;"
-                    class="{% if request.resolver_match.url_name == 'configurar_objetivo' %}activo{% endif %}">
+                <li class="nav-settings {% if request.resolver_match.url_name == 'configurar_objetivo' %}activo{% endif %}">
                     <a href="{% url 'configurar_objetivo' %}" title="Configuración">
                         <i class="bi bi-gear" style="font-size: 20px;"></i>
                     </a>

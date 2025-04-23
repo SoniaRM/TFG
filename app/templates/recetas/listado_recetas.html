@@ -3,513 +3,275 @@
 {% block title %}Listado de Recetas{% endblock %}
 
 {% block content %}
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<style>
-    /* Estilos inspirados en semanal.html */
-    .container-recetas {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-    }
-    .card-receta {
-        background-color: #FFF8F5; /* Color similar a .meal-block */
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        padding: 15px;
-        width: 300px;
-        transition: transform 0.2s;
-    }
-    .card-receta:hover {
-        transform: scale(1.02);
-    }
-    .card-receta h5 {
-        background-color: #FFD9C2; /* Encabezado con fondo similar a .day-header */
-        padding: 10px;
-        border-radius: 5px;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .card-receta p {
-        margin-bottom: 0.5rem;
-    }
-    .btn-action {
-        margin-right: 5px;
-        width: 90%;
-    }
-    .ingrediente-item.seleccionado {
-      background-color: #A5D6A7 !important; /* verde suave */
-      border-color: #66BB6A;
-      color: #000;
-    }
-    .chip-grande {
-      font-size: 1.0rem;
-      padding: 0.6em 1.0em;
-      border-radius: 20px;
-      white-space: nowrap;
-    }
-    #ingredientes-seleccionados .badge {
-      font-size: 1.0rem;
-      padding: 0.5em 1em;
-    }
-    .ingredientes-container {
-      display: flex;
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    #lista-ingredientes {
-      flex-grow: 1;
-    }
-
-    .ingredientes-container .text-end {
-      width: 100%;
-    }
-    .meal-btn {
-      background-color: #FFD9C2; /* color base */
-      border: none;
-      border-radius: 10px;
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: background-color 0.2s ease-in-out;
-    }
-    .meal-btn:hover {
-      background-color: #ffc8ab;
-    }
-    .meal-btn.active {
-      background-color: #F0A681; /* color más oscuro para activo */
-      color: #fff;
-    }
-</style>
-
 <div class="container mt-4">
-    <h1 class="mb-4">Listado de Recetas</h1>
-    <div class="mt-4">
-        <a href="{% url 'crear_receta' %}" class="btn btn-success">Crear Nueva Receta</a>
+  <div class="row">
+    <div class="col-12">
+      <h1 class="text-center mb-4">Listado de Recetas</h1>
     </div>
-
-    <button id="btn-reset-filtros" class="btn btn-outline-danger btn-sm mb-3">Borrar filtros</button>
-
-    <div class="mb-3">
-      <input type="text" id="buscar-receta" class="form-control" placeholder="Buscar receta por nombre...">
-      <p id="no-coincidencias" style="display: none; color: red;">No hay coincidencias</p>
-    </div>
-    <div class="mb-4">
-      <label class="form-label">Proteína:</label>
-      <div class="d-flex align-items-center gap-3">
-        <input type="range" id="rango-proteina" min="0" max="100" value="0" step="1" class="form-range" style="flex: 1;">
-        <input type="number" id="min-proteina" class="form-control" style="width: 70px;" value="0">
+  </div>
+  <div class="row">
+    <!-- ─── COLUMNA IZQUIERDA: FILTROS ─────────────────────────────────────── -->
+    <div class="col-lg-4 mb-4">
+      <div class="d-flex mb-3">
+        <a href="{% url 'crear_receta' %}" class="btn btn-primary">Crear Nueva Receta</a>
+        <button id="btn-reset-filtros" class="btn btn-danger btn-sm ms-auto">Borrar filtros</button>
       </div>
-    </div>
-    <div class="mb-4">
-      <label class="form-label">Carbohidratos:</label>
-      <div class="d-flex align-items-center gap-3">
-        <input type="range" id="rango-carbohidratos" min="0" max="100" value="0" step="1" class="form-range" style="flex: 1;">
-        <input type="number" id="min-carbohidratos" class="form-control" style="width: 70px;" value="0">
-      </div>
-    </div>
 
-    <!-- Bloque para filtrar por Tipo de Comida (botones estilo pestañas) -->
-    <div class="mb-4">
-      <label class="form-label">Tipo de Comida:</label>
-      <div id="tipo-comida-filtros" class="d-flex gap-2">
-        <button type="button" class="meal-btn" data-value="desayuno">Desayuno</button>
-        <button type="button" class="meal-btn" data-value="almuerzo">Almuerzo</button>
-        <button type="button" class="meal-btn" data-value="merienda">Merienda</button>
-        <button type="button" class="meal-btn" data-value="cena">Cena</button>
+      <!-- BÚSQUEDA NOMBRE -->
+      <div class="mb-3">
+        <input type="text" id="buscar-receta" class="form-control" placeholder="Buscar receta por nombre...">
+        <p id="no-coincidencias" class="text-danger mt-1" style="display:none">No hay coincidencias</p>
       </div>
-    </div>
 
-    <div class="mb-4">
-      <label class="form-label">Ingredientes:</label>
-      <input type="text" id="buscar-ingrediente-filtro" class="form-control mb-2" placeholder="Buscar ingrediente...">
-    
-      <div class="ingredientes-container mb-2">
-        <div id="lista-ingredientes" class="d-flex flex-wrap gap-2">
-          {% for ingrediente in ingredientes %}
-            <span class="ingrediente-item chip-grande badge rounded-pill bg-light border border-secondary text-dark"
-                  data-nombre="{{ ingrediente.nombre|lower }}"
-                  style="cursor: pointer; display: none;">
-              {{ ingrediente.nombre }}
-            </span>
+      <!-- SLIDER PROTEÍNA -->
+      <div class="mb-3">
+        <label>Proteína mínima:</label>
+        <div class="d-flex gap-2">
+          <input type="range" id="rango-proteina" class="form-range flex-grow-1" min="0" max="0" value="0">
+          <input type="number" id="min-proteina" class="form-control" style="width:80px" value="0">
+        </div>
+      </div>
+
+      <!-- SLIDER CARBOHIDRATOS -->
+      <div class="mb-3">
+        <label>Carbohidratos mínimos:</label>
+        <div class="d-flex gap-2">
+          <input type="range" id="rango-carbohidratos" class="form-range flex-grow-1" min="0" max="0" value="0">
+          <input type="number" id="min-carbohidratos" class="form-control" style="width:80px" value="0">
+        </div>
+      </div>
+
+      <!-- TIPOS DE COMIDA -->
+      <div class="mb-3">
+        <label>Tipo de Comida:</label>
+        <div id="tipo-comida-filtros" class="d-flex gap-2 flex-wrap">
+          <button type="button" class="meal-btn" data-value="desayuno">Desayuno</button>
+          <button type="button" class="meal-btn" data-value="almuerzo">Almuerzo</button>
+          <button type="button" class="meal-btn" data-value="merienda">Merienda</button>
+          <button type="button" class="meal-btn" data-value="cena">Cena</button>
+        </div>
+      </div>
+
+      <!-- INGREDIENTES -->
+      <div class="mb-3">
+        <label>Ingredientes:</label>
+        <input type="text" id="buscar-ingrediente-filtro" class="form-control mb-2" placeholder="Buscar ingrediente...">
+        <div id="lista-ingredientes" class="d-flex flex-wrap gap-2 mb-2">
+          {% for ing in ingredientes %}
+          <span class="ingrediente-item" data-nombre="{{ ing.nombre|lower }}">{{ ing.nombre }}</span>
           {% endfor %}
         </div>
-        <div class="d-flex justify-content-end mt-2 w-100">
-          <button id="btn-ver-mas" class="btn btn-outline-secondary btn-sm">+ Ver más</button>
-        </div>        
-      </div>
-      
-
-      <div class="d-flex flex-wrap gap-2" id="ingredientes-seleccionados">
-        <!-- Aquí se añaden dinámicamente los ingredientes seleccionados -->
+        <button id="btn-ver-mas" class="btn btn-outline-secondary btn-sm mb-2">+ Ver más</button>
+        <div id="ingredientes-seleccionados" class="d-flex flex-wrap gap-2"></div>
       </div>
     </div>
-    <p id="contador-recetas" class="text-muted">Mostrando todas las recetas</p>
 
-    <div class="container-recetas">
+    <!-- ─── COLUMNA DERECHA: RECETAS ───────────────────────────────────────── -->
+    <div class="col-lg-8">
+      <p id="contador-recetas" class="text-muted mb-3">Mostrando todas las recetas</p>
+      <div class="container-recetas">
         {% for receta in recetas %}
-        <div class="card-receta">
+        <a href="{% url 'detalle_receta' receta.pk %}" class="card-link">
+          <div class="card-receta">
             <h5>{{ receta.nombre }}</h5>
-            <div>
-                <p><strong>Tipo de Comida:</strong></p>
-                <ul>
-                    {% for tipo_comida in receta.tipo_comida.all %}
-                    <li>{{ tipo_comida.nombre }}</li>
-                    {% endfor %}
-                </ul>
-                <p><strong>Proteínas:</strong> <span class="valor-proteina">{{ receta.proteinas }}</span></p>
-                <p><strong>Carbohidratos:</strong> <span class="valor-carbohidratos">{{ receta.carbohidratos }}</span></p>
-                <p><strong>Ingredientes:</strong></p>
-                <ul>
-                    {% for ingrediente in receta.ingredientes.all %}
-                    <li>{{ ingrediente.nombre }} (Frecuencia: {{ ingrediente.frec }})</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <div class="d-flex">
-                <div class="flex-fill text-center">
-                  <a href="{% url 'detalle_receta' receta.pk %}" class="btn btn-primary btn-action">Ver</a>
-                </div>
-                <div class="flex-fill text-center">
-                  <a href="{% url 'editar_receta' receta.pk %}" class="btn btn-warning btn-action">Editar</a>
-                </div>
-                <div class="flex-fill text-center">
-                  <form method="post" action="{% url 'detalle_receta' receta.pk %}" style="display:inline-block; width:100%;">
-                    {% csrf_token %}
-                        <button type="button"
-                                class="btn btn-danger btn-action"
-                                style="width:100%;"
-                                data-url="{% url 'detalle_receta' receta.pk %}"
-                                onclick="confirmarEliminacion(this)">
-                            Eliminar
-                        </button>
-                    </form>
-                </div>
-            </div> 
-        </div>
+            <p><strong>Tipo de Comida:</strong></p>
+            <ul>
+              {% for t in receta.tipo_comida.all %}
+              <li>{{ t.nombre }}</li>
+              {% endfor %}
+            </ul>
+            <p><strong>Proteínas:</strong> <span class="valor-proteina">{{ receta.proteinas }}</span></p>
+            <p><strong>Carbohidratos:</strong> <span class="valor-carbohidratos">{{ receta.carbohidratos }}</span></p>
+            <p><strong>Ingredientes:</strong></p>
+            <ul>
+              {% for ing in receta.ingredientes.all %}
+              <li>{{ ing.nombre }} ({{ ing.frec }})</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </a>
         {% endfor %}
-    </div>
-</div>
-
-<!-- Modal de Confirmación para eliminar receta -->
-<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center animate-zoom" style="border-radius: 15px; background-color: #FFF8F5;">
-      <div class="modal-header">
-        <h5 class="modal-title w-100" id="confirmDeleteModalLabel">¿Eliminar receta?</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <p>¿Estás seguro de que deseas eliminar esta receta?</p>
-        <form id="deleteForm" method="post">
-          {% csrf_token %}
-          <button type="submit" name="delete" class="btn btn-danger">Sí, eliminar</button>
-          <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">Cancelar</button>
-        </form>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-  // Almacena dinámicamente la acción del formulario
-function confirmarEliminacion(button) {
-    const url = button.getAttribute('data-url');
-    const form = document.getElementById('deleteForm');
-    form.action = url;
-    const modal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
-    modal.show();
-}
-</script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", () => {
+    // Referencias
     const tarjetas = document.querySelectorAll(".card-receta");
-    const inputNombre = document.getElementById("buscar-receta");
-    const noMatchMsg = document.getElementById("no-coincidencias");
-    const slider = document.getElementById("rango-proteina");
-    const inputMin = document.getElementById("min-proteina");
-  
-    // Ingredientes
-    const listaIngredientes = document.querySelectorAll(".ingrediente-item");
-    const contenedorSeleccionados = document.getElementById("ingredientes-seleccionados");
-    const buscadorIngrediente = document.getElementById("buscar-ingrediente-filtro");
-    let seleccionados = [];
-  
-    // === 1. Inicializar el máximo del slider de proteínas ===
-    let maxProteina = 0, maxCarbo = 0;
-    tarjetas.forEach(function (tarjeta) {
-      const proteina = parseInt(tarjeta.querySelector(".valor-proteina").textContent);
-      const carbo = parseInt(tarjeta.querySelector(".valor-carbohidratos").textContent);
-      if (proteina > maxProteina) maxProteina = proteina;
-      if (carbo > maxCarbo) maxCarbo = carbo;
-    });
-    slider.max = maxProteina;
-    inputMin.max = maxProteina;
-    slider.value = 0;
-    inputMin.value = 0;
+    const buscarRec = document.getElementById("buscar-receta");
+    const sliderP = document.getElementById("rango-proteina");
+    const inputP = document.getElementById("min-proteina");
+    const sliderC = document.getElementById("rango-carbohidratos");
+    const inputC = document.getElementById("min-carbohidratos");
+    const mealBtns = document.querySelectorAll(".meal-btn");
+    const buscIng = document.getElementById("buscar-ingrediente-filtro");
+    const allSpans = Array.from(document.querySelectorAll("#lista-ingredientes .ingrediente-item"));
+    const btnVer = document.getElementById("btn-ver-mas");
+    const contSel = document.getElementById("ingredientes-seleccionados");
+    const noMatch = document.getElementById("no-coincidencias");
+    const contador = document.getElementById("contador-recetas");
+    let selectedMeal = null, selectedIngs = [];
 
-    document.getElementById("rango-carbohidratos").max = maxCarbo;
-    document.getElementById("min-carbohidratos").max = maxCarbo;
-    document.getElementById("rango-carbohidratos").value = 0;
-    document.getElementById("min-carbohidratos").value = 0;
-  
-    let selectedMealType = null;
-    const mealButtons = document.querySelectorAll('.meal-btn');
-  
-    mealButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        // Si se pulsa el mismo botón, se desactiva (toggle)
-        if (selectedMealType === button.dataset.value) {
-          selectedMealType = null;
-          button.classList.remove('active');
-        } else {
-          // Desactiva todos y activa solo el botón pulsado
-          mealButtons.forEach(b => b.classList.remove('active'));
-          button.classList.add('active');
-          selectedMealType = button.dataset.value;
-        }
-        aplicarFiltros();
+    // Máximos de sliders
+    let maxP = 0, maxC = 0;
+    tarjetas.forEach(t => {
+      maxP = Math.max(maxP, +t.querySelector(".valor-proteina").textContent);
+      maxC = Math.max(maxC, +t.querySelector(".valor-carbohidratos").textContent);
+    });
+    sliderP.max = inputP.max = maxP;
+    sliderC.max = inputC.max = maxC;
+
+    // Paginación de ingredientes
+    const perPage = 10;
+    const totalPages = Math.ceil(allSpans.length / perPage);
+    let currentPage = 0;
+    function showPage(page) {
+      allSpans.forEach((sp, i) => {
+        sp.style.display = (i >= page * perPage && i < (page + 1) * perPage) ? "inline-block" : "none";
       });
-    });
-  
+      btnVer.textContent = (page < totalPages - 1) ? "+ Ver más" : "+ Ver más";
+    }
+    btnVer.onclick = () => {
+      currentPage = (currentPage < totalPages - 1) ? currentPage + 1 : 0;
+      showPage(currentPage);
+    };
+    showPage(0);
 
-    // === 2. Función central de filtrado ===
+    // Búsqueda en la lista de ingredientes
+    buscIng.oninput = () => {
+      const filtro = buscIng.value.trim().toLowerCase();
+      if (filtro) {
+        allSpans.forEach(sp => {
+          sp.style.display = sp.dataset.nombre.includes(filtro) ? "inline-block" : "none";
+        });
+        btnVer.style.display = "none";
+      } else {
+        btnVer.style.display = totalPages > 1 ? "inline-block" : "none";
+        currentPage = 0;
+        showPage(0);
+      }
+    };
+
+    // Función de filtrado general
     function aplicarFiltros() {
-      const filtroNombre = inputNombre.value.toLowerCase();
-      const minProteinas = parseInt(inputMin.value) || 0;
-      const minCarbohidratos = parseInt(document.getElementById("min-carbohidratos").value) || 0;
+      const nameF = buscarRec.value.toLowerCase();
+      const minProt = +inputP.value, minCarb = +inputC.value;
+      let anyVisible = false;
 
-      // Obtener los tipos seleccionados
-      const tipoFilters = document.querySelectorAll("input.tipo-filter:checked");
-      const selectedTipos = Array.from(tipoFilters).map(cb => cb.value.toLowerCase());
-      let coincideTipo = true;
+      tarjetas.forEach(t => {
+        const n = t.querySelector("h5").textContent.toLowerCase();
+        const p = +t.querySelector(".valor-proteina").textContent;
+        const c = +t.querySelector(".valor-carbohidratos").textContent;
+        const tipos = Array.from(t.querySelectorAll("ul:first-of-type li"))
+          .map(li => li.textContent.toLowerCase());
+        const ingsTar = Array.from(t.querySelectorAll("ul:nth-of-type(2) li"))
+          .map(li => li.textContent.toLowerCase());
+        const ok = n.includes(nameF)
+          && p >= minProt
+          && c >= minCarb
+          && (!selectedMeal || tipos.includes(selectedMeal))
+          && selectedIngs.every(i => ingsTar.some(x => x.includes(i)));
 
-      let algunaVisible = false;
-  
-      tarjetas.forEach(function (tarjeta) {
-        const nombre = tarjeta.querySelector("h5").textContent.toLowerCase();
-        const proteina = parseInt(tarjeta.querySelector(".valor-proteina").textContent);
-        const carbo = parseInt(tarjeta.querySelector(".valor-carbohidratos").textContent);
-        const ingredientesTexto = Array.from(tarjeta.querySelectorAll("ul:nth-of-type(2) li")).map(li =>
-          li.textContent.toLowerCase()
-        );
-        // Extraer los tipos de comida del primer <ul> de la tarjeta
-        const tipoElements = tarjeta.querySelector("ul:nth-of-type(1)").querySelectorAll("li");
-        const cardTipos = Array.from(tipoElements).map(li => li.textContent.toLowerCase());
+        t.parentElement.style.display = ok ? "" : "none";
+        anyVisible ||= ok;
+      });
 
-        const coincideNombre = nombre.includes(filtroNombre);
-        const suficienteProteina = proteina >= minProteinas;
-        const suficienteCarbohidratos = carbo >= minCarbohidratos;
+      // Actualiza contador
+      const shown = [...tarjetas].filter(t => t.parentElement.style.display !== "none").length;
+      if (shown === tarjetas.length) contador.textContent = "Mostrando todas las recetas";
+      else if (shown === 0) contador.textContent = "No hay recetas que coincidan con los filtros";
+      else contador.textContent = `${shown} receta${shown > 1 ? "s" : ""} encontradas`;
 
-        const incluyeIngredientes = seleccionados.every(nombreIng =>
-          ingredientesTexto.some(t => t.includes(nombreIng))
-        );
-        // Si no hay tipos seleccionados se muestran todos, si hay, debe coincidir al menos uno
-        if (selectedMealType) {
-          coincideTipo = cardTipos.includes(selectedMealType);
+      // Muestra el aviso rojo solo si hay texto en buscarRec y no hay resultados
+      noMatch.style.display = buscarRec.value.trim() && shown === 0 ? "block" : "none";
+    }
+
+    // Listeners básicos
+    buscarRec.oninput = aplicarFiltros;
+    sliderP.oninput = () => { inputP.value = sliderP.value; aplicarFiltros(); };
+    inputP.oninput = () => { sliderP.value = Math.min(+inputP.value, maxP); aplicarFiltros(); };
+    sliderC.oninput = () => { inputC.value = sliderC.value; aplicarFiltros(); };
+    inputC.oninput = () => { sliderC.value = Math.min(+inputC.value, maxC); aplicarFiltros(); };
+
+    mealBtns.forEach(b => {
+      b.onclick = () => {
+        if (selectedMeal === b.dataset.value) {
+          selectedMeal = null; b.classList.remove("active");
         } else {
-          coincideTipo = true;
-        }
-  
-        const mostrar = coincideNombre && suficienteProteina && suficienteCarbohidratos && incluyeIngredientes && coincideTipo;
-  
-        tarjeta.style.display = mostrar ? "" : "none";
-        if (mostrar) algunaVisible = true;
-      });
-  
-      noMatchMsg.style.display = algunaVisible ? "none" : "block";
-      const contador = document.getElementById("contador-recetas");
-      const totalMostradas = Array.from(tarjetas).filter(t => t.style.display !== "none").length;
-
-      if (totalMostradas === tarjetas.length) {
-        contador.textContent = "Mostrando todas las recetas";
-      } else if (totalMostradas === 0) {
-        contador.textContent = "No hay recetas que coincidan con los filtros";
-      } else {
-        contador.textContent = `${totalMostradas} receta${totalMostradas === 1 ? "" : "s"} encontradas`;
-      }
-
-    }
-  
-    // === 3. Listeners para cada filtro ===
-  
-    // Nombre
-    inputNombre.addEventListener("keyup", aplicarFiltros);
-  
-    // Proteínas
-    slider.addEventListener("input", function () {
-      inputMin.value = this.value;
-      aplicarFiltros();
-    });
-    inputMin.addEventListener("input", function () {
-      let val = parseInt(this.value);
-      if (isNaN(val)) val = 0;
-      if (val > maxProteina) val = maxProteina;
-      slider.value = val;
-      aplicarFiltros();
-    });
-    
-    // Carbohidratos
-    const sliderCarb = document.getElementById("rango-carbohidratos");
-    const inputMinCarb = document.getElementById("min-carbohidratos");
-    sliderCarb.addEventListener("input", function() {
-      inputMinCarb.value = this.value;
-      aplicarFiltros();
-    });
-    inputMinCarb.addEventListener("input", function() {
-      let v = parseInt(this.value)||0;
-      if (v>maxCarbo) v = maxCarbo;
-      sliderCarb.value = v;
-      aplicarFiltros();
-    });
-
-    // Ingredientes seleccionables
-    function toggleIngrediente(nombre, span) {
-      const index = seleccionados.indexOf(nombre);
-      if (index === -1) {
-        seleccionados.push(nombre);
-        span.classList.add("seleccionado");
-  
-        const chip = document.createElement("span");
-        chip.className = "badge bg-success text-white";
-        chip.textContent = nombre;
-        chip.dataset.nombre = nombre;
-  
-        const close = document.createElement("span");
-        close.textContent = " ✕";
-        close.style.cursor = "pointer";
-        close.onclick = function () {
-          seleccionados = seleccionados.filter(i => i !== nombre);
-          document.querySelector(`.ingrediente-item[data-nombre="${nombre}"]`)?.classList.remove("seleccionado");
-          chip.remove();
-          aplicarFiltros();
-        };
-  
-        chip.appendChild(close);
-        contenedorSeleccionados.appendChild(chip);
-      } else {
-        seleccionados.splice(index, 1);
-        span.classList.remove("seleccionado");
-        const chip = contenedorSeleccionados.querySelector(`[data-nombre="${nombre}"]`);
-        chip?.remove();
-      }
-      aplicarFiltros();
-    }
-  
-    listaIngredientes.forEach(span => {
-      span.addEventListener("click", function () {
-        const nombre = span.dataset.nombre;
-        toggleIngrediente(nombre, span);
-      });
-    });
-  
-    // Buscar ingrediente
-    buscadorIngrediente.addEventListener("keyup", function () {
-      const filtro = buscadorIngrediente.value.toLowerCase();
-      listaIngredientes.forEach(span => {
-        const nombre = span.dataset.nombre;
-        span.style.display = nombre.includes(filtro) ? "" : "none";
-      });
-    });
-  
-    // Número de ingredientes a mostrar por tanda
-    const ingredientesPorTanda = 10;
-    let indiceActual = 0;
-    const btnVerMas = document.getElementById("btn-ver-mas");
-    const todosLosIngredientes = Array.from(listaIngredientes);
-
-    // Función que muestra la siguiente tanda de ingredientes
-    function mostrarTanda() {
-        const siguienteTanda = todosLosIngredientes.slice(indiceActual, indiceActual + ingredientesPorTanda);
-        siguienteTanda.forEach(elem => elem.style.display = "inline-block");
-        indiceActual += ingredientesPorTanda;
-        // Si se han mostrado todos, cambiar el texto a "- Ver menos"
-        if (indiceActual >= todosLosIngredientes.length) {
-            btnVerMas.textContent = "- Ver menos";
-        }
-    }
-
-    // Función que alterna entre "Ver más" y "Ver menos"
-    function toggleIngredientes() {
-        if (btnVerMas.textContent.trim() === "+ Ver más") {
-            mostrarTanda();
-        } else {
-            // Oculta todos los ingredientes excepto los primeros 10
-            todosLosIngredientes.forEach((elem, index) => {
-                if (index < ingredientesPorTanda) {
-                    elem.style.display = "inline-block";
-                } else {
-                    elem.style.display = "none";
-                }
-            });
-            // Reinicia el índice y cambia el texto a "+ Ver más"
-            indiceActual = ingredientesPorTanda;
-            btnVerMas.textContent = "+ Ver más";
-        }
-    }
-
-    // Asigna la función toggle al botón
-    btnVerMas.addEventListener("click", toggleIngredientes);
-
-    // Muestra la primera tanda al cargar la página
-    mostrarTanda();
-
-    // === Botón de reset de filtros ===
-    const btnReset = document.getElementById("btn-reset-filtros");
-
-    btnReset.addEventListener("click", function () {
-      // Reset del buscador de recetas
-      inputNombre.value = "";
-
-      // Reset del filtro de proteínas
-      slider.value = 0;
-      inputMin.value = 0;
-      // — reset carbohidratos
-      sliderCarb.value   = 0;
-      inputMinCarb.value = 0;
-      
-      // Reset de ingredientes: deseleccionar y ocultar todos
-      seleccionados = [];
-      listaIngredientes.forEach(span => {
-        span.classList.remove("seleccionado");
-        span.style.display = "none";
-      });
-      contenedorSeleccionados.innerHTML = "";
-
-      // Reinicia la paginación de ingredientes
-      indiceActual = 0;
-      btnVerMas.style.display = "block";
-      btnVerMas.textContent = "+ Ver más";
-      
-      document.getElementById("buscar-ingrediente-filtro").value = "";
-
-      selectedMealType = null;
-      mealButtons.forEach(b => b.classList.remove("active"));
-  
-      // Muestra la primera tanda (10 ingredientes) SOLO una vez
-      mostrarTanda();
-
-      // Reset contador y actualización de recetas
-      aplicarFiltros();
-    });
-
-    // Listener para filtros de tipo de comida
-  /*
-    document.querySelectorAll("input.tipo-filter").forEach(cb => {
-      cb.addEventListener("change", function () {
-        if (this.checked) {
-          // Deselecciona todos los demás
-          document.querySelectorAll("input.tipo-filter").forEach(other => {
-            if (other !== this) {
-              other.checked = false;
-            }
-          });
+          mealBtns.forEach(x => x.classList.remove("active"));
+          b.classList.add("active"); selectedMeal = b.dataset.value;
         }
         aplicarFiltros();
-      });
-    });*/
+      };
+    });
 
+    // Click en ingredientes para seleccionar/deseleccionar
+    allSpans.forEach(sp => {
+      sp.onclick = () => {
+        const name = sp.dataset.nombre;
+        const exists = contSel.querySelector(`[data-nombre="${name}"]`);
+        if (!exists) {
+          selectedIngs.push(name);
+          sp.classList.add("seleccionado");
+          const badge = document.createElement("span");
+          badge.className = "badge ingrediente-badge me-1";
+          badge.dataset.nombre = name; badge.textContent = name;
+          const x = document.createElement("span");
+          x.textContent = " ×"; x.style.cursor = "pointer";
+          x.onclick = () => {
+            badge.remove();
+            sp.classList.remove("seleccionado");
+            selectedIngs = selectedIngs.filter(i => i !== name);
+            aplicarFiltros();
+          };
+          badge.appendChild(x);
+          contSel.appendChild(badge);
+        } else {
+          exists.remove();
+          sp.classList.remove("seleccionado");
+          selectedIngs = selectedIngs.filter(i => i !== name);
+        }
+        aplicarFiltros();
+      };
+    });
+
+    // Botón reset — versión mejorada
+    document.getElementById("btn-reset-filtros").onclick = () => {
+      // limpia búsqueda de recetas
+      buscarRec.value = "";
+      // limpia búsqueda de ingredientes
+      buscIng.value = "";
+
+      // resetea sliders
+      sliderP.value = inputP.value = 0;
+      sliderC.value = inputC.value = 0;
+
+      // resetea selección de tipo de comida
+      selectedMeal = null;
+      mealBtns.forEach(b => b.classList.remove("active"));
+
+      // resetea ingredientes seleccionados
+      selectedIngs = [];
+      contSel.innerHTML = "";
+      allSpans.forEach(sp => sp.classList.remove("seleccionado"));
+
+      // vuelve a la primera página de ingredientes
+      currentPage = 0;
+      showPage(0);
+      // muestra el botón de paginar si hace falta
+      btnVer.style.display = totalPages > 1 ? "inline-block" : "none";
+
+      // aplica todos los filtros de nuevo
+      aplicarFiltros();
+    };
+
+
+    // Inicializa el filtrado
+    aplicarFiltros();
   });
-  </script>    
+</script>
 {% endblock %}
