@@ -1,34 +1,54 @@
 {% extends 'navbar.html' %}
+{% load static %}
 {% block title %}Cambiar Familia{% endblock %}
 {% block content %}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}">
+<link rel="stylesheet" href="{% static 'css/lista_compra.css' %}">
 
 <div class="container mt-4">
-  <div class="card p-4" style="background-color: #FFF8F5; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 600px; margin: auto;">
-    <h2 class="text-center" style="background-color: #FFD9C2; padding: 10px; border-radius: 5px; margin-bottom: 20px;">Cambiar Familia</h2>
-    <form method="post">
-      {% csrf_token %}
-      {{ form.non_field_errors }}
-      <div class="mb-3">
-        <label class="form-label">Acción familiar:</label>
-        {{ form.accion_familiar }}
-        {{ form.accion_familiar.errors }}
+  <div class="position-relative mb-4">
+    <h1 class="text-center m-0">Cambiar Familia</h1>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-6">
+      <div class="card-lista">
+        <form method="post">
+          {% csrf_token %}
+          {{ form.non_field_errors }}
+
+          <div class="mb-3">
+            <label class="form-label d-block">Selecciona la opción que quieras hacer:</label>
+            <div class="d-flex gap-3">
+              {% for radio in form.accion_familiar %}
+                <div class="form-check">
+                  {{ radio.tag }}
+                  <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                </div>
+              {% endfor %}
+            </div>
+            {{ form.accion_familiar.errors }}
+          </div>
+
+          <div class="mb-3" id="div_nombre_familia">
+            {{ form.nombre_familia.label_tag }}
+            {{ form.nombre_familia }}
+            {{ form.nombre_familia.errors }}
+          </div>
+
+          <div class="mb-3" id="div_codigo_invitacion">
+            {{ form.codigo_invitacion.label_tag }}
+            {{ form.codigo_invitacion }}
+            {{ form.codigo_invitacion.errors }}
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">Guardar cambios</button>
+        </form>
       </div>
-      <div class="mb-3" id="div_nombre_familia">
-        {{ form.nombre_familia.label_tag }}
-        {{ form.nombre_familia }}
-        {{ form.nombre_familia.errors }}
-      </div>
-      <div class="mb-3" id="div_codigo_invitacion">
-        {{ form.codigo_invitacion.label_tag }}
-        {{ form.codigo_invitacion }}
-        {{ form.codigo_invitacion.errors }}
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Guardar cambios</button>
-    </form>
+    </div>
   </div>
 </div>
-
 <script>
 document.addEventListener("DOMContentLoaded", function(){
     const divNombreFamilia = document.getElementById("div_nombre_familia");

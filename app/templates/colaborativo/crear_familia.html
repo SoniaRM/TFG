@@ -1,32 +1,32 @@
-{% block content %}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% load static %}
 
-<div class="container mt-4">
-    <div class="card p-4"
-        style="background-color: #FFF8F5; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width:600px; margin:auto;">
-        <h2 class="text-center"
-            style="background-color: #FFD9C2; padding: 10px; border-radius: 5px; margin-bottom: 20px;">Crear Familia
-        </h2>
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+<link rel="stylesheet" href="{% static 'css/lista_compra.css' %}">
+
+<div class="container mt-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="card-lista p-4">
+        <h1 class="text-center mb-4">Crear Familia</h1>
         <form method="post" action="{% url 'crear_familia' %}">
-            {% csrf_token %}
-            <div class="mb-3">
-                <label for="id_nombre_familia" class="form-label">Nombre de la Familia</label>
-                <input type="text" class="form-control" id="id_nombre_familia" name="nombre_familia"
-                    placeholder="Ingrese el nombre de la familia" required>
-            </div>
-            {# Bloque para mostrar mensajes de error en rojo justo debajo del campo #}
+          {% csrf_token %}
+          <div class="mb-3">
+            <label for="id_nombre_familia" class="form-label">Nombre de la Familia</label>
+            <input type="text" class="form-control" id="id_nombre_familia" name="nombre_familia" placeholder="Ingrese el nombre de la familia" required>
             {% if messages %}
-                {% for message in messages %}
-                    {% if message.tags == 'error' %}
-                        <p class="text-danger">{{ message }}</p>
-                    {% endif %}
-                {% endfor %}
+              {% for message in messages %}
+                {% if 'error' in message.tags %}
+                  <div class="invalid-feedback d-block">{{ message }}</div>
+                {% endif %}
+              {% endfor %}
             {% endif %}
-            <!-- Puedes agregar otros campos si fueran necesarios -->
-            <div class="text-center mt-3">
-                <button type="submit" class="btn btn-primary">Crear Familia</button>
-            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Crear Familia</button>
         </form>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

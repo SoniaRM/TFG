@@ -19,7 +19,6 @@ class CheckFamilyMiddleware:
                 reverse('esperando_aprobacion'),
                 reverse('logout'),
                 reverse('reenviar_solicitud'),
-                reverse('cambiar_familia'),
                 reverse('crear_familia'),
             ]
             if request.path not in allowed_paths and not request.user.familias.exists():
