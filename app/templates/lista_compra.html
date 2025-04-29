@@ -166,7 +166,7 @@
                 <div id="raciones-opciones-compra" class="d-flex flex-wrap gap-2"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="cerrarModalCompra()">Cancelar</button>
+                <button class="btn btn-danger" onclick="cerrarModalCompra()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -185,7 +185,7 @@
                 <div id="raciones-opciones-despensa" class="d-flex flex-wrap gap-2"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="cerrarModalDespensa()">Cancelar</button>
+                <button class="btn btn-danger" onclick="cerrarModalDespensa()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -233,6 +233,22 @@
             btn.className = 'btn btn-outline-primary';
             btn.style.margin = '5px';
             btn.onclick = () => moverCompraADespensa(itemId, i);
+
+            // ** NUEVO: al pasar el ratón, aplico .ratio-hover a todos <= i **
+            btn.addEventListener('mouseover', () => {
+                cont.querySelectorAll('button').forEach(b => {
+                    if (parseInt(b.textContent, 10) <= i) {
+                        b.classList.add('ratio-hover');
+                    }
+                });
+            });
+            // ** al salir, quito la clase de todos **
+            btn.addEventListener('mouseout', () => {
+                cont.querySelectorAll('button').forEach(b => {
+                    b.classList.remove('ratio-hover');
+                });
+            });
+
             cont.appendChild(btn);
         }
     }
@@ -260,6 +276,22 @@
             btn.className = 'btn btn-outline-primary';
             btn.style.margin = '5px';
             btn.onclick = () => moverDespensaACompra(itemId, i);
+
+            // ** NUEVO: al pasar el ratón, aplico .ratio-hover a todos <= i **
+            btn.addEventListener('mouseover', () => {
+                cont.querySelectorAll('button').forEach(b => {
+                    if (parseInt(b.textContent, 10) <= i) {
+                        b.classList.add('ratio-hover');
+                    }
+                });
+            });
+            // ** al salir, quito la clase de todos **
+            btn.addEventListener('mouseout', () => {
+                cont.querySelectorAll('button').forEach(b => {
+                    b.classList.remove('ratio-hover');
+                });
+            });
+
             cont.appendChild(btn);
         }
     }

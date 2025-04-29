@@ -62,6 +62,10 @@
     z-index: 1050;
 }
 
+.modal-custom .modal-footer {
+    margin-top: 1.5rem !important;
+}
+
 .modal-custom .modal-dialog {
     margin: 6rem auto;
     max-width: 320px;
@@ -107,4 +111,46 @@
 .empty-msg {
     margin-top: 0.5rem;
     margin-bottom: 1rem;
+}
+
+/* ==========================================
+   Modales de raciones: borde y botones en azul oscuro
+   ========================================== */
+
+/* 1) Borde azul oscuro al contenedor del modal */
+#modal-compra .modal-content,
+#modal-despensa .modal-content {
+    border: 2px solid var(--blue-dark) !important;
+}
+
+/* 2) Botones de raciones con texto y borde azul oscuro */
+#modal-compra .modal-content .btn-outline-primary,
+#modal-despensa .modal-content .btn-outline-primary {
+    border-color: var(--blue-dark) !important;
+    color: var(--blue-dark) !important;
+}
+
+/* 3) Al hacer hover, fondo azul oscuro y texto blanco */
+#modal-compra .modal-content .btn-outline-primary:hover,
+#modal-despensa .modal-content .btn-outline-primary:hover {
+    background-color: var(--blue-dark) !important;
+    color: var(--white) !important;
+}
+
+/* resaltado por hover en raciones */
+.modal-custom .btn-outline-primary.ratio-hover {
+    background-color: var(--blue-dark) !important;
+    color: var(--white) !important;
+    border-color: var(--blue-dark) !important;
+}
+
+/* opcional: un ligero matiz distinto si quieres que los “en rango” no cliqueados tengan otro tono */
+.modal-custom .btn-outline-primary.ratio-hover:not(:hover) {
+    background-color: var(--blue-darker) !important;
+}
+
+/* y para el botón sobre el que realmente pasas el ratón */
+.modal-custom .btn-outline-primary.ratio-hover:hover {
+    background-color: var(--blue-dark) !important;
+    color: var(--white) !important;
 }

@@ -239,5 +239,17 @@
 
 .descarga-btn:hover {
     background-color: var(--blue-dark);
+    border-color: var(--blue-dark);
     color: var(--white);
 }
+/* ==============================
+   Descarga-btn: usar blue-darker al hacer click
+   ============================== */
+   .descarga-btn:active,
+   .descarga-btn.active {
+     background-color: var(--blue-darker) !important;
+     border-color:     var(--blue-darker) !important;
+     color:            var(--white)     !important;
+   }
+   
+   
