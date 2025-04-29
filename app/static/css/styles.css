@@ -130,6 +130,8 @@ nav ul li.nav-user {
     padding: 1rem;
     transition: box-shadow 0.2s, transform 0.2s;
     cursor: pointer;
+    height: 100%;
+
 }
 
 .card-receta:hover {

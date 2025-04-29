@@ -61,7 +61,20 @@
     </div>
 
     {% if ingredientes_por_comprar %}
-    <h2>Ingredientes por comprar</h2>
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2>Ingredientes por comprar</h2>
+            <div class="mb-3 d-flex align-items-center">
+                <input type="text" id="buscar-ingrediente-compra" class="form-control me-2"
+                    placeholder="Buscar ingrediente...">
+                <button id="clear-ingrediente-compra" class="btn" type="button" title="Limpiar búsqueda">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <p id="no-coincidencias-compra" class="text-danger" style="display:none">No hay coincidencias</p>
+
     <div id="lista-compra" class="row row-cols-3 g-3 mb-4">
         {% for item in ingredientes_por_comprar %}
         <div class="col">
@@ -86,9 +99,24 @@
     <h2>Ingredientes por comprar</h2>
     <p class="text-muted mb-4">No hay ingredientes pendientes de compra esta semana.</p>
     {% endif %}
-    {% if ingredientes_en_despensa %}
 
-    <h2>Ingredientes en la despensa</h2>
+
+    {% if ingredientes_en_despensa %}
+    <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <h2>Ingredientes en la despensa</h2>
+
+            <div class="mb-3 d-flex align-items-center">
+                <input type="text" id="buscar-ingrediente-despensa" class="form-control me-2"
+                    placeholder="Buscar ingrediente...">
+                <button id="clear-ingrediente-despensa" class="btn" type="button" title="Limpiar búsqueda">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <p id="no-coincidencias-despensa" class="text-danger" style="display:none">No hay coincidencias</p>
+
     <div id="ingredientes-despensa" class="row row-cols-3 g-3 mb-4">
         {% for item in ingredientes_en_despensa %}
         <div class="col">
@@ -134,10 +162,21 @@
                 <div class="row">
                     <div class="col-md-6">
                         <h3>Ingredientes por comprar</h3>
+                        <div class="input-group mb-2">
+                            <input type="text" id="buscar-super-por-comprar" class="form-control"
+                                placeholder="Buscar...">
+                            <button id="clear-super-por-comprar" class="btn" type="button"><i
+                                    class="bi bi-x-circle"></i></button>
+                        </div>
                         <ul id="super-por-comprar" class="list-group"></ul>
                     </div>
                     <div class="col-md-6">
                         <h3>Ingredientes en la cesta</h3>
+                        <div class="input-group mb-2">
+                            <input type="text" id="buscar-super-cesta" class="form-control" placeholder="Buscar...">
+                            <button id="clear-super-cesta" class="btn" type="button"><i
+                                    class="bi bi-x-circle"></i></button>
+                        </div>
                         <ul id="super-cesta" class="list-group"></ul>
                     </div>
                 </div>
@@ -211,6 +250,13 @@
 </div>
 
 <script>
+    function sortList(ul) {
+        Array.from(ul.children)
+            .sort((a, b) =>
+                a.dataset.nombre.localeCompare(b.dataset.nombre, 'es', { sensitivity: 'base' })
+            )
+            .forEach(li => ul.appendChild(li));
+    }
     function abrirModalCompra(itemId, compraActual) {
         if (compraActual === 1) {
             // Si solo hay una ración, mover directamente sin mostrar modal
@@ -414,6 +460,8 @@
                         </div>`;
                     contDespensa.appendChild(col);
                 });
+                filtrarCompra();
+                filtrarDespensa();
             })
             .catch(err => console.error(err));
     }
@@ -518,7 +566,17 @@
                 `;
             ulPorComprar.appendChild(li);
         });
+        // Ordena alfabéticamente y añade al UL
+        items.sort((a, b) =>
+            a.dataset.nombre.localeCompare(b.dataset.nombre, 'es', { sensitivity: 'base' })
+        );
+        items.forEach(li => ulPorComprar.appendChild(li));
 
+        // Asegura que la cesta esté ordenada (vacía inicialmente, pero necesario tras movimientos)
+        sortList(ulCesta);
+
+        filtrarSuperPor();
+        filtrarSuperCesta();
         actualizarPlaceholders();
     }
 
@@ -544,7 +602,7 @@
         </div>
         `;
         document.getElementById('super-cesta').appendChild(li);
-
+        sortList(document.getElementById('super-cesta'));
         actualizarPlaceholders();
     }
 
@@ -564,7 +622,7 @@
             </div>
         `;
         document.getElementById('super-por-comprar').appendChild(li);
-
+        sortList(document.getElementById('super-por-comprar'));
         actualizarPlaceholders();
     }
 
@@ -638,6 +696,75 @@
             })
             .catch(err => console.error(err));
     }
+
+    // — Filtro “Ingredientes por comprar” —
+    const busComp = document.getElementById('buscar-ingrediente-compra');
+    const clearComp = document.getElementById('clear-ingrediente-compra');
+    function filtrarCompra() {
+        const q = busComp.value.toLowerCase().trim();
+        let algun = false;
+        document.querySelectorAll('#lista-compra .card-body').forEach(body => {
+            const col = body.closest('.col');
+            const texto = body.querySelector('.card-title').textContent.toLowerCase();
+            if (!q || texto.includes(q)) {
+                col.style.display = '';
+                algun = true;
+            } else {
+                col.style.display = 'none';
+            }
+        });
+        document.getElementById('no-coincidencias-compra').style.display = algun ? 'none' : 'block';
+    }
+    clearComp.addEventListener('click', () => { busComp.value = ''; filtrarCompra(); busComp.focus(); });
+    busComp.addEventListener('input', filtrarCompra);
+
+    // — Filtro “Ingredientes en la despensa” —
+    const busDesp = document.getElementById('buscar-ingrediente-despensa');
+    const clearDesp = document.getElementById('clear-ingrediente-despensa');
+    function filtrarDespensa() {
+        const q = busDesp.value.toLowerCase().trim();
+        let algun = false;
+        document.querySelectorAll('#ingredientes-despensa .card-body').forEach(body => {
+            const col = body.closest('.col');
+            const texto = body.querySelector('.card-title').textContent.toLowerCase();
+            if (!q || texto.includes(q)) {
+                col.style.display = '';
+                algun = true;
+            } else {
+                col.style.display = 'none';
+            }
+        });
+        document.getElementById('no-coincidencias-despensa').style.display = algun ? 'none' : 'block';
+    }
+    clearDesp.addEventListener('click', () => { busDesp.value = ''; filtrarDespensa(); busDesp.focus(); });
+    busDesp.addEventListener('input', filtrarDespensa);
+
+
+    // Filtrar modo super: por comprar
+    const busSuperPor = document.getElementById('buscar-super-por-comprar');
+    const clearSuperPor = document.getElementById('clear-super-por-comprar');
+    function filtrarSuperPor() {
+        const q = busSuperPor.value.toLowerCase().trim();
+        document.querySelectorAll('#super-por-comprar li').forEach(li => {
+            const txt = li.dataset.nombre.toLowerCase();
+            li.style.display = (!q || txt.includes(q)) ? '' : 'none';
+        });
+    }
+    clearSuperPor.addEventListener('click', () => { busSuperPor.value = ''; filtrarSuperPor(); busSuperPor.focus(); });
+    busSuperPor.addEventListener('input', filtrarSuperPor);
+
+    // Filtrar modo super: cesta
+    const busSuperCes = document.getElementById('buscar-super-cesta');
+    const clearSuperCes = document.getElementById('clear-super-cesta');
+    function filtrarSuperCesta() {
+        const q = busSuperCes.value.toLowerCase().trim();
+        document.querySelectorAll('#super-cesta li').forEach(li => {
+            const txt = li.dataset.nombre.toLowerCase();
+            li.style.display = (!q || txt.includes(q)) ? '' : 'none';
+        });
+    }
+    clearSuperCes.addEventListener('click', () => { busSuperCes.value = ''; filtrarSuperCesta(); busSuperCes.focus(); });
+    busSuperCes.addEventListener('input', filtrarSuperCesta);
 
 </script>
 {% endblock %}

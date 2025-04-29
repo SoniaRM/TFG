@@ -39,13 +39,15 @@
 }
 
 .day-header {
-    background-color: var(--blue-dark);
+    background-color: var(--white);
     border-radius: 10px;
     padding: 5px;
     font-weight: bold;
     margin-bottom: 10px;
     text-align: center;
-    color: var(--white);
+    color: var(--blue-dark);
+    border: 1px solid var(--blue-dark);
+
 }
 
 .meal-block {
@@ -55,7 +57,7 @@
     padding: 8px;
     cursor: pointer;
     transition: background 0.2s;
-    border: 1px solid var(--gray-light);
+    border: 1px solid var(--blue-dark);    
 }
 
 .meal-block:hover {
@@ -93,10 +95,16 @@
 }
 
 .day-column.today .day-header {
-    background-color: var(--blue-darker);
-    color: var(--white);
-    font-size: 1.1em;
+    background-color: var(--blue-dark);
+    color:            var(--white);
+    border:           2px solid var(--white);
+  }
+  
+.day-column.today {
+    border:        2px solid var(--blue-dark) !important;
+    border-radius: 15px; /* coincide con el radius de .day-column */
 }
+
 
 .circular-progress {
     position: relative;

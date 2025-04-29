@@ -125,6 +125,8 @@ def recetas_por_tipo(request):
     familia = request.user.familias.first()
     tipo = request.GET.get("tipo")
     fecha = request.GET.get("fecha")
+    limit  = int(request.GET.get("limit", 10))
+    offset = int(request.GET.get("offset", 0))
 
     if not tipo or not fecha:
         return JsonResponse({"error": "Faltan parámetros."}, status=400)
@@ -257,7 +259,8 @@ def recetas_por_tipo(request):
 
     # Ordenamos y devolvemos
     recomendaciones.sort(key=lambda x: x["score"], reverse=True)
-    return JsonResponse(recomendaciones, safe=False)
+    paged = recomendaciones[offset:offset+limit]
+    return JsonResponse(paged, safe=False)
 
 @login_required
 def agregar_receta_calendario(request):

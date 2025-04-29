@@ -57,6 +57,9 @@ def vista_lista_compra(request):
             if item.faltan < 0:
                 item.faltan = 0
             ingredientes_en_despensa.append(item)
+    # ─── Ordenar alfabéticamente por nombre de ingrediente ───
+    ingredientes_por_comprar.sort(key=lambda x: x.ingrediente.nombre.lower())
+    ingredientes_en_despensa.sort(key=lambda x: x.ingrediente.nombre.lower())
 
 
     # 4) Formateamos la semana (ej: "17-23 de marzo 2025")
