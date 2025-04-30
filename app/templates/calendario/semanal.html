@@ -9,104 +9,108 @@
   {% csrf_token %}
 </form>
 
-  <!-- CSS de Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- CSS de Bootstrap 5 -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
-  <link rel="stylesheet" href="{% static 'css/calendario.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+<link rel="stylesheet" href="{% static 'css/calendario.css' %}">
 
-  <div class="text-center my-3">
-    <h1 class="mb-2">Calendario Semanal</h1>
-  </div>  
+<div class="text-center my-3">
+  <h1 class="mb-2">Calendario Semanal</h1>
+</div>
 
-  <div class="container my-4">
-    <h5 id="tituloProteinas" class="lead text-center mb-4"></h5>
-    <!--
+<div class="container my-4">
+  <h5 id="tituloProteinas" class="lead text-center mb-4"></h5>
+  <!--
     <div class="progress">
       <div id="barraProteinas" class="progress-bar bg-success" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
     </div>
     <p class="mt-2"><span id="consumidas">0</span>g consumidas</p>-->
 
-    <div class="position-relative my-4" style="height: 120px;">
-      <!-- Indicador a la izquierda -->
-      <div id="indicadorProteinas"
-            class="indicador-proteinas position-absolute top-50 start-50 translate-middle">
-        <svg class="donut-chart" id="donutChart" viewBox="0 0 100 100" width="100" height="100">
-          <!-- Fondo -->
-          <circle class="donut-bg" cx="50" cy="50" r="45" />
-          <!-- Progreso -->
-          <circle class="donut-progress" id="donutProgress" cx="50" cy="50" r="45" />
-          <!-- Texto central -->
-          <text id="donutText" class="donut-text" x="50" y="50" text-anchor="middle" dy=".35em">0%</text>
-        </svg>
-        <p id="proteinaText" class="proteina-text"></p>      
+  <div class="position-relative my-4" style="height: 120px;">
+    <!-- Indicador a la izquierda -->
+    <div id="indicadorProteinas" class="indicador-proteinas position-absolute top-50 start-50 translate-middle">
+      <svg class="donut-chart" id="donutChart" viewBox="0 0 100 100" width="100" height="100">
+        <!-- Fondo -->
+        <circle class="donut-bg" cx="50" cy="50" r="45" />
+        <!-- Progreso -->
+        <circle class="donut-progress" id="donutProgress" cx="50" cy="50" r="45" />
+        <!-- Texto central -->
+        <text id="donutText" class="donut-text" x="50" y="50" text-anchor="middle" dy=".35em">0%</text>
+      </svg>
+      <p id="proteinaText" class="proteina-text"></p>
+    </div>
+    <!-- Espacio flexible para empujar el botón a la derecha -->
+    <div class="flex-grow-1"></div>
+    <!-- Botón de descarga -->
+    <a href="{% url 'exportar_semana' %}?start={{ start_date|date:'Y-m-d' }}"
+      class="btn btn-outline-primary btn-lg descarga-btn position-absolute top-50 end-0 translate-middle-y"
+      aria-label="Descargar calendario semanal">
+      <i class="bi bi-download"></i>
+    </a>
+  </div>
+
+  <div class="navigation">
+    <a href="{{ prev_week_url }}">← Anterior</a>
+    <a href="{% url 'calendario_semanal' %}">→ Esta semana</a>
+    <a href="{{ next_week_url }}">Siguiente →</a>
+  </div>
+
+  <div class="week-container">
+    {% for day, nombre_corto in dias_context %}
+    {% get_calendario_for_date fecha=day as calendario %}
+
+    <div class="day-column" id="day-column-{{ day|date:'Y-m-d' }}" style="{{ calendario|get_vertical_gradient_style }}">
+      <div class="bars">
+        <div class="bar prot"></div>
+        <div class="bar carb"></div>
       </div>
-      <!-- Espacio flexible para empujar el botón a la derecha -->
-      <div class="flex-grow-1"></div>
-      <!-- Botón de descarga -->
-      <a href="{% url 'exportar_semana' %}?start={{ start_date|date:'Y-m-d' }}"
-        class="btn btn-outline-primary btn-lg descarga-btn position-absolute top-50 end-0 translate-middle-y"
-        aria-label="Descargar calendario semanal">
-        <i class="bi bi-download"></i>
-      </a>
-    </div>
-    
-    <div class="navigation">
-      <a href="{{ prev_week_url }}">← Anterior</a>
-      <a href="{% url 'calendario_semanal' %}">→ Esta semana</a>
-      <a href="{{ next_week_url }}">Siguiente →</a>
-    </div>
-
-    <div class="week-container">
-      {% for day, nombre_corto in dias_context %}
-        {% get_calendario_for_date fecha=day as calendario %}
-
-      <div class="day-column" id="day-column-{{ day|date:'Y-m-d' }}" style="{{ calendario|get_vertical_gradient_style }}">
-        <div class="day-header">
-          {{ nombre_corto }}<br>
-          {{ day|date:"d/m" }}<br>
-          <p class="proteinas-valor mb-1">
-            <strong>P:</strong> {{ calendario.proteinas_consumidas }}g / {{ calendario.objetivo_proteico }}g
-          </p>
-          <p class="carbohidratos-valor mb-0
+      <div class="day-header">
+        {{ nombre_corto }}<br>
+        {{ day|date:"d/m" }}<br>
+        <p class="proteinas-valor mb-1">
+          <strong>P:</strong> {{ calendario.proteinas_consumidas }}g / {{ calendario.objetivo_proteico }}g
+        </p>
+        <p class="carbohidratos-valor mb-0
             {% if calendario.carbohidratos_consumidos > calendario.objetivo_carbohidratos %}
                     carbs-exceso
             {% endif %}">
-            <strong>C:</strong> {{ calendario.carbohidratos_consumidos }}g /
-            {{ calendario.objetivo_carbohidratos }}g
-          </p>
-        </div>
+          <strong>C:</strong> {{ calendario.carbohidratos_consumidos }}g /
+          {{ calendario.objetivo_carbohidratos }}g
+        </p>
+      </div>
 
-        {% for meal in meal_order %}
-        <div class="meal-block" data-meal="{{ meal }}" data-fecha="{{ day|date:'Y-m-d' }}">
-          <h4>{{ meal }}</h4>
-          <div class="meal-items" style="pointer-events: none;">
+      {% for meal in meal_order %}
+      <div class="meal-block" data-meal="{{ meal }}" data-fecha="{{ day|date:'Y-m-d' }}">
+        <h4>{{ meal }}</h4>
+        <div class="meal-items" style="pointer-events: none;">
 
           {% for cr in dia_data|dictkey:day %}
-            {% if cr.tipo_comida.nombre == meal %}
-              <div class="meal-item">
-                {{ cr.receta.nombre }}
-              </div>
-            {% endif %}
+          {% if cr.tipo_comida.nombre == meal %}
+          <div class="meal-item">
+            {{ cr.receta.nombre }}
+          </div>
+          {% endif %}
           {% endfor %}
         </div>
       </div>
 
-        {% endfor %}
-      </div>
       {% endfor %}
     </div>
+    {% endfor %}
+  </div>
 
   <!-- Modal para seleccionar receta -->
-  <div class="modal fade" id="seleccionarRecetaModal" tabindex="-1" aria-labelledby="seleccionarRecetaModalLabel" aria-hidden="true">
+  <div class="modal fade" id="seleccionarRecetaModal" tabindex="-1" aria-labelledby="seleccionarRecetaModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Gestión de recetas para 
+          <h5 class="modal-title">Gestión de recetas para
             <span id="modalMealType">
 
-            </span> del <span
-              id="modalFecha"></span></h5>
+            </span> del <span id="modalFecha"></span>
+          </h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
         <div class="modal-body">
@@ -122,19 +126,13 @@
           <!-- Sección 2: Lista de recetas disponibles para añadir -->
           <h6>Añadir nueva receta:</h6>
 
-          <input
-            type="text"
-            id="buscar-receta"
-            class="form-control mb-2"
-            placeholder="Buscar receta..."
-          />
+          <input type="text" id="buscar-receta" class="form-control mb-2" placeholder="Buscar receta..." />
           <div id="recipeList" class="recipe-list">
             <p class="text-muted">Cargando...</p>
           </div>
-          <button id="btn-ver-mas-recetas"
-            class="btn btn-outline-secondary btn-sm mt-3 mb-2 float-end"
+          <button id="btn-ver-mas-recetas" class="btn btn-outline-secondary btn-sm mt-3 mb-2 float-end"
             style="display: none;">
-              + Ver más
+            + Ver más
           </button>
           <!-- Mensaje "No hay coincidencias" oculto por defecto -->
           <p id="no-coincidencias-recetas" style="display: none; color: red;">
@@ -150,38 +148,38 @@
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", function () {
       // Obtenemos la fecha de hoy
       const hoy = new Date();
       // Definimos opciones de formateo en español: "20 de marzo de 2025"
       const opciones = { day: 'numeric', month: 'long', year: 'numeric' };
       // Formateamos en español (es-ES)
       const fechaFormateada = hoy.toLocaleDateString('es-ES', opciones);
-  
+
       // Insertamos el texto resultante
       document.getElementById("tituloProteinas").textContent =
         `Registro proteico para hoy ${fechaFormateada}`;
     });
   </script>
-  
+
 
   <script>/*
-    function actualizarBarraProteinas(fecha) {
-      fetch(`/api/calendario_dia/?fecha=${fecha}`)
-        .then(res => res.json())
-        .then(data => {
-          const objetivo = data.objetivo_proteico || 100;
-          const consumidas = data.proteinas_consumidas || 0;
-          const porcentaje = Math.min((consumidas / objetivo) * 100, 100);
-          document.getElementById('barraProteinas').style.width = porcentaje + '%';
-          document.getElementById('barraProteinas').textContent = `${Math.round(porcentaje)}%`;
-          document.getElementById('consumidas').textContent = consumidas;
-        });
-    }
+function actualizarBarraProteinas(fecha) {
+fetch(`/api/calendario_dia/?fecha=${fecha}`)
+.then(res => res.json())
+.then(data => {
+const objetivo = data.objetivo_proteico || 100;
+const consumidas = data.proteinas_consumidas || 0;
+const porcentaje = Math.min((consumidas / objetivo) * 100, 100);
+document.getElementById('barraProteinas').style.width = porcentaje + '%';
+document.getElementById('barraProteinas').textContent = `${Math.round(porcentaje)}%`;
+document.getElementById('consumidas').textContent = consumidas;
+});
+}
 
-    document.addEventListener("DOMContentLoaded", () => {
-      actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
-    });*/
+document.addEventListener("DOMContentLoaded", () => {
+actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
+});*/
   </script>
 
   <script>
@@ -202,23 +200,23 @@
       donutText.textContent = `${Math.round(porcentaje)}%`;
     }
 
-    
+
     // 2) Función para actualizar el texto color-coded
     function actualizarTextoColor(consumidas, objetivo) {
       const proteinaText = document.getElementById("proteinaText");
       if (!proteinaText) return;
-    
+
       let ratio = 0;
       if (objetivo > 0) ratio = consumidas / objetivo;
-    
+
       let color = "red";
       if (ratio >= 1) color = "green";
       else if (ratio >= 0.5) color = "orange";
-    
+
       proteinaText.style.color = color;
       proteinaText.textContent = `${consumidas}g / ${objetivo}g`;
     }
-    
+
     // 3) Función que obtiene datos del día y llama a las anteriores
     function actualizarIndicadores(fecha) {
       fetch(`/api/calendario_dia/?fecha=${fecha}`)
@@ -233,138 +231,122 @@
         })
         .catch(err => console.error("Error actualizando indicadores:", err));
     }
-    
+
     // Llamada inicial al cargar la página
     document.addEventListener("DOMContentLoaded", () => {
       const hoy = new Date().toISOString().split('T')[0];
       actualizarIndicadores(new Date().toISOString().split('T')[0]);
     });
   </script>
-    
+
 
   <script>
     // Función para actualizar el degradado de un día dado (identificado por su fecha en formato YYYY-MM-DD)
     function actualizarDegradado(fecha) {
-      fetch(`/api/dia/${fecha}/`)
-        .then(response => response.json())
-        .then(data => {
-          if(data.error) {
-            console.error(data.error);
-            return;
-          }
-          const proteinas = data.proteinas_consumidas;
-          const objetivo = data.objetivo_proteico;
-          let porcentaje = 0;
-          if(objetivo > 0) {
-            porcentaje = Math.min(Math.max((proteinas / objetivo) * 100, 0), 100);
-          }
-          
-          // Define los colores (ajusta según tu paleta)
-          const estilos = getComputedStyle(document.documentElement);
-          const colorSolido = estilos.getPropertyValue('--blue-dark').trim();
-          // Para un fade sutil: de colorSolido a transparente
-          const colorTransparente = "rgba(0, 0, 0, 0)";
-          
-          let newStyle = "";
-          if (porcentaje >= 100) {
-            // Objetivo alcanzado: fondo completamente sólido
-            newStyle = `background: ${colorSolido};`;
-          } else {
-            // Relleno parcial: degradado vertical
-            // Usamos stops para tener mayor parte sólida y un fade sutil al final
-            newStyle = `
-              background: linear-gradient(to top, ${colorSolido} 0%, ${colorSolido} 98%, ${colorTransparente} 100%);
-              background-repeat: no-repeat;
-              background-size: 100% ${porcentaje}%;
-              background-position: bottom;
-            `;
-          }
-          // Actualizamos el estilo del elemento con id "day-column-<fecha>"
-          const dayColumn = document.getElementById(`day-column-${fecha}`);
-          if(dayColumn) {
-            dayColumn.style = newStyle;
-          }
-        })
-        .catch(err => console.error(err));
-    }
+  fetch(`/api/dia/${fecha}/`)
+    .then(r => r.json())
+    .then(data => {
+      const pctP = data.objetivo_proteico > 0
+        ? Math.min((data.proteinas_consumidas / data.objetivo_proteico) * 100, 100)
+        : 0;
+      const pctC = data.objetivo_carbohidratos > 0
+        ? Math.min((data.carbohidratos_consumidos / data.objetivo_carbohidratos) * 100, 100)
+        : 0;
 
-    // Ejemplo de uso:
-    // Supongamos que tienes una lista de fechas (en formato YYYY-MM-DD) en un array:
-    const fechas = [/* lista de fechas, por ejemplo: "2025-03-17", "2025-03-18", ... */];
+      const col = document.getElementById(`day-column-${fecha}`);
+      if (!col) return;
 
-    // Función para actualizar todos los días (o bien llama a actualizarDegradado() cuando se añada/elimine una receta)
-    function actualizarTodosLosDias() {
-      fechas.forEach(fecha => {
+      // Gradiente proteína: opaco 0→90%, fade a transparente 90→100%
+      const gradP = 'linear-gradient(to top,' +
+                    ' var(--blue-dark) 0%,' +
+                    ' var(--blue-dark) 90%,' +
+                    ' rgba(0,0,0,0) 100%' +
+                    ')';
+
+      // Gradiente carbohidratos: idem con tu color más oscuro
+      const gradC = 'linear-gradient(to top,' +
+                    ' var(--blue-light) 0%,' +
+                    ' var(--blue-light) 90%,' +
+                    ' rgba(0,0,0,0) 100%' +
+                    ')';
+
+      // Montamos el shorthand: cada capa con su tamaño y posición
+      col.style.background = `
+        ${gradP} left bottom / 50% ${pctP}% no-repeat,
+        ${gradC} right bottom / 50% ${pctC}% no-repeat,
+        var(--white)
+      `;
+    })
+    .catch(console.error);
+}
+
+
+    // Cuando cargue la página, actualiza todas las columnas
+    document.addEventListener("DOMContentLoaded", () => {
+      document.querySelectorAll('.day-column[id^="day-column-"]').forEach(col => {
+        const fecha = col.id.replace('day-column-', '');
         actualizarDegradado(fecha);
       });
-    }
-
-    // Llama a la función cuando la página se carga o tras una acción que modifique las recetas
-    document.addEventListener("DOMContentLoaded", function() {
-      actualizarTodosLosDias();
     });
-
-    // Si tus acciones de agregar/eliminar recetas se hacen vía AJAX, puedes llamar a actualizarDegradado(fecha)
-    // inmediatamente después de la operación para refrescar el degradado.
   </script>
 
 
   <script>
-    document.addEventListener("DOMContentLoaded", function() {
-      var mealMapping = {{ meal_mapping|safe }};
+    document.addEventListener("DOMContentLoaded", function () {
+      var mealMapping = {{ meal_mapping| safe}};
 
-      document.body.addEventListener("click", function(event) {
-        var mb = event.target.closest(".meal-block");
-        if (!mb) return;
+    document.body.addEventListener("click", function (event) {
+      var mb = event.target.closest(".meal-block");
+      if (!mb) return;
 
       var mealType = mb.dataset.meal;
-      var fecha    = mb.dataset.fecha;
-      var modalEl  = document.getElementById("seleccionarRecetaModal");
+      var fecha = mb.dataset.fecha;
+      var modalEl = document.getElementById("seleccionarRecetaModal");
 
       document.getElementById("modalMealType").textContent = mealType;
       document.getElementById("modalFecha").textContent = fecha;
       var modalEl = document.getElementById("seleccionarRecetaModal");
-      modalEl.dataset.meal  = mealType;
+      modalEl.dataset.meal = mealType;
       modalEl.dataset.fecha = fecha;
 
       var addedRecipeList = document.getElementById("addedRecipeList");
-      var recipeList      = document.getElementById("recipeList");
-      var verMasBtn       = document.getElementById("btn-ver-mas-recetas");
+      var recipeList = document.getElementById("recipeList");
+      var verMasBtn = document.getElementById("btn-ver-mas-recetas");
 
       // Estado inicial
       addedRecipeList.innerHTML = "<p class='text-muted'>Cargando...</p>";
-      recipeList.innerHTML      = "<p class='text-muted'>Cargando...</p>";
-      verMasBtn.style.display   = "none";
+      recipeList.innerHTML = "<p class='text-muted'>Cargando...</p>";
+      verMasBtn.style.display = "none";
 
-    // 1️⃣ Cargar recetas ya añadidas
-    fetch(`/api/recetas_en_calendario/?tipo=${mealType}&fecha=${fecha}`)
-      .then(res => res.json())
-      .then(data => {
-        addedRecipeList.innerHTML = "";
-        if (data.length === 0) {
-          addedRecipeList.innerHTML = "<p class='text-muted'>No hay recetas añadidas.</p>";
-        } else {
-          data.forEach(receta => {
-            var div = document.createElement("div");
-            div.className = "d-flex justify-content-between align-items-center mb-2";
-            var span = document.createElement("span");
-            span.textContent = receta.nombre;
-            var btn  = document.createElement("button");
-            btn.className = "btn btn-danger btn-sm";
-            btn.textContent = "Eliminar";
-            btn.dataset.recetaId = receta.id;
-            btn.addEventListener("click", function () {
-              eliminarRecetaCalendario(receta.id, mealType, fecha);
+      // 1️⃣ Cargar recetas ya añadidas
+      fetch(`/api/recetas_en_calendario/?tipo=${mealType}&fecha=${fecha}`)
+        .then(res => res.json())
+        .then(data => {
+          addedRecipeList.innerHTML = "";
+          if (data.length === 0) {
+            addedRecipeList.innerHTML = "<p class='text-muted'>No hay recetas añadidas.</p>";
+          } else {
+            data.forEach(receta => {
+              var div = document.createElement("div");
+              div.className = "d-flex justify-content-between align-items-center mb-2";
+              var span = document.createElement("span");
+              span.textContent = receta.nombre;
+              var btn = document.createElement("button");
+              btn.className = "btn btn-danger btn-sm";
+              btn.textContent = "Eliminar";
+              btn.dataset.recetaId = receta.id;
+              btn.addEventListener("click", function () {
+                eliminarRecetaCalendario(receta.id, mealType, fecha);
+              });
+              div.appendChild(span);
+              div.appendChild(btn);
+              addedRecipeList.appendChild(div);
             });
-            div.appendChild(span);
-            div.appendChild(btn);
-            addedRecipeList.appendChild(div);
-          });
-        }
-      })
-      .catch(() => {
-        addedRecipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
-      });
+          }
+        })
+        .catch(() => {
+          addedRecipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
+        });
 
       // 2️⃣ Paginación de recetas disponibles
       let offset = 0, limit = 10;
@@ -411,6 +393,7 @@
       // Al cerrar el modal, refrescar sólo la comida afectada
       modalEl.addEventListener("hidden.bs.modal", function () {
         actualizarCalendario(fecha, mealType);
+        actualizarDegradado(fecha);
       });
 
       // Cargar recetas disponibles para añadir (excluyendo las que ya están en el calendario)
@@ -450,11 +433,11 @@
       var modalElement = document.getElementById("seleccionarRecetaModal");
       var modal = new bootstrap.Modal(modalElement);
       modal.show();
-      
+
       // Al cerrar el modal, actualizar solo la comida afectada
       modalElement.addEventListener("hidden.bs.modal", function () {
-      actualizarCalendario(fecha, mealType);
-        });
+        actualizarCalendario(fecha, mealType);
+      });
     });
 
     function cargarRecetasAñadidas(mealType, fecha) {
@@ -521,7 +504,7 @@
             // Guardamos el/los ID(s) en el atributo data, usando JSON para mayor flexibilidad
             button.dataset.recetaIds = JSON.stringify(receta.ids);
             // Al hacer clic, se recupera el arreglo de IDs y se llama a la función de agregar recetas
-            button.addEventListener("click", function() {
+            button.addEventListener("click", function () {
               const ids = JSON.parse(this.dataset.recetaIds);
               // La función agregarRecetaCalendario deberá adaptarse para aceptar un arreglo de IDs
               agregarRecetaCalendario(ids, mealType, fecha);
@@ -536,142 +519,144 @@
     }
 
     function actualizarCalendario(fecha, mealType) {
-  console.log("🟢 Actualizando calendario para la fecha:", fecha);
+      console.log("🟢 Actualizando calendario para la fecha:", fecha);
 
-  fetch(`/api/calendario_dia/?fecha=${fecha}`)
-    .then(response => response.json())
-    .then(data => {
-      console.log("🔵 Datos recibidos del backend:", data);
+      fetch(`/api/calendario_dia/?fecha=${fecha}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("🔵 Datos recibidos del backend:", data);
 
-      var mealBlock = document.querySelector(`[data-fecha="${fecha}"][data-meal="${mealType}"]`);
-      if (!mealBlock) return;
+          var mealBlock = document.querySelector(`[data-fecha="${fecha}"][data-meal="${mealType}"]`);
+          if (!mealBlock) return;
 
-      // Buscar el contenedor existente de recetas
-      var recipesContainer = mealBlock.querySelector(".meal-items");
-      if (recipesContainer) {
-        // Limpiar su contenido sin eliminar el contenedor
-        recipesContainer.innerHTML = "";
-      } else {
-        // Si no existe, lo creamos y desactivamos los eventos para que no bloquee el click
-        recipesContainer = document.createElement("div");
-        recipesContainer.classList.add("meal-items");
-        recipesContainer.style.pointerEvents = "none";
-        mealBlock.appendChild(recipesContainer);
-      }
-
-      // Insertar las recetas de la respuesta
-      if (data.recetas[mealType] && data.recetas[mealType].length > 0) {
-        data.recetas[mealType].forEach(nombreReceta => {
-          var recipeDiv = document.createElement("div");
-          recipeDiv.classList.add("meal-item");
-          recipeDiv.textContent = nombreReceta;
-          // Los elementos individuales deben permitir recibir clics
-          recipeDiv.style.pointerEvents = "auto";
-          recipesContainer.appendChild(recipeDiv);
-        });
-      } else {
-        recipesContainer.innerHTML = "";
-      }
-
-
-      //actualizarBarraProteinas(fecha);
-      actualizarDegradado(fecha);
-      actualizarIndicadores(new Date().toISOString().split('T')[0]);
-
-      // 4. Actualizamos el texto "xg / 100g" en la cabecera del día
-      const dayColumn = document.getElementById(`day-column-${fecha}`);
-      if (dayColumn) {
-        const proteinaValor = dayColumn.querySelector('.proteinas-valor');
-        if (proteinaValor) {
-          proteinaValor.textContent = `P: ${data.proteinas_consumidas}g / ${data.objetivo_proteico}g`;
-        }
-        const carboValor = dayColumn.querySelector('.carbohidratos-valor');
-        if (carboValor) {
-          carboValor.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
-        }
-        // 3) **Actualiza los carbohidratos**:
-        const carbsElem = dayColumn.querySelector('.carbohidratos-valor');
-        if (carbsElem) {
-          carbsElem.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
-
-          // 4) Aplica el “shake” si hemos excedido
-          if (data.carbohidratos_consumidos > data.objetivo_carbohidratos) {
-            carbsElem.classList.add('carbs-exceso');
+          // Buscar el contenedor existente de recetas
+          var recipesContainer = mealBlock.querySelector(".meal-items");
+          if (recipesContainer) {
+            // Limpiar su contenido sin eliminar el contenedor
+            recipesContainer.innerHTML = "";
           } else {
-            carbsElem.classList.remove('carbs-exceso');
+            // Si no existe, lo creamos y desactivamos los eventos para que no bloquee el click
+            recipesContainer = document.createElement("div");
+            recipesContainer.classList.add("meal-items");
+            recipesContainer.style.pointerEvents = "none";
+            mealBlock.appendChild(recipesContainer);
           }
 
-        }
-      }
-      
+          // Insertar las recetas de la respuesta
+          if (data.recetas[mealType] && data.recetas[mealType].length > 0) {
+            data.recetas[mealType].forEach(nombreReceta => {
+              var recipeDiv = document.createElement("div");
+              recipeDiv.classList.add("meal-item");
+              recipeDiv.textContent = nombreReceta;
+              // Los elementos individuales deben permitir recibir clics
+              recipeDiv.style.pointerEvents = "auto";
+              recipesContainer.appendChild(recipeDiv);
+            });
+          } else {
+            recipesContainer.innerHTML = "";
+          }
 
-    })
-    .catch(error => console.error("❌ Error al actualizar el calendario:", error));
-}
 
-function agregarRecetaCalendario(ids, mealType, fecha) {
+          //actualizarBarraProteinas(fecha);
+          actualizarDegradado(fecha);
+          actualizarIndicadores(new Date().toISOString().split('T')[0]);
 
-  if (!Array.isArray(ids)) {
-    // Puede que venga como undefined o como un número
-    if (typeof ids === "undefined") {
-      console.error("Error: el parámetro ids es undefined.");
-      return;
+          // 4. Actualizamos el texto "xg / 100g" en la cabecera del día
+          const dayColumn = document.getElementById(`day-column-${fecha}`);
+          if (dayColumn) {
+            const proteinaValor = dayColumn.querySelector('.proteinas-valor');
+            if (proteinaValor) {
+              proteinaValor.textContent = `P: ${data.proteinas_consumidas}g / ${data.objetivo_proteico}g`;
+            }
+            const carboValor = dayColumn.querySelector('.carbohidratos-valor');
+            if (carboValor) {
+              carboValor.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
+            }
+            // 3) **Actualiza los carbohidratos**:
+            const carbsElem = dayColumn.querySelector('.carbohidratos-valor');
+            if (carbsElem) {
+              carbsElem.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
+
+              // 4) Aplica el “shake” si hemos excedido
+              if (data.carbohidratos_consumidos > data.objetivo_carbohidratos) {
+                carbsElem.classList.add('carbs-exceso');
+              } else {
+                carbsElem.classList.remove('carbs-exceso');
+              }
+
+            }
+          }
+
+
+        })
+        .catch(error => console.error("❌ Error al actualizar el calendario:", error));
     }
-    ids = [ids];
-  }
-  console.log("Agregando recetas:", ids, "para", mealType, "en", fecha);
 
-  var tipoComidaId = mealMapping[mealType];
+    function agregarRecetaCalendario(ids, mealType, fecha) {
 
-  const requests = ids.map(recetaId => {
-    return fetch("/api/agregar_receta_calendario/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": "{{ csrf_token }}"
-      },
-      body: new URLSearchParams({
-        fecha: fecha,
-        receta_id: recetaId,
-        tipo_comida_id: tipoComidaId
-      })
-    })
-      .then(response => response.json())
-      .catch(error => {
-        console.error("Error en fetch para receta", recetaId, error);
-        throw error;
+      if (!Array.isArray(ids)) {
+        // Puede que venga como undefined o como un número
+        if (typeof ids === "undefined") {
+          console.error("Error: el parámetro ids es undefined.");
+          return;
+        }
+        ids = [ids];
+      }
+      console.log("Agregando recetas:", ids, "para", mealType, "en", fecha);
+
+      var tipoComidaId = mealMapping[mealType];
+
+      const requests = ids.map(recetaId => {
+        return fetch("/api/agregar_receta_calendario/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}"
+          },
+          body: new URLSearchParams({
+            fecha: fecha,
+            receta_id: recetaId,
+            tipo_comida_id: tipoComidaId
+          })
+        })
+          .then(response => response.json())
+          .catch(error => {
+            console.error("Error en fetch para receta", recetaId, error);
+            throw error;
+          });
       });
-  });
 
-  Promise.all(requests)
-    .then(results => {
-      console.log("🔵 Respuesta del servidor (Agregar):", results);
-      
-      // Opcional: verificar si alguna respuesta tiene error
-      const errores = results.filter(res => res.error);
-      if (errores.length > 0) {
-        console.error("Errores al agregar recetas:", errores);
-        alert("Hubo un error al agregar algunas recetas. Revisa la consola.");
-      }
-      
-      actualizarCalendario(fecha, mealType);  // Actualiza el calendario
-      cargarRecetasAñadidas(mealType, fecha);    // Actualiza la lista de recetas añadidas
-      cargarRecetasDisponibles(mealType, fecha);   // Actualiza las recetas disponibles
+      Promise.all(requests)
+        .then(results => {
+          console.log("🔵 Respuesta del servidor (Agregar):", results);
 
-      const buscarRecetaInput = document.getElementById("buscar-receta");
-      if (buscarRecetaInput) {
-        buscarRecetaInput.value = "";
-        const eventoKeyUp = new Event("keyup");
-        buscarRecetaInput.dispatchEvent(eventoKeyUp);
-      }
-    })
-    .catch(error => {
-      console.error("Error al agregar la receta:", error);
-      alert("Error al agregar la receta. Revisa la consola para más detalles.");
-    });
-}
-/*******************************/
-/*************************************/
+          // Opcional: verificar si alguna respuesta tiene error
+          const errores = results.filter(res => res.error);
+          if (errores.length > 0) {
+            console.error("Errores al agregar recetas:", errores);
+            alert("Hubo un error al agregar algunas recetas. Revisa la consola.");
+          }
+
+          actualizarCalendario(fecha, mealType);  // Actualiza el calendario
+          actualizarDegradado(fecha);
+
+          cargarRecetasAñadidas(mealType, fecha);    // Actualiza la lista de recetas añadidas
+          cargarRecetasDisponibles(mealType, fecha);   // Actualiza las recetas disponibles
+
+          const buscarRecetaInput = document.getElementById("buscar-receta");
+          if (buscarRecetaInput) {
+            buscarRecetaInput.value = "";
+            const eventoKeyUp = new Event("keyup");
+            buscarRecetaInput.dispatchEvent(eventoKeyUp);
+          }
+        })
+        .catch(error => {
+          console.error("Error al agregar la receta:", error);
+          alert("Error al agregar la receta. Revisa la consola para más detalles.");
+        });
+    }
+    /*******************************/
+    /*************************************/
 
     function eliminarRecetaCalendario(recetaId, mealType, fecha) {
       fetch("/api/eliminar_receta_calendario/", {
@@ -692,57 +677,62 @@ function agregarRecetaCalendario(ids, mealType, fecha) {
             console.error("Error:", data.error);
             return;
           }
-          actualizarCalendario(fecha);  // 🚀 Se actualiza el calendario sin F5
+          actualizarCalendario(fecha, mealType);
+          actualizarDegradado(fecha);
 
           // ✅ Actualizar dinámicamente la interfaz sin recargar
           cargarRecetasAñadidas(mealType, fecha);
           cargarRecetasDisponibles(mealType, fecha);
         })
         .catch(() => console.error("Error al eliminar la receta."));
+        Promise.all(requests).then(() => {
+          actualizarCalendario(fecha, mealType);
+          actualizarDegradado(fecha);    // <-- y aquí también
+        });
     }
 
 
   });
   </script>
 
-<script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // Obtiene la fecha actual en formato YYYY-MM-DD
-    const todayStr = new Date().toISOString().split('T')[0];
-    // Busca el contenedor del día de hoy
-    const todayColumn = document.getElementById(`day-column-${todayStr}`);
-    if (todayColumn) {
-      // Agrega la clase "today" para resaltarlo
-      todayColumn.classList.add("today");
-    }
-  });
-</script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-  const buscarRecetaInput = document.getElementById("buscar-receta");
-  if (!buscarRecetaInput) return;
-
-  buscarRecetaInput.addEventListener("keyup", function() {
-    const filtro = this.value.toLowerCase();
-    const recipeList = document.getElementById("recipeList");
-    const noCoincidencias = document.getElementById("no-coincidencias-recetas");
-
-    if (!recipeList) return;
-
-    // Selecciona todos los botones de receta
-    const recipeButtons = recipeList.querySelectorAll(".recipe-button");
-
-    recipeButtons.forEach((btn) => {
-      const textoReceta = btn.textContent.toLowerCase();
-      if (textoReceta.includes(filtro)) {
-        btn.style.display = "";
-      } else {
-        btn.style.display = "none";
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Obtiene la fecha actual en formato YYYY-MM-DD
+      const todayStr = new Date().toISOString().split('T')[0];
+      // Busca el contenedor del día de hoy
+      const todayColumn = document.getElementById(`day-column-${todayStr}`);
+      if (todayColumn) {
+        // Agrega la clase "today" para resaltarlo
+        todayColumn.classList.add("today");
       }
     });
-  });
-});
-</script>
+  </script>
 
-{% endblock %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const buscarRecetaInput = document.getElementById("buscar-receta");
+      if (!buscarRecetaInput) return;
+
+      buscarRecetaInput.addEventListener("keyup", function () {
+        const filtro = this.value.toLowerCase();
+        const recipeList = document.getElementById("recipeList");
+        const noCoincidencias = document.getElementById("no-coincidencias-recetas");
+
+        if (!recipeList) return;
+
+        // Selecciona todos los botones de receta
+        const recipeButtons = recipeList.querySelectorAll(".recipe-button");
+
+        recipeButtons.forEach((btn) => {
+          const textoReceta = btn.textContent.toLowerCase();
+          if (textoReceta.includes(filtro)) {
+            btn.style.display = "";
+          } else {
+            btn.style.display = "none";
+          }
+        });
+      });
+    });
+  </script>
+
+  {% endblock %}

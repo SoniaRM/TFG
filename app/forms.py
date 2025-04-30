@@ -13,7 +13,8 @@ class RecetaForm(forms.ModelForm):
         widget=forms.Textarea(attrs={
             'class': 'form-control',
             'rows': 3,
-            'placeholder': 'Añade aquí una descripción de tu receta...'
+            'placeholder': 'Añade aquí una descripción de tu receta...',
+            'style': 'max-height:300px; resize:vertical; overflow-y:auto;'
         })
     )
     combinable = forms.BooleanField(

@@ -31,43 +31,34 @@ def get_calendario_for_date(context, fecha):
 @register.filter
 def get_vertical_gradient_style(calendario):
     """
-    Devuelve un estilo CSS que muestra un relleno vertical (de abajo hacia arriba)
-    según el porcentaje de proteínas consumidas.
-    
-    Se crea un degradado vertical (to top) que va de un color sólido a transparente.
-    Luego se usa background-size para "recortar" el degradado al porcentaje deseado.
+    Devuelve un estilo inline CSS con DOS degradados superpuestos:
+     - azul (proteínas) en la mitad izquierda, hasta su %.
+     - rojo (carbohidratos) en la mitad derecha, hasta su %.
     """
     try:
-        objetivo = calendario.objetivo_proteico
-        consumido = calendario.proteinas_consumidas
-    except Exception:
+        obj_p = calendario.objetivo_proteico or 0
+        con_p = calendario.proteinas_consumidas or 0
+        obj_c = calendario.objetivo_carbohidratos or 0
+        con_c = calendario.carbohidratos_consumidos or 0
+    except:
         return ""
-    
-    if objetivo == 0:
-        return ""
-    
-    # Calcula el porcentaje de avance (clamp entre 0 y 100)
-    porcentaje = min(max((consumido / objetivo) * 100, 0), 100)
-    
-    # Ajusta estos colores a los de tu paleta
-    color_solido = "var(--blue-dark)"
-    color_transparente = "rgba(0, 0, 0, 0)"  # Mismo tono pero transparente
 
-    # Generamos un gradiente vertical que va de color_solido en la parte inferior a transparente en la parte superior.
-    if porcentaje >= 100:
-        # Si se alcanza el objetivo, el fondo queda completamente coloreado.
-        style = f"background: {color_solido};"
-    else:
-        # Si no se alcanza el objetivo, se usa un degradado vertical.
-        style = (
-            "background: linear-gradient("
-            "to top, "
-            f"{color_solido} 0%, "
-            f"{color_solido} 90%, "
-            f"{color_transparente} 100%"
-            ");"
-            "background-repeat: no-repeat;"
-            f"background-size: 100% {porcentaje}%;"
-            "background-position: bottom;"
-        )
+    def pct(cons, obj):
+        return min(max((cons / obj) * 100, 0), 100) if obj > 0 else 0
+
+    p_p = pct(con_p, obj_p)
+    p_c = pct(con_c, obj_c)
+
+    # Los degradados van de color sólido a transparente
+    grad_p = "linear-gradient(to top, var(--blue-dark) 90%, rgba(0,0,0,0) 100%)"
+    grad_c = "linear-gradient(to top, var(--blue-light) 90%, rgba(0,0,0,0) 100%)"
+
+    # Montamos el CSS inline
+    style = (
+        f"background-color: var(--gray-light);"
+        f"background-image: {grad_p}, {grad_c};"
+        f"background-repeat: no-repeat, no-repeat;"
+        f"background-position: left bottom, right bottom;"
+        f"background-size: 50% {p_p}%, 50% {p_c}%;"
+    )
     return style

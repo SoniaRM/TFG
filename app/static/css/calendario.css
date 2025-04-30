@@ -7,7 +7,8 @@
 
 .navigation a {
     display: inline-block;
-    border: 1px solid var(--blue-dark);   /* el recuadro */
+    border: 1px solid var(--blue-dark);
+    /* el recuadro */
     border-radius: 0.25rem;
     /* para que el padding funcione */
     padding: 0.5rem 1rem;
@@ -26,6 +27,7 @@
 
 .week-container {
     display: flex;
+    align-items: stretch;
     justify-content: space-between;
     gap: 10px;
 }
@@ -36,6 +38,34 @@
     border-radius: 15px;
     transition: background 0.5s ease-in-out;
     border: 0.5px solid var(--blue-dark);
+    flex: 1;
+
+}
+
+/* Contenedor de barras */
+
+
+/* Barra de proteínas (mitad izquierda) */
+.day-column .bar.prot {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50%;
+    background-color: var(--blue-dark);
+    height: 0;
+    /* JS ajusta luego el inline-style */
+    transition: height 0.3s ease;
+}
+
+/* Barra de carbohidratos (mitad derecha) */
+.day-column .bar.carb {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 50%;
+    background-color: var(--blue-darker);
+    height: 0;
+    transition: height 0.3s ease;
 }
 
 .day-header {
@@ -57,11 +87,13 @@
     padding: 8px;
     cursor: pointer;
     transition: background 0.2s;
-    border: 1px solid var(--blue-dark);    
+    border: 1px solid var(--gray-light);
 }
 
 .meal-block:hover {
     background-color: var(--gray-light);
+    border: 1px solid var(--blue-dark);
+
 }
 
 .meal-item {
@@ -96,13 +128,14 @@
 
 .day-column.today .day-header {
     background-color: var(--blue-dark);
-    color:            var(--white);
-    border:           2px solid var(--white);
-  }
-  
+    color: var(--white);
+    border: 2px solid var(--white);
+}
+
 .day-column.today {
-    border:        2px solid var(--blue-dark) !important;
-    border-radius: 15px; /* coincide con el radius de .day-column */
+    border: 2px solid var(--blue-dark) !important;
+    border-radius: 15px;
+    /* coincide con el radius de .day-column */
 }
 
 
@@ -143,12 +176,12 @@
 
 .carbs-exceso {
     animation: shake 0.5s ease-in-out infinite;
-    border: 2px solid #e74c3c;
+    border: 2px solid var(--red);
     border-radius: 5px;
 }
 
 .carbohidratos-valor.carbs-exceso {
-    color: #e74c3c;
+    color: var(--red);
 }
 
 /*DONUT PROGRESO*/
@@ -250,14 +283,13 @@
     border-color: var(--blue-dark);
     color: var(--white);
 }
+
 /* ==============================
    Descarga-btn: usar blue-darker al hacer click
    ============================== */
-   .descarga-btn:active,
-   .descarga-btn.active {
-     background-color: var(--blue-darker) !important;
-     border-color:     var(--blue-darker) !important;
-     color:            var(--white)     !important;
-   }
-   
-   
+.descarga-btn:active,
+.descarga-btn.active {
+    background-color: var(--blue-darker) !important;
+    border-color: var(--blue-darker) !important;
+    color: var(--white) !important;
+}
