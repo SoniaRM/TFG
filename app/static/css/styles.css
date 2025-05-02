@@ -123,6 +123,32 @@ nav ul li.nav-user {
     text-decoration: none;
     color: inherit;
 }
+.card-recetaa {
+    background-color: var(--white);
+    border: 1px solid var(--blue-dark);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: box-shadow 0.2s, transform 0.2s;
+    cursor: pointer;
+    height: 100%;
+
+}
+
+.card-recetaa:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+  /* Anula el cursor y la animación de .card-receta en la vista detalle */
+  .card-recetaa {
+    cursor: default !important;
+    transition: none !important;
+  }
+
+  .card-recetaa:hover {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
 
 /* Estilo de la tarjeta*/
 .card-receta {

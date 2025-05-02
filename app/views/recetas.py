@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from ..models import Receta, Ingrediente
-from ..forms import RecetaForm
+from ..forms import RecetaForm, IngredienteForm
 from django.contrib.auth.decorators import login_required
 
 #RECETAS
@@ -23,6 +23,8 @@ def detalle_receta(request, pk):
 @login_required
 def crear_receta(request):
     familia = request.user.familias.first()
+    ingrediente_form = IngredienteForm()    # <— NUEVO
+
     if request.method == 'POST':
         form = RecetaForm(request.POST)
         if form.is_valid():
@@ -32,11 +34,12 @@ def crear_receta(request):
             form.save_m2m()
             return render(request, 'recetas/crear_receta.html', {
                 'form': RecetaForm(),
+                'ingrediente_form': IngredienteForm(),  # <— aseguramos que el modal siga teniendo el form
                 'exito': True
             })
     else:
         form = RecetaForm()
-    return render(request, 'recetas/crear_receta.html', {'form': form})
+    return render(request, 'recetas/crear_receta.html', {'form': form, 'ingrediente_form': ingrediente_form})
 
 @login_required
 def editar_receta(request, pk):

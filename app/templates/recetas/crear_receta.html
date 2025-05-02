@@ -97,6 +97,10 @@
           <button class="btn" type="button" id="clear-ingrediente" title="Limpiar búsqueda">
             <i class="bi bi-x-circle"></i>
           </button>
+          <button class="btn btn-outline-primary" type="button" data-bs-toggle="modal"
+            data-bs-target="#modalAddIngrediente">
+            + Ingrediente
+          </button>
         </div>
 
         <div id="ingredientes-create" class="d-flex flex-wrap gap-2 mb-2">
@@ -114,7 +118,33 @@
       </div>
 
       <button type="submit" class="btn btn-primary w-100">Guardar</button>
+
     </form>
+    <!-- Modal para crear ingrediente -->
+    <div class="modal fade" id="modalAddIngrediente" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content p-4">
+          <div class="modal-header">
+            <h5 class="modal-title">Nuevo ingrediente</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form id="formAddIngrediente">
+            {% csrf_token %}
+            <div class="mb-3">
+              {{ ingrediente_form.nombre.label_tag }}
+              {{ ingrediente_form.nombre }}
+              <div class="text-danger" id="error-nombre"></div>
+            </div>
+            <div class="mb-3">
+              {{ ingrediente_form.frec.label_tag }}
+              {{ ingrediente_form.frec }}
+              <div class="text-danger" id="error-frec"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Crear</button>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -172,4 +202,59 @@
   });
 </script>
 {% endif %}
+
+
+
+<script>
+  document.getElementById('formAddIngrediente')
+    .addEventListener('submit', async e => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      const data = new FormData(form);
+      const res = await fetch("{% url 'ingrediente_crear_ajax' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': data.get('csrfmiddlewaretoken') },
+        body: data
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        // mostrar errores
+        document.getElementById('error-nombre').textContent = json.errors?.nombre || '';
+        document.getElementById('error-frec').textContent = json.errors?.frec || '';
+        return;
+      }
+      // si todo OK:
+      bootstrap.Modal.getInstance(
+        document.getElementById('modalAddIngrediente')
+      ).hide();
+      form.reset();
+      document.getElementById('error-nombre').textContent = '';
+      document.getElementById('error-frec').textContent = '';
+
+      // 1) Creamos input oculto
+      const cont = document.getElementById('ingredientes-create');
+      const inp = document.createElement('input');
+      inp.type = 'checkbox';
+      inp.name = '{{ form.ingredientes.name }}';
+      inp.id = `id_ingrediente_${json.id}`;
+      inp.value = json.id;
+      inp.checked = true;
+      inp.style.display = 'none';
+      cont.appendChild(inp);
+
+      // 2) Creamos el chip “seleccionado”
+      const span = document.createElement('span');
+      span.className = 'ingrediente-item seleccionado';
+      span.dataset.inputId = inp.id;
+      span.dataset.nombre = json.nombre.toLowerCase();
+      span.textContent = json.nombre;
+      // toggle al hacer click
+      span.onclick = () => {
+        span.classList.toggle('seleccionado');
+        inp.checked = !inp.checked;
+      };
+      cont.appendChild(span);
+    });
+</script>
+
 {% endblock %}

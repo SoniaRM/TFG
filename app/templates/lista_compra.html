@@ -767,4 +767,32 @@
     busSuperCes.addEventListener('input', filtrarSuperCesta);
 
 </script>
+
+<script>
+    // Cerrar modales al hacer clic en el overlay (fuera del contenido)
+    ['modal-compra', 'modal-despensa'].forEach(id => {
+      const modal = document.getElementById(id);
+      if (modal) {
+        modal.addEventListener('click', function(event) {
+          // si el elemento sobre el que se ha hecho click es el overlay
+          if (event.target === modal) {
+            if (id === 'modal-compra') {
+              cerrarModalCompra();      // tu función existente
+            } else {
+              cerrarModalDespensa();    // tu función existente
+            }
+          }
+        });
+      }
+    });
+    
+    // (Opcional) Cerrar ambos con la tecla Esc
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        cerrarModalCompra();
+        cerrarModalDespensa();
+      }
+    });
+</script>
+    
 {% endblock %}

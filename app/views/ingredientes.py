@@ -1,7 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from ..models import Ingrediente
+from ..models import Ingrediente, Receta
 from ..forms import IngredienteForm
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+from django.http import JsonResponse 
 
 #INGREDIENTES
 @login_required
@@ -14,16 +16,17 @@ def listado_ingredientes(request):
 def detalle_ingrediente(request, pk):
     familia = request.user.familias.first()
     ingrediente = get_object_or_404(Ingrediente, pk=pk, familia=familia)
+    recetas = Receta.objects.filter(familia=familia, ingredientes=ingrediente)
     if request.method == 'POST' and 'delete' in request.POST:
         ingrediente.delete()
         return redirect('listado_ingredientes')
-    return render(request, 'ingredientes/detalle_ingrediente.html', {'ingrediente': ingrediente})
+    return render(request, 'ingredientes/detalle_ingrediente.html', {'ingrediente': ingrediente, 'recetas': recetas})
 
 @login_required
 def crear_ingrediente(request):
     familia = request.user.familias.first()
     if request.method == 'POST':
-        form = IngredienteForm(request.POST)
+        form = IngredienteForm(request.POST, user=request.user)  # <-- pasamos user aquí
         if form.is_valid():
             ingrediente = form.save(commit=False)
             # Asigna la familia actual al nuevo ingrediente
@@ -53,3 +56,29 @@ def editar_ingrediente(request, pk):
     else:
         form = IngredienteForm(instance=ingrediente)
     return render(request, 'ingredientes/editar_ingrediente.html', {'form': form, 'ingrediente': ingrediente})
+
+@require_POST
+@login_required
+def crear_ingrediente_ajax(request):
+    form = IngredienteForm(request.POST, user=request.user)
+    if form.is_valid():
+        nombre = form.cleaned_data['nombre'].strip()
+        familia = request.user.familias.first()
+        # comprobamos duplicado (case-insensitive)
+        if Ingrediente.objects.filter(
+            nombre__iexact=nombre,
+            familia=familia
+        ).exists():
+            return JsonResponse({
+                'errors': {'nombre': ['Ya existe un ingrediente con este nombre.']}
+            }, status=400)
+
+        # si pasa la validación, guardamos
+        ing = form.save(commit=False)
+        ing.nombre  = nombre
+        ing.familia = familia
+        ing.save()
+        return JsonResponse({'id': ing.id, 'nombre': ing.nombre})
+
+    # errores de formulario (requerido, tipo, etc)
+    return JsonResponse({'errors': form.errors}, status=400)

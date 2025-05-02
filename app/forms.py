@@ -38,6 +38,22 @@ class IngredienteForm(forms.ModelForm):
     class Meta:
         model = Ingrediente
         fields = ['nombre', 'frec']
+    
+    def __init__(self, *args, user=None, **kwargs):
+        # “extraemos” user si lo han pasado
+        super().__init__(*args, **kwargs)
+        self.user = user  # <-- guardamos el usuario
+
+    
+    def clean_nombre(self):
+        nombre = self.cleaned_data['nombre'].strip()
+        familia = self.user.familias.first()
+        if Ingrediente.objects.filter(
+            nombre__iexact=nombre,
+            familia=familia
+        ).exists():
+            raise forms.ValidationError("Ya existe un ingrediente con este nombre.")
+        return nombre
 
 
 class ObjetivoDiarioForm(forms.ModelForm):

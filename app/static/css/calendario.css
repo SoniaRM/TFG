@@ -157,28 +157,27 @@
     font-size: 1rem;
     color: var(--blue-dark);
 }
-
-@keyframes shake {
-
-    0%,
-    100% {
-        transform: translateX(0);
+/* ─── ZOOM-IN / ZOOM-OUT ──────────────────────────────────── */
+@keyframes zoom {
+    0%, 100% {
+      transform: scale(1);
     }
-
-    25% {
-        transform: translateX(-2px);
+    50% {
+      transform: scale(1.05);
     }
-
-    75% {
-        transform: translateX(2px);
-    }
-}
-
-.carbs-exceso {
-    animation: shake 0.5s ease-in-out infinite;
+  }
+  
+  .carbs-exceso {
+    /* aplicamos la nueva animación */
+    animation: zoom 0.8s ease-in-out infinite;
+    /* aseguramos que escale desde el centro */
+    transform-origin: center center;
+  
+    /* mantenemos tu borde y radio */
     border: 2px solid var(--red);
     border-radius: 5px;
-}
+  }
+  
 
 .carbohidratos-valor.carbs-exceso {
     color: var(--red);
@@ -223,6 +222,20 @@
     transition: stroke-dashoffset 0.3s ease;
 }
 
+/* ─ Donut carbohidratos ───────────────────────────────────── */
+.donut-progress-carb {
+    fill: none;
+    stroke: var(--blue-light);
+    stroke-width: 10;
+    stroke-linecap: round;
+
+    /* Misma circunferencia que el otro donut */
+    stroke-dasharray: 282.743;
+    stroke-dashoffset: 282.743;
+
+    transition: stroke-dashoffset 0.3s ease;
+}
+
 
 /* Texto (%) dentro */
 .donut-text {
@@ -230,6 +243,28 @@
     /* 18px */
     fill: var(--black);
     font-weight: bold;
+}
+
+.donut-label {
+    margin: 0.5rem 0 0.2rem;
+    /* separar un poco del donut y del texto */
+    font-size: 1rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--blue-dark);
+    /* color por defecto para Proteínas */
+}
+
+/* Para que la etiqueta de carbohidratos use tu azul claro */
+.carb-label {
+    color: var(--blue-light);
+}
+
+.indicador-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* Texto extra al lado */
@@ -292,4 +327,43 @@
     background-color: var(--blue-darker) !important;
     border-color: var(--blue-darker) !important;
     color: var(--white) !important;
+}
+
+
+/* Contenedor donut+leyenda */
+.d-flex.align-items-center>.d-flex {
+    /* para no tocar nada más */
+}
+
+/* Leyenda */
+.legend {
+    display: flex;
+    flex-direction: column;
+    width: 8rem;
+    /* ajusta este valor al espacio que necesites */
+    gap: 0.5rem;
+}
+
+/* Cada línea: texto a la izquierda, cuadrito a la derecha */
+.legend-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 0.5rem;
+    /* ahora solo margen a la izquierda */
+    margin-right: 0;
+    border-radius: 2px;
+    background-color: var(--blue-dark);
+}
+
+.legend-color.light {
+    background-color: var(--blue-light);
 }

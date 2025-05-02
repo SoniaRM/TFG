@@ -1,11 +1,11 @@
-*{
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Gidole' sans-serif;
 }
 
-.container-nav{
+.container-nav {
     background-color: white;
     width: 100%;
 }
@@ -25,7 +25,8 @@ nav ul {
 
 nav ul li {
     display: inline-block;
-    position: relative; /* Necesario para que el ::after funcione correctamente */
+    position: relative;
+    /* Necesario para que el ::after funcione correctamente */
     padding: 13px 35px;
     font-size: 18px;
     font-weight: 500;
@@ -40,7 +41,8 @@ nav ul li a {
     font-size: 18px;
     font-weight: 500;
     transition: color 0.5s;
-    z-index: 2;  /* Asegura que el texto esté sobre el fondo */
+    z-index: 2;
+    /* Asegura que el texto esté sobre el fondo */
 
 }
 

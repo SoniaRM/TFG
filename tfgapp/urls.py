@@ -29,6 +29,7 @@ urlpatterns = [
     path('recetas/<int:pk>/', login_required(recetas.detalle_receta), name='detalle_receta'),
     path('recetas/crear/', login_required(recetas.crear_receta), name='crear_receta'),
     path('recetas/editar/<int:pk>/', login_required(recetas.editar_receta), name='editar_receta'),
+    path('ingredientes/crear/ajax/', login_required(ingredientes.crear_ingrediente_ajax), name='ingrediente_crear_ajax'),
     # INGREDIENTES:
     path('ingredientes/', login_required(ingredientes.listado_ingredientes), name='listado_ingredientes'),
     path('ingredientes/<int:pk>/', login_required(ingredientes.detalle_ingrediente), name='detalle_ingrediente'),
