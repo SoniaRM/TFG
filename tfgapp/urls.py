@@ -29,6 +29,7 @@ urlpatterns = [
     path('recetas/<int:pk>/', login_required(recetas.detalle_receta), name='detalle_receta'),
     path('recetas/crear/', login_required(recetas.crear_receta), name='crear_receta'),
     path('recetas/editar/<int:pk>/', login_required(recetas.editar_receta), name='editar_receta'),
+    path('ingredientes/crear/ajax/', login_required(ingredientes.crear_ingrediente_ajax), name='ingrediente_crear_ajax'),
     # INGREDIENTES:
     path('ingredientes/', login_required(ingredientes.listado_ingredientes), name='listado_ingredientes'),
     path('ingredientes/<int:pk>/', login_required(ingredientes.detalle_ingrediente), name='detalle_ingrediente'),
@@ -60,7 +61,7 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='/login/'), name='logout'),
     path('signup/', SignupView.as_view(), name='signup'),
     path('cambiar_familia/', cambiar_familia, name='cambiar_familia'),
-    path('lista_solicitudes_familia/', colaborativos.lista_solicitudes_familia, name='lista_solicitudes_familia'),
+    #path('lista_solicitudes_familia/', colaborativos.lista_solicitudes_familia, name='lista_solicitudes_familia'),
     path('aprobar_solicitud/<int:solicitud_id>/', colaborativos.aprobar_solicitud, name='aprobar_solicitud'),
     path('rechazar_solicitud/<int:solicitud_id>/', colaborativos.rechazar_solicitud, name='rechazar_solicitud'),
     path('esperando_aprobacion/', colaborativos.esperando_aprobacion, name='esperando_aprobacion'),

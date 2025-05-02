@@ -1,40 +1,79 @@
 {% extends 'navbar.html' %}
-
 {% block title %}Editar Ingrediente{% endblock %}
 
 {% block content %}
-<!-- Incluimos Bootstrap para aprovechar sus clases -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-  .card-form {
-      background-color: #FFF8F5;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      padding: 20px;
-      margin: 20px auto;
-      max-width: 600px;
+  /* Tarjeta estrecha y sin animación */
+  .card-receta {
+    cursor: default !important;
+    transition: none !important;
+    max-width: 400px !important;
+    padding: 1rem !important;
   }
-  .card-form h2 {
-      background-color: #FFD9C2;
-      padding: 10px;
-      border-radius: 5px;
-      text-align: center;
-      margin-bottom: 20px;
+
+  .card-receta:hover {
+    box-shadow: none !important;
+    transform: none !important;
   }
 </style>
 
 <div class="container mt-4">
-  <div class="card-form">
-    <h2>Editar Ingrediente</h2>
+  <!-- Botón volver -->
+  <a href="{% url 'detalle_ingrediente' ingrediente.pk %}" class="btn btn-secondary ms-4 mb-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+
+  <div class="card-receta mx-auto">
+    <h5 class="text-center mb-4">Editar Ingrediente</h5>
     <form method="post">
       {% csrf_token %}
-      {{ form.as_p }}
-      <button type="submit" class="btn btn-primary">Guardar</button>
+
+      <!-- Nombre -->
+      <div class="mb-3">
+        {{ form.nombre.label_tag }}
+        <input type="text" name="{{ form.nombre.name }}" id="{{ form.nombre.id_for_label }}"
+          value="{{ form.nombre.value|default_if_none:'' }}" class="form-control">
+        {{ form.nombre.errors }}
+      </div>
+
+      <!-- Frecuencia con flechas -->
+      <div class="mb-3">
+        <label for="{{ form.frec.id_for_label }}">Frecuencia:</label>
+        <div class="d-flex align-items-center justify-content-center gap-2 mt-1"
+          style="max-width: 160px; margin: auto;">
+          <button type="button" id="frec-decrease" class="btn btn-primary btn-sm px-2">
+            <i class="bi bi-caret-left-fill"></i>
+          </button>
+          <input type="number" name="{{ form.frec.name }}" id="{{ form.frec.id_for_label }}"
+            value="{{ form.frec.value|default_if_none:'1' }}" class="form-control text-center" min="1" step="1"
+            style="max-width: 60px; padding: 0.25rem;">
+          <button type="button" id="frec-increase" class="btn btn-primary btn-sm px-2">
+            <i class="bi bi-caret-right-fill"></i>
+          </button>
+        </div>
+        {{ form.frec.errors }}
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Guardar</button>
     </form>
-    <a href="{% url 'detalle_ingrediente' ingrediente.pk %}" class="btn btn-secondary mt-3">Cancelar</a>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const frecInput = document.getElementById('{{ form.frec.id_for_label }}');
+    document.getElementById('frec-decrease').addEventListener('click', () => {
+      let v = parseInt(frecInput.value) || 1;
+      if (v > 1) frecInput.value = v - 1;
+    });
+    document.getElementById('frec-increase').addEventListener('click', () => {
+      let v = parseInt(frecInput.value) || 1;
+      frecInput.value = v + 1;
+    });
+  });
+</script>
 
 {% if exito %}
 <script>

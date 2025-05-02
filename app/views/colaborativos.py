@@ -86,7 +86,7 @@ def cambiar_familia(request):
         form = ChangeFamilyForm()
     return render(request, 'colaborativo/cambiar_familia.html', {'form': form})
 
-
+'''
 @login_required
 def lista_solicitudes_familia(request):
     # Sólo se muestran las solicitudes de la(s) familia(s) donde el usuario es administrador.
@@ -94,15 +94,15 @@ def lista_solicitudes_familia(request):
         estado='pendiente',
         familia__administrador=request.user
     )
-    return render(request, 'colaborativo/lista_solicitudes.html', {'solicitudes': solicitudes})
-
+    return render(request, 'configurar_objetivo.html', {'solicitudes': solicitudes})
+'''
 @login_required
 def aprobar_solicitud(request, solicitud_id):
     solicitud = get_object_or_404(SolicitudUniónFamilia, id=solicitud_id)
     # Verifica que el usuario que aprueba sea el administrador de la familia.
     if solicitud.familia.administrador != request.user:
         # Si no es administrador, podrías devolver un error o redirigir
-        return redirect('lista_solicitudes_familia')
+        return redirect('configurar_objetivo')
     
     user = solicitud.usuario
     # Si el usuario pertenece a una familia diferente a la de la solicitud aprobada,
@@ -126,18 +126,18 @@ def aprobar_solicitud(request, solicitud_id):
 
     solicitud.estado = 'aprobada'
     solicitud.save()
-    return redirect('lista_solicitudes_familia')
+    return redirect('configurar_objetivo')
 
 @login_required
 def rechazar_solicitud(request, solicitud_id):
     solicitud = get_object_or_404(SolicitudUniónFamilia, id=solicitud_id)
     # Verifica que solo el administrador pueda rechazar la solicitud
     if solicitud.familia.administrador != request.user:
-        return redirect('lista_solicitudes_familia')
+        return redirect('configurar_objetivo')
     solicitud.estado = 'rechazada'
     solicitud.save()
     # Se podría redirigir a una página donde se notifique al usuario que su solicitud fue rechazada
-    return redirect('lista_solicitudes_familia')
+    return redirect('configurar_objetivo')
 
 @login_required
 def esperando_aprobacion(request):

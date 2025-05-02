@@ -1,0 +1,84 @@
+
+/* 🎨 Variables de color globales */
+:root {
+  /*
+  --color-fondo: #FFFDE7;
+  --color-cta: #FF9800;
+  --color-acento-amarillo: #FFEB3B;
+  --color-verde-lima: #CDDC39;
+  --color-verde-azulado: #009688;
+  --color-texto: #212121;*/
+}
+
+/* 🧱 Tarjetas */
+.card-base {
+  background-color: var(--color-fondo);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 15px;
+}
+
+.card-titulo {
+  background-color: var(--color-acento-amarillo);
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+/* 🔘 Botones */
+.btn-cta {
+  background-color: var(--color-cta);
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.btn-cta:hover {
+  background-color: var(--color-acento-amarillo);
+  color: var(--color-texto);
+}
+
+.btn-secundario {
+  background-color: var(--color-verde-azulado);
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.btn-secundario:hover {
+  background-color: var(--color-verde-lima);
+  color: var(--color-texto);
+}
+
+.btn-peligro {
+  background-color: #e53935;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-peligro:hover {
+  background-color: #c62828;
+}
+
+/* 🏷️ Chips e insignias */
+.chip {
+  display: inline-block;
+  padding: 0.4em 0.8em;
+  border-radius: 20px;
+  background-color: var(--color-verde-lima);
+  color: var(--color-texto);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
