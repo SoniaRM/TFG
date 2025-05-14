@@ -30,8 +30,10 @@ def vista_configurar_objetivo(request):
 
     return render(request, 'configurar_objetivo.html', {'form': form,'solicitudes': solicitudes})
 
+'''
 @login_required
 def ver_familia(request):
     # Suponiendo que el usuario pertenece a una familia (y solo una)
     familia = request.user.familias.first()  
     return render(request, 'colaborativo/ver_familia.html', {'familia': familia})
+    '''

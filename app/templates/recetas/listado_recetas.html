@@ -91,7 +91,7 @@
             <p><strong>Proteínas:</strong> <span class="valor-proteina">{{ receta.proteinas }}</span></p>
             <p><strong>Carbohidratos:</strong> <span class="valor-carbohidratos">{{ receta.carbohidratos }}</span></p>
             <p><strong>Ingredientes:</strong></p>
-            <ul>
+            <ul class="ingredientes-receta">
               {% for ing in receta.ingredientes.all %}
               <li>{{ ing.nombre }}</li>
               {% endfor %}
@@ -172,10 +172,8 @@
         const n = t.querySelector("h5").textContent.toLowerCase();
         const p = +t.querySelector(".valor-proteina").textContent;
         const c = +t.querySelector(".valor-carbohidratos").textContent;
-        const tipos = Array.from(t.querySelectorAll("ul:first-of-type li"))
-          .map(li => li.textContent.toLowerCase());
-        const ingsTar = Array.from(t.querySelectorAll("ul:nth-of-type(2) li"))
-          .map(li => li.textContent.toLowerCase());
+        const tipos = Array.from(t.querySelectorAll(".meal-btn.sm")).map(el => el.textContent.toLowerCase());
+        const ingsTar = Array.from(t.querySelectorAll(".ingredientes-receta li")).map(li => li.textContent.toLowerCase());
         const ok = n.includes(nameF)
           && p >= minProt
           && c >= minCarb
