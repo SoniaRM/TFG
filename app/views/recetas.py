@@ -23,7 +23,7 @@ def detalle_receta(request, pk):
 @login_required
 def crear_receta(request):
     familia = request.user.familias.first()
-    ingrediente_form = IngredienteForm()    # <— NUEVO
+    ingrediente_form = IngredienteForm()    
 
     if request.method == 'POST':
         form = RecetaForm(request.POST)
@@ -34,7 +34,7 @@ def crear_receta(request):
             form.save_m2m()
             return render(request, 'recetas/crear_receta.html', {
                 'form': RecetaForm(),
-                'ingrediente_form': IngredienteForm(),  # <— aseguramos que el modal siga teniendo el form
+                'ingrediente_form': IngredienteForm(),  
                 'exito': True
             })
     else:

@@ -8,7 +8,7 @@ from django.http import JsonResponse
 #INGREDIENTES
 @login_required
 def listado_ingredientes(request):
-    familia = request.user.familias.first()  # Obtén la familia del usuario
+    familia = request.user.familias.first()  
     ingredientes = Ingrediente.objects.filter(familia=familia)
     return render(request, 'ingredientes/listado_ingredientes.html', {'ingredientes': ingredientes})
 
@@ -26,10 +26,9 @@ def detalle_ingrediente(request, pk):
 def crear_ingrediente(request):
     familia = request.user.familias.first()
     if request.method == 'POST':
-        form = IngredienteForm(request.POST, user=request.user)  # <-- pasamos user aquí
+        form = IngredienteForm(request.POST, user=request.user) 
         if form.is_valid():
             ingrediente = form.save(commit=False)
-            # Asigna la familia actual al nuevo ingrediente
             ingrediente.familia = familia
             ingrediente.save()            
             return render(request, 'ingredientes/crear_ingrediente.html', {
@@ -64,7 +63,6 @@ def crear_ingrediente_ajax(request):
     if form.is_valid():
         nombre = form.cleaned_data['nombre'].strip()
         familia = request.user.familias.first()
-        # comprobamos duplicado (case-insensitive)
         if Ingrediente.objects.filter(
             nombre__iexact=nombre,
             familia=familia
@@ -73,12 +71,10 @@ def crear_ingrediente_ajax(request):
                 'errors': {'nombre': ['Ya existe un ingrediente con este nombre.']}
             }, status=400)
 
-        # si pasa la validación, guardamos
         ing = form.save(commit=False)
         ing.nombre  = nombre
         ing.familia = familia
         ing.save()
         return JsonResponse({'id': ing.id, 'nombre': ing.nombre})
 
-    # errores de formulario (requerido, tipo, etc)
     return JsonResponse({'errors': form.errors}, status=400)

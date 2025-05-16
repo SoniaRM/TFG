@@ -149,7 +149,7 @@ class RecetasViewTests(TestCase):
 
         data = {
             'nombre': 'Actualizada',
-            'proteinas': -10,  # inválido
+            'proteinas': -10, 
             'carbohidratos': 25,
             'combinable': True,
             'tipo_comida': [self.tipo.id],
@@ -170,7 +170,7 @@ class RecetasViewTests(TestCase):
         receta.ingredientes.add(self.ingrediente)
 
         data = {
-            'nombre': '',  # inválido
+            'nombre': '',  
             'proteinas': 10,
             'carbohidratos': 20,
             'combinable': True,
@@ -196,7 +196,7 @@ class RecetasViewTests(TestCase):
             'proteinas': 10,
             'carbohidratos': 10,
             'combinable': True,
-            'tipo_comida': [],  # vacío
+            'tipo_comida': [], 
             'ingredientes': [self.ingrediente.id],
         }
 

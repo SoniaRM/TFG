@@ -41,11 +41,9 @@
     </div>
 
     <div class="position-relative mb-4">
-        <!-- Texto centrado -->
         <h5 class="text-center m-0">
             <strong>Semana del: {{ semana_formateada }}</strong>
         </h5>
-        <!-- Botón a la derecha, con carrito y estilo btn-primary -->
         <button type="button" class="btn btn-primary btn-modo-super position-absolute end-0 top-50 translate-middle-y"
             onclick="activarModoSuper()">
             <i class="bi bi-cart-fill me-1"></i>
@@ -190,8 +188,6 @@
     </div>
 </div>
 
-
-
 <!-- Modal para mover de compra a despensa -->
 <div id="modal-compra" class="modal-custom">
     <div class="modal-dialog">
@@ -259,18 +255,15 @@
     }
     function abrirModalCompra(itemId, compraActual) {
         if (compraActual === 1) {
-            // Si solo hay una ración, mover directamente sin mostrar modal
             moverCompraADespensa(itemId, 1);
             return;
         }
 
-        // Mostramos el overlay
         const modal = document.getElementById('modal-compra');
         modal.style.display = 'block';
 
         document.getElementById('modal-compra-titulo').textContent = "¿Cuántas raciones tienes?";
 
-        // Generar botones
         let cont = document.getElementById('raciones-opciones-compra');
         cont.innerHTML = '';
         for (let i = 1; i <= compraActual; i++) {
@@ -280,7 +273,6 @@
             btn.style.margin = '5px';
             btn.onclick = () => moverCompraADespensa(itemId, i);
 
-            // ** NUEVO: al pasar el ratón, aplico .ratio-hover a todos <= i **
             btn.addEventListener('mouseover', () => {
                 cont.querySelectorAll('button').forEach(b => {
                     if (parseInt(b.textContent, 10) <= i) {
@@ -288,7 +280,6 @@
                     }
                 });
             });
-            // ** al salir, quito la clase de todos **
             btn.addEventListener('mouseout', () => {
                 cont.querySelectorAll('button').forEach(b => {
                     b.classList.remove('ratio-hover');
@@ -304,7 +295,6 @@
 
     function abrirModalDespensa(itemId, despensaActual) {
         if (despensaActual === 1) {
-            // Si solo hay una ración, mover directamente sin mostrar modal
             moverDespensaACompra(itemId, 1);
             return;
         }
@@ -323,7 +313,6 @@
             btn.style.margin = '5px';
             btn.onclick = () => moverDespensaACompra(itemId, i);
 
-            // ** NUEVO: al pasar el ratón, aplico .ratio-hover a todos <= i **
             btn.addEventListener('mouseover', () => {
                 cont.querySelectorAll('button').forEach(b => {
                     if (parseInt(b.textContent, 10) <= i) {
@@ -331,7 +320,6 @@
                     }
                 });
             });
-            // ** al salir, quito la clase de todos **
             btn.addEventListener('mouseout', () => {
                 cont.querySelectorAll('button').forEach(b => {
                     b.classList.remove('ratio-hover');
@@ -347,11 +335,13 @@
     }
 
     function moverCompraADespensa(itemId, raciones) {
-        // 1) Recogemos el lista_id del <li>
-        let li = document.querySelector(`[data-item-id='${itemId}']`);
-        let listaId = li.dataset.listaId;
+        const cardBody = document.querySelector(
+            `#lista-compra .card-body[data-item-id="${itemId}"]`
+        );
+        if (!cardBody) return console.error("Ítem no encontrado en despensa", itemId);
 
-        // 2) POST a /mover_compra_despensa/
+        const listaId = cardBody.dataset.listaId;
+
         fetch("/mover_compra_despensa/", {
             method: "POST",
             headers: {
@@ -377,8 +367,12 @@
     }
 
     function moverDespensaACompra(itemId, raciones) {
-        let li = document.querySelector(`[data-item-id='${itemId}']`);
-        let listaId = li.dataset.listaId;
+        const cardBody = document.querySelector(
+            `#ingredientes-despensa .card-body[data-item-id="${itemId}"]`
+        );
+        if (!cardBody) return console.error("Ítem no encontrado en despensa", itemId);
+
+        const listaId = cardBody.dataset.listaId;
 
         fetch("/mover_despensa_compra/", {
             method: "POST",
@@ -405,22 +399,16 @@
     }
 
     function refrescarDatos() {
-        // Hacemos un GET a /lista_compra/datos?start=...
-        // Extraemos la "start_date" actual desde la URL
         let urlParams = new URLSearchParams(window.location.search);
         let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
         fetch(`/lista_compra/datos?start=${start}`)
             .then(res => res.json())
             .then(data => {
-                // 1) Vaciar los UL
-                // Contenedores grid
                 const contComprar = document.getElementById("lista-compra");
                 const contDespensa = document.getElementById("ingredientes-despensa");
 
-                // Vaciamos
                 contComprar.innerHTML = "";
                 contDespensa.innerHTML = "";
-                // 2) Llenar con data.por_comprar y data.en_despensa
                 data.por_comprar.forEach(item => {
                     const col = document.createElement('div');
                     col.className = 'col';
@@ -469,7 +457,6 @@
     function resetearLista() {
         if (!confirm("¿Estás seguro de que quieres reiniciar la lista de la compra?")) return;
 
-        // Obtener la fecha de inicio desde la URL o usar el start_date
         let urlParams = new URLSearchParams(window.location.search);
         let start = urlParams.get('start') || "{{ start_date|date:'Y-m-d' }}";
 
@@ -491,23 +478,17 @@
             .catch(err => console.error(err));
     }
 
-    // ========== BOTÓN PARA ACTIVAR MODO SUPER ==========
     function activarModoSuper() {
         document.getElementById('vista-normal').style.display = 'none';
         document.getElementById('modo-super').style.display = 'block';
         inicializarModoSuper();
     }
-    // Llamamos siempre a esto tras inicializar o mover
     function actualizarPlaceholders() {
         const porContainer = document.getElementById('super-por-comprar').parentNode;
         const cestaContainer = document.getElementById('super-cesta').parentNode;
-
-        // — Ingredientes por comprar — 
         const ulPor = document.getElementById('super-por-comprar');
-        // si hay <li data-item-id>, lo dejamos. Si no, ocultamos el UL y ponemos <p>
         const hayPor = Array.from(ulPor.children).some(li => li.dataset.itemId);
         ulPor.style.display = hayPor ? '' : 'none';
-        // Quitamos cualquier mensaje previo
         porContainer.querySelectorAll('p.empty-msg').forEach(p => p.remove());
         if (!hayPor) {
             const p = document.createElement('p');
@@ -516,7 +497,6 @@
             porContainer.appendChild(p);
         }
 
-        // — Ingredientes en la cesta — 
         const ulCes = document.getElementById('super-cesta');
         const hayCes = Array.from(ulCes.children).some(li => li.dataset.itemId);
         ulCes.style.display = hayCes ? '' : 'none';
@@ -530,24 +510,18 @@
     }
 
 
-    // ========== INICIALIZAR MODO SUPER ==========
     function inicializarModoSuper() {
         const ulPorComprar = document.getElementById('super-por-comprar');
         const ulCesta = document.getElementById('super-cesta');
-        // Vaciamos ambas listas
         ulPorComprar.innerHTML = '';
         ulCesta.innerHTML = '';
 
-        // Buscamos TODOS los elementos con data-item-id dentro de #lista-compra
         document.querySelectorAll('#lista-compra [data-item-id]').forEach(el => {
             const itemId = el.dataset.itemId;
             const listaId = el.dataset.listaId;
-            // Nombre viene en .card-title
             const nombre = el.querySelector('.card-title').textContent.trim();
-            // Cantidad viene en el small.text-muted como "X raciones"
             const compra = el.querySelector('.text-muted').textContent.trim().split(' ')[0];
 
-            // Creamos el <li> igual que antes
             const li = document.createElement('li');
             li.dataset.itemId = itemId;
             li.dataset.listaId = listaId;
@@ -566,29 +540,21 @@
                 `;
             ulPorComprar.appendChild(li);
         });
-        // Ordena alfabéticamente y añade al UL
         items.sort((a, b) =>
             a.dataset.nombre.localeCompare(b.dataset.nombre, 'es', { sensitivity: 'base' })
         );
         items.forEach(li => ulPorComprar.appendChild(li));
 
-        // Asegura que la cesta esté ordenada (vacía inicialmente, pero necesario tras movimientos)
         sortList(ulCesta);
-
         filtrarSuperPor();
         filtrarSuperCesta();
         actualizarPlaceholders();
     }
 
-
-
-    // ========== MOVER A CESTA ==========
     function moverACesta(itemId) {
-        // Buscamos el li en super-por-comprar
         let li = document.querySelector(`#super-por-comprar li[data-item-id='${itemId}']`);
         if (!li) return;
 
-        // Lo quitamos de super-por-comprar y lo metemos en super-cesta
         li.remove();
         li.innerHTML = `
         <div class="d-flex align-items-center">
@@ -606,8 +572,6 @@
         actualizarPlaceholders();
     }
 
-
-    // ========== MOVER A LISTA POR COMPRAR ==========
     function moverAListaPorComprar(itemId) {
         let li = document.querySelector(`#super-cesta li[data-item-id='${itemId}']`);
         if (!li) return;
@@ -626,9 +590,7 @@
         actualizarPlaceholders();
     }
 
-    // ========== BOTÓN "COMPRAR" ==========
     function finalizarCompra() {
-        // Recorrer la super-cesta y obtener los ingredientes
         let cestaItems = document.querySelectorAll('#super-cesta li[data-item-id]');
         let cestaData = [];
         cestaItems.forEach(li => {
@@ -640,10 +602,6 @@
             });
         });
 
-        // Hacemos un fetch POST a un nuevo endpoint, por ejemplo "/finalizar_compra/"
-        // que en el servidor actualiza la despensa de esa semana para esos ingredientes.
-        // Te sugiero crear una vista "finalizar_compra" que reciba la lista de items y 
-        // haga item.despensa += X en la BD, o como tú desees.
         fetch("/finalizar_compra/", {
             method: "POST",
             headers: {
@@ -658,7 +616,7 @@
                     alert("Error al comprar: " + data.error);
                 } else {
                     mostrarSuccessModal("");
-                    setTimeout(() => location.reload(), 1000);  // recarga luego de 2.5s
+                    setTimeout(() => location.reload(), 1000); 
                 }
             })
             .catch(err => console.error(err));
@@ -668,8 +626,6 @@
         document.getElementById('modo-super').style.display = 'none';
         document.getElementById('vista-normal').style.display = 'block';
     }
-
-
 
     function abrirModalReset() {
         const modal = new bootstrap.Modal(document.getElementById('resetListaModal'));
@@ -697,7 +653,6 @@
             .catch(err => console.error(err));
     }
 
-    // — Filtro “Ingredientes por comprar” —
     const busComp = document.getElementById('buscar-ingrediente-compra');
     const clearComp = document.getElementById('clear-ingrediente-compra');
     function filtrarCompra() {
@@ -713,12 +668,12 @@
                 col.style.display = 'none';
             }
         });
-        document.getElementById('no-coincidencias-compra').style.display = algun ? 'none' : 'block';
+        const aviso = document.getElementById('no-coincidencias-compra');
+        aviso.style.display = (q.length > 0 && !algun) ? 'block' : 'none';
     }
     clearComp.addEventListener('click', () => { busComp.value = ''; filtrarCompra(); busComp.focus(); });
     busComp.addEventListener('input', filtrarCompra);
 
-    // — Filtro “Ingredientes en la despensa” —
     const busDesp = document.getElementById('buscar-ingrediente-despensa');
     const clearDesp = document.getElementById('clear-ingrediente-despensa');
     function filtrarDespensa() {
@@ -734,13 +689,12 @@
                 col.style.display = 'none';
             }
         });
-        document.getElementById('no-coincidencias-despensa').style.display = algun ? 'none' : 'block';
+        const aviso = document.getElementById('no-coincidencias-despensa');
+        aviso.style.display = (q.length > 0 && !algun) ? 'block' : 'none';
     }
     clearDesp.addEventListener('click', () => { busDesp.value = ''; filtrarDespensa(); busDesp.focus(); });
     busDesp.addEventListener('input', filtrarDespensa);
 
-
-    // Filtrar modo super: por comprar
     const busSuperPor = document.getElementById('buscar-super-por-comprar');
     const clearSuperPor = document.getElementById('clear-super-por-comprar');
     function filtrarSuperPor() {
@@ -753,7 +707,6 @@
     clearSuperPor.addEventListener('click', () => { busSuperPor.value = ''; filtrarSuperPor(); busSuperPor.focus(); });
     busSuperPor.addEventListener('input', filtrarSuperPor);
 
-    // Filtrar modo super: cesta
     const busSuperCes = document.getElementById('buscar-super-cesta');
     const clearSuperCes = document.getElementById('clear-super-cesta');
     function filtrarSuperCesta() {
@@ -769,24 +722,21 @@
 </script>
 
 <script>
-    // Cerrar modales al hacer clic en el overlay (fuera del contenido)
     ['modal-compra', 'modal-despensa'].forEach(id => {
       const modal = document.getElementById(id);
       if (modal) {
         modal.addEventListener('click', function(event) {
-          // si el elemento sobre el que se ha hecho click es el overlay
           if (event.target === modal) {
             if (id === 'modal-compra') {
-              cerrarModalCompra();      // tu función existente
+              cerrarModalCompra();      
             } else {
-              cerrarModalDespensa();    // tu función existente
+              cerrarModalDespensa();  
             }
           }
         });
       }
     });
     
-    // (Opcional) Cerrar ambos con la tecla Esc
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         cerrarModalCompra();

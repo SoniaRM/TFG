@@ -11,13 +11,12 @@ def get_calendario_for_date(context, fecha):
     Si no existe, la crea con objetivo_proteico por defecto (100).
     """
     request = context.get('request')
-    # Intenta obtener la familia ya pasada en el contexto, de lo contrario la del usuario.
     familia = context.get('familia')
     if not familia and request and hasattr(request, 'user'):
         familia = request.user.familias.first()
     
     if not familia:
-        return None  # O bien devolver un objeto vacío si no se pudo determinar la familia
+        return None  
     
     calendario, created = Calendario.objects.get_or_create(
         fecha=fecha,
@@ -49,11 +48,9 @@ def get_vertical_gradient_style(calendario):
     p_p = pct(con_p, obj_p)
     p_c = pct(con_c, obj_c)
 
-    # Los degradados van de color sólido a transparente
     grad_p = "linear-gradient(to top, var(--blue-dark) 90%, rgba(0,0,0,0) 100%)"
     grad_c = "linear-gradient(to top, var(--blue-light) 90%, rgba(0,0,0,0) 100%)"
 
-    # Montamos el CSS inline
     style = (
         f"background-color: var(--gray-light);"
         f"background-image: {grad_p}, {grad_c};"

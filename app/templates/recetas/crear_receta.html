@@ -6,14 +6,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-  /* Oculta los checkboxes nativos para que solo queden los chips */
   #tipo-comida-create input[type="checkbox"],
   #ingredientes-create input[type="checkbox"] {
     display: none !important;
   }
 </style>
 <style>
-  /* Anula el cursor y la animación de .card-receta en la vista detalle */
   .card-receta {
     cursor: default !important;
     transition: none !important;
@@ -34,7 +32,6 @@
       {% csrf_token %}
       {{ form.non_field_errors }}
 
-      <!-- Nombre -->
       <div class="mb-3">
         {{ form.nombre.label_tag }}
         <input type="text" name="{{ form.nombre.name }}" id="{{ form.nombre.id_for_label }}"
@@ -42,7 +39,6 @@
         {{ form.nombre.errors }}
       </div>
 
-      <!-- TIPOS DE COMIDA COMO CHIPS -->
       <div class="mb-3">
         <label>Tipo de Comida:</label>
         <div id="tipo-comida-create" class="d-flex flex-wrap gap-2 mb-2">
@@ -89,7 +85,6 @@
         {{ form.combinable.errors }}
       </div>
 
-      <!-- INGREDIENTES COMO CHIPS -->
       <div class="mb-3">
         <label>Ingredientes:</label>
         <div class="input-group mb-2">
@@ -149,7 +144,6 @@
 </div>
 
 <script>
-  // Toggles para los meal-btn
   document.querySelectorAll('#tipo-comida-create .meal-btn').forEach(btn => {
     const input = document.getElementById(btn.dataset.inputId);
     btn.addEventListener('click', () => {
@@ -158,7 +152,6 @@
     });
   });
 
-  // Toggles para ingredientes
   const ingSpans = Array.from(document.querySelectorAll('#ingredientes-create .ingrediente-item'));
   ingSpans.forEach(span => {
     const input = document.getElementById(span.dataset.inputId);
@@ -168,7 +161,6 @@
     });
   });
 
-  // Filtro texto ingredientes
   document.getElementById('buscar-ingrediente').addEventListener('input', function () {
     const q = this.value.toLowerCase();
     let any = false;
@@ -183,7 +175,6 @@
     document.getElementById('no-coincidencias').style.display = any ? 'none' : 'block';
   });
 
-  // Botón “X” para limpiar búsqueda
   document.getElementById('clear-ingrediente').addEventListener('click', () => {
     const inp = document.getElementById('buscar-ingrediente');
     inp.value = '';
@@ -218,12 +209,10 @@
       });
       const json = await res.json();
       if (!res.ok) {
-        // mostrar errores
         document.getElementById('error-nombre').textContent = json.errors?.nombre || '';
         document.getElementById('error-frec').textContent = json.errors?.frec || '';
         return;
       }
-      // si todo OK:
       bootstrap.Modal.getInstance(
         document.getElementById('modalAddIngrediente')
       ).hide();
@@ -231,7 +220,6 @@
       document.getElementById('error-nombre').textContent = '';
       document.getElementById('error-frec').textContent = '';
 
-      // 1) Creamos input oculto
       const cont = document.getElementById('ingredientes-create');
       const inp = document.createElement('input');
       inp.type = 'checkbox';
@@ -242,13 +230,11 @@
       inp.style.display = 'none';
       cont.appendChild(inp);
 
-      // 2) Creamos el chip “seleccionado”
       const span = document.createElement('span');
       span.className = 'ingrediente-item seleccionado';
       span.dataset.inputId = inp.id;
       span.dataset.nombre = json.nombre.toLowerCase();
       span.textContent = json.nombre;
-      // toggle al hacer click
       span.onclick = () => {
         span.classList.toggle('seleccionado');
         inp.checked = !inp.checked;

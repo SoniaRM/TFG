@@ -5,12 +5,10 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-  /* Anula cursor y animación de .card-receta */
   .card-receta {
     cursor: default !important;
     transition: none !important;
     max-width: 400px !important;
-    /* Más estrecho */
     padding: 1rem !important;
   }
 
@@ -21,18 +19,15 @@
 </style>
 
 <div class="container mt-4">
-  <!-- Flecha de vuelta -->
   <a href="{% url 'listado_ingredientes' %}" class="btn btn-secondary ms-4 mb-3">
     <i class="bi bi-arrow-left"></i>
   </a>
 
-  <!-- Formulario dentro de una tarjeta estrecha -->
   <div class="card-receta mx-auto">
     <h5 class="text-center mb-4">Crear Ingrediente</h5>
     <form method="post">
       {% csrf_token %}
 
-      <!-- Nombre -->
       <div class="mb-3">
         {{ form.nombre.label_tag }}
         <input type="text" name="{{ form.nombre.name }}" id="{{ form.nombre.id_for_label }}"
@@ -40,7 +35,6 @@
         {{ form.nombre.errors }}
       </div>
 
-      <!-- Frecuencia: etiqueta arriba, controles abajo -->
       <div class="mb-3">
         <label for="{{ form.frec.id_for_label }}">Frecuencia:</label>
         <div class="d-flex align-items-center justify-content-center gap-2 mt-1"
@@ -58,7 +52,6 @@
         {{ form.frec.errors }}
       </div>
 
-      <!-- Botón guardar -->
       <button type="submit" class="btn btn-primary w-100">Guardar</button>
     </form>
   </div>

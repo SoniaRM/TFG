@@ -6,14 +6,12 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-    /* Oculta los checkboxes nativos */
     #tipo-comida-edit input[type="checkbox"],
     #ingredientes-edit input[type="checkbox"] {
         display: none !important;
     }
 </style>
 <style>
-    /* Anula el cursor y la animación de .card-receta en la vista detalle */
     .card-receta {
         cursor: default !important;
         transition: none !important;
@@ -43,7 +41,7 @@
                 {{ form.nombre.errors }}
             </div>
 
-            <!-- Tipos de Comida como chips -->
+            <!-- Tipos de Comida -->
             <div class="mb-3">
                 <label>Tipo de Comida:</label>
                 <div id="tipo-comida-edit" class="d-flex flex-wrap gap-2 mb-2">
@@ -89,7 +87,7 @@
                 {{ form.combinable.errors }}
             </div>
 
-            <!-- Ingredientes como chips con buscador -->
+            <!-- Ingredientes  -->
             <div class="mb-3">
                 <label>Ingredientes:</label>
                 <div class="input-group mb-2">
@@ -118,7 +116,6 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", () => {
-        // Sincroniza estado inicial de los chips
         document.querySelectorAll('#tipo-comida-edit .meal-btn').forEach(btn => {
             const input = document.getElementById(btn.dataset.inputId);
             if (input.checked) btn.classList.add('active');
@@ -128,7 +125,6 @@
             if (input.checked) span.classList.add('seleccionado');
         });
 
-        // Toggles para meal-btn
         document.querySelectorAll('#tipo-comida-edit .meal-btn').forEach(btn => {
             const input = document.getElementById(btn.dataset.inputId);
             btn.addEventListener('click', () => {
@@ -137,7 +133,6 @@
             });
         });
 
-        // Toggles para ingredientes
         const ingSpans = Array.from(document.querySelectorAll('#ingredientes-edit .ingrediente-item'));
         ingSpans.forEach(span => {
             const input = document.getElementById(span.dataset.inputId);
@@ -147,7 +142,6 @@
             });
         });
 
-        // Filtro de texto para ingredientes
         document.getElementById('buscar-ingrediente').addEventListener('input', function () {
             const q = this.value.toLowerCase();
             let any = false;
@@ -162,7 +156,6 @@
             document.getElementById('no-coincidencias').style.display = any ? 'none' : 'block';
         });
 
-        // Botón “X” limpia búsqueda
         document.getElementById('clear-ingrediente').addEventListener('click', () => {
             const inp = document.getElementById('buscar-ingrediente');
             inp.value = '';

@@ -12,7 +12,7 @@ class ConfigurarObjetivoViewTests(TestCase):
         self.familia = Familia.objects.create(nombre='TestFamilia', administrador=self.user)
         self.familia.miembros.add(self.user)
         self.client.login(username='testuser', password='12345')
-        self.url = reverse('configurar_objetivo')  # Asegúrate de que el nombre en urls.py es este
+        self.url = reverse('configurar_objetivo') 
 
     def test_get_configurar_objetivo_form(self):
         response = self.client.get(self.url)

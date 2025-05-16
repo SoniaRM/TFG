@@ -50,7 +50,7 @@ class ListaCompraViewsTest(TestCase):
         response = self.client.post(reverse('mover_compra_despensa'), {
             'lista_id': self.lista.id,
             'item_id': self.item.id,
-            'raciones': 2  # superaría original = 5
+            'raciones': 2 
         })
         self.assertEqual(response.status_code, 200)
         self.item.refresh_from_db()
@@ -110,7 +110,6 @@ class ListaCompraViewsTest(TestCase):
 
     def test_generar_lista_compra_actualiza_items(self):
         TipoComida.objects.all().delete()
-        # Crear receta con ingrediente
         tipo = TipoComida.objects.create(nombre="Almuerzo")
         receta = Receta.objects.create(
             nombre="Sopa", proteinas=10, carbohidratos=20, familia=self.familia
@@ -118,15 +117,12 @@ class ListaCompraViewsTest(TestCase):
         receta.tipo_comida.add(tipo)
         receta.ingredientes.add(self.ingrediente)
 
-        # Crear calendario con receta asignada
         fecha = self.start_date
         calendario = Calendario.objects.create(fecha=fecha, familia=self.familia)
         Calendario_Receta.objects.create(calendario=calendario, receta=receta, tipo_comida=tipo)
 
-        # Ejecutar función
         generar_lista_compra(self.start_date, self.familia)
 
-        # Verificar actualización
         item = ListaCompraItem.objects.get(lista=self.lista, ingrediente=self.ingrediente)
         self.assertEqual(item.original, 1)
         self.assertEqual(item.despensa, 1)

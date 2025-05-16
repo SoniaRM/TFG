@@ -20,16 +20,13 @@
 </div>
 
 <div class="container my-4">
-  <!-- Contenedor relativo para título centrado y leyenda a la derecha -->
   <div class="position-relative mb-4" style="height: 2.5rem;">
-    <!-- Título centrado -->
+    <!-- Título  -->
     <h5 id="tituloProteinas"
         class="lead mb-0 text-center mx-auto"
         style="width: max-content;">
-      <!-- Aquí inyecta tu script: "Registro proteico para hoy ..." -->
     </h5>
 
-    <!-- Leyenda posicionada a la derecha, alineada verticalmente con el título -->
     <div class="legend flex-column text-end position-absolute end-0 top-50 translate-middle-y">
       <div class="legend-item">
         Proteínas
@@ -41,19 +38,12 @@
       </div>
     </div>
   </div>
-  <!-- ///////////////////////////////////////////////
-    <div class="progress">
-      <div id="barraProteinas" class="progress-bar bg-success" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-    </div>
-    <p class="mt-2"><span id="consumidas">0</span>g consumidas</p>-->
 
     <div class="d-flex align-items-center position-relative mb-5" style="height: 120px;">
       <div class="flex-grow-1"></div>
-    <!-- Indicador a la izquierda -->
     <div class="indicador-proteinas mx-3">
       <svg viewBox="0 0 100 100" width="100" height="100">
         <circle class="donut-bg" cx="50" cy="50" r="45" />
-        <!-- aquí usamos la MISMA clase que el CSS base espera -->
         <circle class="donut-progress" id="donutProgressP" cx="50" cy="50" r="45" />
         <text id="donutTextP" class="donut-text" x="50" y="50" text-anchor="middle" dy=".35em">0%</text>
       </svg>
@@ -75,7 +65,6 @@
       </div>
     </div>
   
-    <!-- Espacio flexible para empujar el botón a la derecha -->
     <div class="flex-grow-1"></div>
     <!-- Botón de descarga -->
     <a href="{% url 'exportar_semana' %}?start={{ start_date|date:'Y-m-d' }}"
@@ -197,26 +186,6 @@
     });
   </script>
 
-
-  <script>/*
-function actualizarBarraProteinas(fecha) {
-fetch(`/api/calendario_dia/?fecha=${fecha}`)
-.then(res => res.json())
-.then(data => {
-const objetivo = data.objetivo_proteico || 100;
-const consumidas = data.proteinas_consumidas || 0;
-const porcentaje = Math.min((consumidas / objetivo) * 100, 100);
-document.getElementById('barraProteinas').style.width = porcentaje + '%';
-document.getElementById('barraProteinas').textContent = `${Math.round(porcentaje)}%`;
-document.getElementById('consumidas').textContent = consumidas;
-});
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
-});*/
-  </script>
-
   <script>
     // 1) Función para actualizar el donut
     function actualizarDonut(elDonutElem, elTextElem, consumido, objetivo) {
@@ -226,7 +195,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
     elDonutElem.style.strokeDashoffset = offset;
     elTextElem.textContent = `${Math.round(pct)}%`;
   }
-
 
     // 2) Función para actualizar el texto color-coded
     function actualizarTexto(elParrafo, consumido, objetivo) {
@@ -316,7 +284,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
     .catch(console.error);
 }
 
-
     // Cuando cargue la página, actualiza todas las columnas
     document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll('.day-column[id^="day-column-"]').forEach(col => {
@@ -325,7 +292,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
       });
     });
   </script>
-
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
@@ -354,7 +320,7 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
       recipeList.innerHTML = "<p class='text-muted'>Cargando...</p>";
       verMasBtn.style.display = "none";
 
-      // 1️⃣ Cargar recetas ya añadidas
+      // 1 Cargar recetas ya añadidas
       fetch(`/api/recetas_en_calendario/?tipo=${mealType}&fecha=${fecha}`)
         .then(res => res.json())
         .then(data => {
@@ -387,7 +353,7 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
       const buscarRecetaInput = document.getElementById("buscar-receta");
       const noCoincidencias    = document.getElementById("no-coincidencias-recetas");
 
-      // 2️⃣ Paginación de recetas disponibles
+      // 2 Paginación de recetas disponibles
       let offset = 0, limit = 10;
       function loadRecipes() {
         const filtro = buscarRecetaInput.value.toLowerCase();
@@ -422,13 +388,11 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
               btn.style.display = texto.includes(filtro) ? '' : 'none';
             });
 
-            //  ❏ Reaplicar filtro
             const botones = recipeList.querySelectorAll(".recipe-button");
             botones.forEach(btn => {
               btn.style.display = btn.textContent.toLowerCase().includes(filtro) ? "" : "none";
             });
 
-            //  ❏ Mostrar “no coincidencias” si no hay ninguno
             const hayVisibles = Array.from(botones).some(b => b.style.display !== "none");
             noCoincidencias.style.display = hayVisibles ? "none" : "block";
 
@@ -441,7 +405,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
       }
       verMasBtn.onclick = loadRecipes;
 
-      // Mostrar modal y cargar la primera página
       var modal = new bootstrap.Modal(modalEl);
       modal.show();
       loadRecipes();
@@ -451,41 +414,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
         actualizarCalendario(fecha, mealType);
         actualizarDegradado(fecha);
       });
-
-      // Cargar recetas disponibles para añadir (excluyendo las que ya están en el calendario)
-      /*
-      fetch(`/api/recetas_por_tipo/?tipo=${mealType}&fecha=${fecha}`)
-        .then(response => response.json())
-        .then(data => {
-          recipeList.innerHTML = "";
-          if (data.length === 0) {
-            recipeList.innerHTML = "<p class='text-muted'>No hay recetas disponibles.</p>";
-            return;
-          }
-
-          data.forEach(receta => {
-            var button = document.createElement("button");
-            button.classList.add("recipe-button", "btn", "btn-outline-primary", "mb-2", "w-100");
-            button.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                  <span class="flex-grow-1 text-start recipe-name">${receta.nombre}</span>
-                  <span class="badge score-badge">${receta.score}</span>
-                </div>
-              `;
-            button.dataset.recetaIds = JSON.stringify(receta.ids);
-
-            button.addEventListener("click", function () {
-              const ids = JSON.parse(this.dataset.recetaIds);
-              // La función agregarRecetaCalendario deberá adaptarse para aceptar un arreglo de IDs
-              agregarRecetaCalendario(ids, mealType, fecha);
-            });
-
-            recipeList.appendChild(button);
-          });
-        })
-        .catch(() => {
-          recipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
-        });*/
 
       var modalElement = document.getElementById("seleccionarRecetaModal");
       var modal = new bootstrap.Modal(modalElement);
@@ -558,12 +486,9 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
                   <span class="badge score-badge">${receta.score}</span>
                 </div>
               `;
-            // Guardamos el/los ID(s) en el atributo data, usando JSON para mayor flexibilidad
             button.dataset.recetaIds = JSON.stringify(receta.ids);
-            // Al hacer clic, se recupera el arreglo de IDs y se llama a la función de agregar recetas
             button.addEventListener("click", function () {
               const ids = JSON.parse(this.dataset.recetaIds);
-              // La función agregarRecetaCalendario deberá adaptarse para aceptar un arreglo de IDs
               agregarRecetaCalendario(ids, mealType, fecha);
             });
 
@@ -586,26 +511,21 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
           var mealBlock = document.querySelector(`[data-fecha="${fecha}"][data-meal="${mealType}"]`);
           if (!mealBlock) return;
 
-          // Buscar el contenedor existente de recetas
           var recipesContainer = mealBlock.querySelector(".meal-items");
           if (recipesContainer) {
-            // Limpiar su contenido sin eliminar el contenedor
             recipesContainer.innerHTML = "";
           } else {
-            // Si no existe, lo creamos y desactivamos los eventos para que no bloquee el click
             recipesContainer = document.createElement("div");
             recipesContainer.classList.add("meal-items");
             recipesContainer.style.pointerEvents = "none";
             mealBlock.appendChild(recipesContainer);
           }
 
-          // Insertar las recetas de la respuesta
           if (data.recetas[mealType] && data.recetas[mealType].length > 0) {
             data.recetas[mealType].forEach(nombreReceta => {
               var recipeDiv = document.createElement("div");
               recipeDiv.classList.add("meal-item");
               recipeDiv.textContent = nombreReceta;
-              // Los elementos individuales deben permitir recibir clics
               recipeDiv.style.pointerEvents = "auto";
               recipesContainer.appendChild(recipeDiv);
             });
@@ -613,12 +533,10 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
             recipesContainer.innerHTML = "";
           }
 
-
-          //actualizarBarraProteinas(fecha);
           actualizarDegradado(fecha);
           actualizarIndicadores(new Date().toISOString().split('T')[0]);
 
-          // 4. Actualizamos el texto "xg / 100g" en la cabecera del día
+          // Actualizamos el texto "xg / 100g" en la cabecera del día
           const dayColumn = document.getElementById(`day-column-${fecha}`);
           if (dayColumn) {
             const proteinaValor = dayColumn.querySelector('.proteinas-valor');
@@ -629,12 +547,11 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
             if (carboValor) {
               carboValor.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
             }
-            // 3) **Actualiza los carbohidratos**:
             const carbsElem = dayColumn.querySelector('.carbohidratos-valor');
             if (carbsElem) {
               carbsElem.textContent = `C: ${data.carbohidratos_consumidos}g / ${data.objetivo_carbohidratos}g`;
 
-              // 4) Aplica el “shake” si hemos excedido
+              // Aplica el “shake” si hemos excedido
               if (data.carbohidratos_consumidos > data.objetivo_carbohidratos) {
                 carbsElem.classList.add('carbs-exceso');
               } else {
@@ -652,7 +569,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
     function agregarRecetaCalendario(ids, mealType, fecha) {
 
       if (!Array.isArray(ids)) {
-        // Puede que venga como undefined o como un número
         if (typeof ids === "undefined") {
           console.error("Error: el parámetro ids es undefined.");
           return;
@@ -687,18 +603,17 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
         .then(results => {
           console.log("🔵 Respuesta del servidor (Agregar):", results);
 
-          // Opcional: verificar si alguna respuesta tiene error
           const errores = results.filter(res => res.error);
           if (errores.length > 0) {
             console.error("Errores al agregar recetas:", errores);
             alert("Hubo un error al agregar algunas recetas. Revisa la consola.");
           }
 
-          actualizarCalendario(fecha, mealType);  // Actualiza el calendario
+          actualizarCalendario(fecha, mealType);  
           actualizarDegradado(fecha);
 
-          cargarRecetasAñadidas(mealType, fecha);    // Actualiza la lista de recetas añadidas
-          cargarRecetasDisponibles(mealType, fecha);   // Actualiza las recetas disponibles
+          cargarRecetasAñadidas(mealType, fecha);    
+          cargarRecetasDisponibles(mealType, fecha);   
 
           const buscarRecetaInput = document.getElementById("buscar-receta");
           if (buscarRecetaInput) {
@@ -712,8 +627,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
           alert("Error al agregar la receta. Revisa la consola para más detalles.");
         });
     }
-    /*******************************/
-    /*************************************/
 
     function eliminarRecetaCalendario(recetaId, mealType, fecha) {
       fetch("/api/eliminar_receta_calendario/", {
@@ -737,29 +650,23 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
           actualizarCalendario(fecha, mealType);
           actualizarDegradado(fecha);
 
-          // ✅ Actualizar dinámicamente la interfaz sin recargar
           cargarRecetasAñadidas(mealType, fecha);
           cargarRecetasDisponibles(mealType, fecha);
         })
         .catch(() => console.error("Error al eliminar la receta."));
         Promise.all(requests).then(() => {
           actualizarCalendario(fecha, mealType);
-          actualizarDegradado(fecha);    // <-- y aquí también
+          actualizarDegradado(fecha);    
         });
     }
-
-
   });
   </script>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // Obtiene la fecha actual en formato YYYY-MM-DD
       const todayStr = new Date().toISOString().split('T')[0];
-      // Busca el contenedor del día de hoy
       const todayColumn = document.getElementById(`day-column-${todayStr}`);
       if (todayColumn) {
-        // Agrega la clase "today" para resaltarlo
         todayColumn.classList.add("today");
       }
     });
@@ -777,7 +684,6 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
 
         if (!recipeList) return;
 
-        // Selecciona todos los botones de receta
         const recipeButtons = recipeList.querySelectorAll(".recipe-button");
 
         recipeButtons.forEach((btn) => {
@@ -796,18 +702,13 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
   </script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
-    // (Aquí van todas tus funciones y listeners actuales…)
-
-    // ➊ Referencias que vamos a usar:
     const modalEl = document.getElementById("seleccionarRecetaModal");
     const buscarRecetaInput = document.getElementById("buscar-receta");
     const noCoincidencias = document.getElementById("no-coincidencias-recetas");
 
-    // ➋ Cuando el modal se cierre, reseteamos la búsqueda:
     modalEl.addEventListener("hidden.bs.modal", function () {
       if (buscarRecetaInput) {
         buscarRecetaInput.value = "";
-        // (si lanzas fetch en keyup, puedes reactivar la lista por defecto simulando un keyup)
         buscarRecetaInput.dispatchEvent(new Event('keyup'));
       }
       if (noCoincidencias) {

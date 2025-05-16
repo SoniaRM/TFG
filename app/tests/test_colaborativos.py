@@ -25,7 +25,7 @@ class ColaborativosViewsTest(TestCase):
         Familia.objects.create(nombre="duplicado", administrador=self.user)
         data = {
             'accion_familiar': 'crear',
-            'nombre_familia': 'Duplicado'  # En mayúscula para verificar que se hace lower
+            'nombre_familia': 'Duplicado'  
         }
         response = self.client.post(reverse('cambiar_familia'), data, follow=True)
         form = response.context['form']
@@ -53,7 +53,7 @@ class ColaborativosViewsTest(TestCase):
         response = self.client.get(reverse('aprobar_solicitud', args=[solicitud.id]))
         self.assertRedirects(response, reverse('configurar_objetivo'))
         solicitud.refresh_from_db()
-        self.assertEqual(solicitud.estado, 'pendiente')  # No debería cambiar
+        self.assertEqual(solicitud.estado, 'pendiente')  
 
     def test_rechazar_solicitud_valida(self):
         nuevo = User.objects.create_user(username="nuevo2", password="12345")
@@ -70,7 +70,7 @@ class ColaborativosViewsTest(TestCase):
         response = self.client.get(reverse('rechazar_solicitud', args=[solicitud.id]))
         self.assertRedirects(response, reverse('configurar_objetivo'))
         solicitud.refresh_from_db()
-        self.assertEqual(solicitud.estado, 'pendiente')  # No se debería haber rechazado
+        self.assertEqual(solicitud.estado, 'pendiente') 
 
     def test_esperando_aprobacion_redirige_si_aprobada(self):
         SolicitudUniónFamilia.objects.create(usuario=self.user, familia=self.familia, estado='aprobada')
@@ -91,7 +91,6 @@ class ColaborativosViewsTest(TestCase):
         self.assertTrue(SolicitudUniónFamilia.objects.filter(usuario=self.user, familia=nueva_familia).exists())
 
     def test_esperando_aprobacion_renderiza_template_si_no_aprobada(self):
-        # No hay solicitud o no está aprobada
         SolicitudUniónFamilia.objects.create(usuario=self.user, familia=self.familia, estado='pendiente')
         response = self.client.get(reverse('esperando_aprobacion'))
         self.assertEqual(response.status_code, 200)

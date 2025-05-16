@@ -58,7 +58,7 @@ class IngredientesViewTests(TestCase):
     def test_crear_ingrediente_post_invalido(self):
         data = {'nombre': '', 'frec': ''}
         response = self.client.post(reverse('crear_ingrediente'), data)
-        form = response.context['form']  # Accede al formulario del contexto
+        form = response.context['form']  
         self.assertFalse(form.is_valid())
         self.assertIn('nombre', form.errors)
         self.assertIn('frec', form.errors)
@@ -83,7 +83,7 @@ class IngredientesViewTests(TestCase):
     def test_editar_ingrediente_post_invalido(self):
         data = {'nombre': '', 'frec': ''}
         response = self.client.post(reverse('editar_ingrediente', args=[self.ingrediente.id]), data)
-        form = response.context['form']  # Accede al formulario del contexto
+        form = response.context['form']  
         self.assertFalse(form.is_valid())
         self.assertIn('nombre', form.errors)
         self.assertIn('frec', form.errors)
@@ -95,7 +95,7 @@ class IngredientesViewTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_crear_ingrediente_ajax_nombre_repetido_case_insensitive(self):
-        data = {'nombre': 'zanahoria', 'frec': 1}  # Ya existe como "Zanahoria"
+        data = {'nombre': 'zanahoria', 'frec': 1} 
         response = self.client.post(
             reverse('ingrediente_crear_ajax'),
             data,

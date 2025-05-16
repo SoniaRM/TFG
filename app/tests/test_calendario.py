@@ -37,7 +37,7 @@ class CalendarioViewsTest(TestCase):
         response = self.client.get(reverse('calendario_semanal') + '?start=fecha-invalida')
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'calendario/semanal.html')
-        self.assertEqual(len(response.context['dias']), 7)  # fallback correcto
+        self.assertEqual(len(response.context['dias']), 7)  
 
     def test_calendario_semanal_view(self):
         response = self.client.get(reverse('calendario_semanal'))
@@ -51,7 +51,7 @@ class CalendarioViewsTest(TestCase):
 
     def test_recetas_por_tipo_sin_recetas_disponibles(self):
         fecha = date.today().isoformat()
-        tipo_nombre = self.tipo_comida.nombre  # Asume que en `setUp` has creado un TipoComida
+        tipo_nombre = self.tipo_comida.nombre  
         response = self.client.get(reverse('recetas_por_tipo'), {
             'tipo': tipo_nombre,
             'fecha': fecha
@@ -79,7 +79,7 @@ class CalendarioViewsTest(TestCase):
         )
         receta.tipo_comida.add(self.tipo_comida)
 
-        calendario = self.calendario  # ya creado en setUp
+        calendario = self.calendario 
 
         Calendario_Receta.objects.create(
             calendario=calendario,
@@ -168,7 +168,7 @@ class CalendarioViewsTest(TestCase):
     def test_eliminar_receta_calendario_no_existente(self):
         response = self.client.post(reverse('eliminar_receta_calendario'), {
             "fecha": self.fecha.isoformat(),
-            "receta_id": 999,  # ID inexistente
+            "receta_id": 999, 
             "tipo_comida": self.tipo_comida.nombre
         })
         self.assertEqual(response.status_code, 404)

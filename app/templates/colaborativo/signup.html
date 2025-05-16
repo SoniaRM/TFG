@@ -71,7 +71,6 @@
         const divFamiliaExistente = document.getElementById("div_familia_existente");
     
         function updateFamilyFields(){
-            // Se asume que los radios se renderizan con el name "accion_familiar"
             const accionRadios = document.getElementsByName("accion_familiar");
             let selectedValue = "";
             for (let i = 0; i < accionRadios.length; i++) {
@@ -97,7 +96,6 @@
             accionRadios[i].addEventListener("change", updateFamilyFields);
         }
         
-        // Inicializa la visibilidad de los campos
         updateFamilyFields();
     });
     </script>

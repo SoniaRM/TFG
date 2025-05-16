@@ -10,7 +10,7 @@ class TipoComida(models.Model):
         max_length=20, 
         validators=[
             RegexValidator(
-                regex=r'^[a-zA-Z]+$',  # Defining the regex as a raw string
+                regex=r'^[a-zA-Z]+$',  
                 message='El nombre solo puede contener letras.',
                 code='invalid_nombre'
             )
@@ -22,7 +22,6 @@ class TipoComida(models.Model):
 
 class Familia(models.Model):
     nombre = models.CharField(max_length=100)
-    # Se genera un código único de invitación si aún no existe.
     codigo_invitacion = models.CharField(max_length=8, unique=True, blank=True)
     miembros = models.ManyToManyField(User, related_name='familias')
     administrador = models.ForeignKey(
@@ -35,7 +34,6 @@ class Familia(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.codigo_invitacion:
-            # Genera un código aleatorio de 8 caracteres
             self.codigo_invitacion = uuid.uuid4().hex[:8]
         super().save(*args, **kwargs)
 
@@ -60,9 +58,7 @@ class Ingrediente(models.Model):
         return self.nombre
 
     def delete(self, *args, **kwargs):
-        # Elimina todas las recetas que contienen este ingrediente
         self.recetas.all().delete()
-        # Llama al método delete original para borrar el ingrediente
         super().delete(*args, **kwargs)
 
 class Receta(models.Model):
@@ -103,7 +99,7 @@ class Calendario(models.Model):
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='calendarios')
 
     class Meta:
-        unique_together = ('familia', 'fecha')  # Cada familia solo puede tener un calendario por día
+        unique_together = ('familia', 'fecha') 
 
     def __str__(self):
         return f"Planificación del {self.fecha} para {self.familia}"
@@ -158,13 +154,8 @@ class Calendario_Receta(models.Model):
 
 
 class ListaCompra(models.Model):
-    # Por ejemplo, para identificar a qué semana pertenece
     start_date = models.DateField(default=timezone.now)
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name='listas_compra')
-
-    # Si quieres enlazarlo a un usuario (aunque sea una app de un solo usuario),
-    # podrías añadir un campo user = models.ForeignKey(User, on_delete=models.CASCADE)
-    # si en el futuro quisieras multiusuario.
 
     def __str__(self):
         return f"Lista de la compra - Semana del {self.start_date}"

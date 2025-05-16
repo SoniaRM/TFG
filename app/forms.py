@@ -40,11 +40,9 @@ class IngredienteForm(forms.ModelForm):
         fields = ['nombre', 'frec']
     
     def __init__(self, *args, user=None, **kwargs):
-        # “extraemos” user si lo han pasado
         super().__init__(*args, **kwargs)
-        self.user = user  # <-- guardamos el usuario
+        self.user = user 
 
-    
     def clean_nombre(self):
         nombre = self.cleaned_data['nombre'].strip()
         familia = self.user.familias.first()
@@ -54,7 +52,6 @@ class IngredienteForm(forms.ModelForm):
         ).exists():
             raise forms.ValidationError("Ya existe un ingrediente con este nombre.")
         return nombre
-
 
 class ObjetivoDiarioForm(forms.ModelForm):
     class Meta:
@@ -76,20 +73,16 @@ class CustomUserCreationForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Sobreescribir etiquetas (labels)
         self.fields['username'].label = "Nombre de usuario"
         self.fields['password1'].label = "Contraseña"
         self.fields['password2'].label = "Confirmar contraseña"
 
-        # Remover help_text
         self.fields['username'].help_text = ""
         self.fields['password1'].help_text = ""
         self.fields['password2'].help_text = ""
 
-        # Agregar clases de Bootstrap a los inputs
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
-
 
 class CustomSignupForm(UserCreationForm):
     ACCION_FAMILIAR_CHOICES = (
@@ -114,7 +107,7 @@ class CustomSignupForm(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = UserCreationForm.Meta.fields  # 'username', 'password1', 'password2'
+        fields = UserCreationForm.Meta.fields 
 
     def clean(self):
         cleaned_data = super().clean()
@@ -135,11 +128,9 @@ class CustomSignupForm(UserCreationForm):
         return cleaned_data
 
     def save(self, commit=True):
-        # Guarda el usuario de manera normal
         user = super().save(commit)
         accion = self.cleaned_data.get("accion_familiar")
         if accion == 'crear':
-            # Crea la nueva familia y añade al usuario
             familia, created = Familia.objects.get_or_create(
                 nombre=self.cleaned_data.get("nombre_familia").strip().lower()
             )
@@ -148,9 +139,7 @@ class CustomSignupForm(UserCreationForm):
                 familia.administrador = user
                 familia.save()
         elif accion == 'unirse':
-            # En lugar de agregar el usuario directamente, crea una solicitud de unión
             familia = self.cleaned_data.get("familia_object")
-            # Crea la solicitud con estado "pendiente"
             SolicitudUniónFamilia.objects.create(usuario=user, familia=familia)
         return user
 
@@ -164,13 +153,11 @@ class ChangeFamilyForm(forms.Form):
         widget=forms.RadioSelect,
         label="¿Qué acción deseas realizar?"
     )
-    # Solo se usa si se crea una nueva familia.
     nombre_familia = forms.CharField(
         max_length=100,
         required=False,
         label="Nombre para la nueva familia"
     )
-    # Para unirse, se debe introducir el código de invitación
     codigo_invitacion = forms.CharField(
         max_length=8,
         required=False,
@@ -188,14 +175,12 @@ class ChangeFamilyForm(forms.Form):
             if not codigo:
                 self.add_error('codigo_invitacion', "Debes ingresar el código de invitación.")
             else:
-                # Verifica que exista una familia con ese código (búsqueda insensible a mayúsculas)
                 try:
                     familia = Familia.objects.get(codigo_invitacion__iexact=codigo)
-                    cleaned_data['familia_unirse'] = familia  # Guardamos la familia encontrada
+                    cleaned_data['familia_unirse'] = familia 
                 except Familia.DoesNotExist:
                     self.add_error('codigo_invitacion', "No se encontró una familia con ese código.")
         return cleaned_data
-
 
 class ReenviarSolicitudForm(forms.Form):
     familia_existente = forms.CharField(

@@ -1,6 +1,6 @@
 from django.shortcuts import redirect
 from django.urls import reverse
-from .models import SolicitudUniónFamilia  # Asegúrate de importar el modelo correctamente
+from .models import SolicitudUniónFamilia  
 
 class CheckFamilyMiddleware:
     """
@@ -22,7 +22,6 @@ class CheckFamilyMiddleware:
                 reverse('crear_familia'),
             ]
             if request.path not in allowed_paths and not request.user.familias.exists():
-                # Consultamos directamente el modelo para ver si existe alguna solicitud pendiente.
                 if SolicitudUniónFamilia.objects.filter(usuario=request.user, estado='pendiente').exists():
                     return redirect('esperando_aprobacion')
                 else:

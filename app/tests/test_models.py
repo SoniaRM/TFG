@@ -23,28 +23,23 @@ def random_letters(length=4):
 
 class ModelsTestCase(TestCase):
     def setUp(self):
-        # Usuario y familia base
         self.user = User.objects.create_user(username='u1', password='pass')
         self.familia = Familia.objects.create(nombre='Familiar', administrador=self.user)
 
-    # --- TipoComida ---
     def test_tipo_comida_str_and_validator(self):
         nombre = f"Desayuno{random_letters()}"
         tc = TipoComida(nombre=nombre)
-        tc.full_clean()  # debe pasar
+        tc.full_clean()  
         tc.save()
         self.assertEqual(str(tc), nombre)
-        # nombre con caracteres inválidos
         bad = TipoComida(nombre='Desayuno123')
         with self.assertRaises(ValidationError):
             bad.full_clean()
 
-    # --- Familia ---
     def test_familia_codigo_invitacion_generated(self):
         f = Familia.objects.create(nombre='Clan')
         self.assertIsNotNone(f.codigo_invitacion)
         self.assertEqual(len(f.codigo_invitacion), 8)
-        # si guardo de nuevo, no cambia
         old = f.codigo_invitacion
         f.save()
         self.assertEqual(f.codigo_invitacion, old)
@@ -52,18 +47,14 @@ class ModelsTestCase(TestCase):
     def test_familia_str(self):
         self.assertEqual(str(self.familia), 'Familiar')
 
-    # --- Ingrediente ---
     def test_ingrediente_str_and_validators(self):
-        # eliminamos caracteres inválidos para pasar regex
         ing = Ingrediente(nombre='Leche 2 ñ', frec=2, familia=self.familia)
         ing.full_clean()
         ing.save()
         self.assertEqual(str(ing), 'Leche 2 ñ')
-        # frec menor que 1
         bad = Ingrediente(nombre='Agua', frec=0, familia=self.familia)
         with self.assertRaises(ValidationError):
             bad.full_clean()
-        # nombre inválido (solo símbolos)
         bad2 = Ingrediente(nombre='!@@@', frec=1, familia=self.familia)
         with self.assertRaises(ValidationError):
             bad2.full_clean()
@@ -77,13 +68,10 @@ class ModelsTestCase(TestCase):
         )
         r.tipo_comida.add(tc)
         r.ingredientes.add(ing)
-        # existía la receta
         self.assertEqual(Receta.objects.count(), 1)
-        # al borrar ingrediente, la receta desaparece
         ing.delete()
         self.assertEqual(Receta.objects.count(), 0)
 
-    # --- Receta ---
     def test_receta_str_and_validators(self):
         r = Receta(
             nombre='Tortilla 3 huevos', proteinas=12, carbohidratos=5,
@@ -92,13 +80,11 @@ class ModelsTestCase(TestCase):
         r.full_clean()
         r.save()
         self.assertEqual(str(r), 'Tortilla 3 huevos')
-        # proteinas negativas
         r2 = Receta(
             nombre='Fallida', proteinas=-1, carbohidratos=0, familia=self.familia
         )
         with self.assertRaises(ValidationError):
             r2.full_clean()
-        # nombre inválido
         r3 = Receta(
             nombre='@@@', proteinas=0, carbohidratos=0, familia=self.familia
         )
@@ -112,7 +98,6 @@ class ModelsTestCase(TestCase):
         self.familia.delete()
         self.assertEqual(Receta.objects.count(), 0)
 
-    # --- Calendario y Calendario_Receta ---
     def test_calendario_unique_together(self):
         fecha = datetime.date.today()
         Calendario.objects.create(familia=self.familia, fecha=fecha)
@@ -127,18 +112,14 @@ class ModelsTestCase(TestCase):
         )
         r.tipo_comida.add(tc)
         cal = Calendario.objects.create(familia=self.familia, fecha=datetime.date.today())
-        # al principio no hay consumo
         self.assertEqual(cal.proteinas_consumidas, 0)
         self.assertEqual(cal.carbohidratos_consumidos, 0)
         self.assertEqual(cal.calcular_proteinas_restantes(), cal.objetivo_proteico)
-        # asignar receta
         cal.asignar_receta(r, tc)
-        # consumo debe reflejar la receta
         self.assertEqual(cal.proteinas_consumidas, 8)
         self.assertEqual(cal.carbohidratos_consumidos, 15)
         self.assertEqual(cal.calcular_proteinas_restantes(), cal.objetivo_proteico - 8)
         self.assertEqual(cal.calcular_carbos_restantes(), cal.objetivo_carbohidratos - 15)
-        # eliminar receta
         cal.eliminar_receta(r, tc)
         self.assertEqual(cal.proteinas_consumidas, 0)
 
@@ -159,12 +140,10 @@ class ModelsTestCase(TestCase):
         self.assertIn(str(self.familia), s)
         self.assertIn(str(cal.fecha), s)
 
-    # --- ListaCompra y ListaCompraItem ---
     def test_lista_compra_str_and_default(self):
         lc = ListaCompra.objects.create(familia=self.familia)
         texto = str(lc)
         self.assertIn('Lista de la compra', texto)
-        # start_date por defecto: comparamos solo la fecha
         self.assertEqual(lc.start_date.date(), timezone.now().date())
 
     def test_lista_compra_item_unique_and_str(self):
@@ -175,16 +154,13 @@ class ModelsTestCase(TestCase):
         with self.assertRaises(IntegrityError):
             ListaCompraItem.objects.create(lista=lc, ingrediente=ing)
 
-    # --- SolicitudUniónFamilia ---
     def test_solicitud_union_str_and_defaults(self):
         sol = SolicitudUniónFamilia.objects.create(usuario=self.user, familia=self.familia)
         texto = str(sol)
         self.assertIn(self.user.username, texto)
         self.assertIn(self.familia.nombre, texto)
         self.assertIn('pendiente', texto)
-        # fecha_solicitud asignada correctamente
         self.assertIsNotNone(sol.fecha_solicitud)
-
 
     def test_crear_tipo_comida_valido(self):
         TipoComida.objects.all().delete()

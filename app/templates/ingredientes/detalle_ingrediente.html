@@ -6,18 +6,15 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container mt-4 mb-3">
-  <!-- Flecha de vuelta -->
   <a href="{% url 'listado_ingredientes' %}" class="btn btn-secondary ms-4">
     <i class="bi bi-arrow-left"></i>
   </a>
 
-  <!-- Tarjeta con estilo igual al listado -->
   <div class="card-recetaa mx-auto" style="max-width: 600px;">
     <h5 class="text-center">{{ ingrediente.nombre }}</h5>
     <p><strong>Frecuencia:</strong> {{ ingrediente.frec }}</p>
   </div>
 
-  <!-- Botones de acción -->
   <div class="d-flex justify-content-between mt-4 mx-auto" style="max-width: 600px;">
     <button type="button" class="btn btn-danger" data-url="{% url 'detalle_ingrediente' ingrediente.pk %}"
       onclick="confirmarEliminacion(this)">
@@ -30,7 +27,6 @@
 </div>
 
 
-  <!-- Lista de recetas que usan este ingrediente (tarjetas clicables) -->
   <div class="container mt-4 mx-auto" style="max-width: 600px;">
     <h5>Recetas con "{{ ingrediente.nombre }}":</h5>
     {% if recetas %}

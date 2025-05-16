@@ -9,7 +9,7 @@ import json
 from babel.dates import format_date
 
 from ..models import ListaCompra, ListaCompraItem, Calendario
-from ..models import Ingrediente  # si lo necesitas para crear nuevos items
+from ..models import Ingrediente 
 #Exportacion
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.pagesizes import A4
@@ -19,12 +19,10 @@ import io
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 
-
 #LISTA COMPRA
 @login_required
 def vista_lista_compra(request):
     familia = request.user.familias.first()
-    # 1) Determinamos la semana
     start_str = request.GET.get('start')
     if start_str:
         try:
@@ -34,16 +32,11 @@ def vista_lista_compra(request):
     else:
         input_date = now().date()
 
-    # Forzamos a lunes
     start_date = input_date - timedelta(days=input_date.weekday())
     dias = [start_date + timedelta(days=i) for i in range(7)]
 
-    # 2) Obtenemos (o creamos) la ListaCompra para esa semana
     lista_compra_obj, _ = ListaCompra.objects.get_or_create(start_date=start_date, familia=familia)
 
-    # 3) Obtenemos todos los items y separamos en:
-    #    - ingredientes por comprar (compra>0)
-    #    - ingredientes en despensa (despensa>0)
     items = lista_compra_obj.items.select_related('ingrediente')
     ingredientes_por_comprar = []
     ingredientes_en_despensa = []
@@ -53,20 +46,15 @@ def vista_lista_compra(request):
             ingredientes_por_comprar.append(item)
         if item.despensa > 0:
             item.faltan = item.original - item.despensa
-            # Si por alguna razón faltan es negativo, lo ajustamos a 0
             if item.faltan < 0:
                 item.faltan = 0
             ingredientes_en_despensa.append(item)
-    # ─── Ordenar alfabéticamente por nombre de ingrediente ───
     ingredientes_por_comprar.sort(key=lambda x: x.ingrediente.nombre.lower())
     ingredientes_en_despensa.sort(key=lambda x: x.ingrediente.nombre.lower())
 
-
-    # 4) Formateamos la semana (ej: "17-23 de marzo 2025")
     from babel.dates import format_date
     semana_formateada = f"{dias[0].day}-{dias[-1].day} de {format_date(dias[0], format='MMMM yyyy', locale='es')}"
 
-    # 5) Calculamos URLs para anterior y siguiente semana
     prev_week_date = start_date - timedelta(days=7)
     next_week_date = start_date + timedelta(days=7)
 
@@ -88,13 +76,10 @@ def mover_compra_despensa(request):
         raciones = int(request.POST.get('raciones', 0))
         item = get_object_or_404(ListaCompraItem, id=item_id, lista_id=lista_id)
         familia = request.user.familias.first()
-        # Verificamos que el item pertenezca a la familia del usuario
         if item.lista.familia != familia:
             return JsonResponse({'error': 'No tienes permiso para modificar este elemento.'}, status=403)
         
-        # Recalcular: Aumentar despensa y ajustar compra según el valor original.
         nuevo_despensa = item.despensa + raciones
-        # No puede superar el total original:
         if nuevo_despensa > item.original:
             nuevo_despensa = item.original
         item.despensa = nuevo_despensa
@@ -114,7 +99,6 @@ def mover_despensa_compra(request):
         if item.lista.familia != familia:
             return JsonResponse({'error': 'No tienes permiso para modificar este elemento.'}, status=403)
         
-        # Recalcular: Disminuir despensa y ajustar compra.
         nuevo_despensa = item.despensa - raciones
         if nuevo_despensa < 0:
             nuevo_despensa = 0
@@ -177,10 +161,8 @@ def generar_lista_compra(week_start, familia):
         
     end_date = week_start + timedelta(days=6)
 
-    # Obtén (o crea) la ListaCompra para esa semana
     lista, created = ListaCompra.objects.get_or_create(start_date=week_start, familia=familia)
 
-    # Calcula los nuevos totales a partir del calendario
     calendarios = Calendario.objects.filter(fecha__range=(week_start, end_date), familia=familia) \
                                     .prefetch_related('calendario_recetas__receta__ingredientes')
 
@@ -190,10 +172,8 @@ def generar_lista_compra(week_start, familia):
             for ing in cr.receta.ingredientes.all():
                 nuevos_totales[ing.id] = nuevos_totales.get(ing.id, 0) + 1
 
-    # Obtenemos los items existentes usando el ID del ingrediente
     items_existentes = { item.ingrediente.id: item for item in lista.items.all() }
 
-    # Actualizamos o eliminamos los items existentes
     for ing_id, item in items_existentes.items():
         if ing_id in nuevos_totales:
             nuevo_total = nuevos_totales[ing_id]
@@ -206,7 +186,6 @@ def generar_lista_compra(week_start, familia):
         else:
             item.delete()
 
-    # Para los ingredientes nuevos, usamos get_or_create por seguridad extra
     for ing_id, total in nuevos_totales.items():
         try:
             ing_obj = Ingrediente.objects.get(pk=ing_id)
@@ -250,10 +229,8 @@ def finalizar_compra(request):
             item_id = item_info.get('item_id')
             cantidad_str = item_info.get('cantidad', '0')
             cantidad = int(cantidad_str)
-            # Buscamos el ListaCompraItem
             try:
                 lci = ListaCompraItem.objects.get(id=item_id, lista=lista)
-                # Aumentamos la despensa
                 nuevo_despensa = lci.despensa + cantidad
                 if nuevo_despensa > lci.original:
                     nuevo_despensa = lci.original
@@ -271,7 +248,6 @@ def finalizar_compra(request):
 @login_required
 def resetear_lista_compra(request):
     if request.method == "POST":
-        # Obtener la fecha de inicio de la semana (parámetro 'start')
         start_str = request.GET.get('start')
         if start_str:
             try:
@@ -279,7 +255,6 @@ def resetear_lista_compra(request):
             except ValueError:
                 return JsonResponse({"error": "Fecha inválida"}, status=400)
         else:
-            # Si no se proporciona, tomar el lunes de la semana actual
             start_date = now().date() - timedelta(days=now().date().weekday())
         
         familia = request.user.familias.first()
@@ -288,7 +263,6 @@ def resetear_lista_compra(request):
         except ListaCompra.DoesNotExist:
             return JsonResponse({"error": "Lista de compra no encontrada para la fecha especificada."}, status=404)
         
-        # Reiniciar cada item: despensa a 0 y compra igual al valor original
         for item in lista.items.all():
             item.despensa = 0
             item.compra = item.original
@@ -305,7 +279,6 @@ def exportar_lista_compra(request):
     Se espera un parámetro GET 'start' con la fecha de inicio de la semana (YYYY-MM-DD).
     El PDF incluirá una tabla con los ingredientes a comprar (donde compra > 0) y las raciones correspondientes.
     """
-    # 1. Obtener fecha base del parámetro GET; si falla, se usa la fecha de hoy
     start_str = request.GET.get('start')
     if start_str:
         try:
@@ -315,17 +288,13 @@ def exportar_lista_compra(request):
     else:
         input_date = timezone.now().date()
 
-    # 2. Forzar a lunes (suponiendo que la lista corresponde a una semana)
     start_date = input_date - timedelta(days=input_date.weekday())
     end_date = start_date + timedelta(days=6)
     familia = request.user.familias.first()
-    # 3. Obtener la instancia de ListaCompra para esa semana (o crearla si no existe)
     lista_compra, created = ListaCompra.objects.get_or_create(start_date=start_date, familia=familia)
 
-    # 4. Filtrar los ítems con compra > 0
     items_por_comprar = lista_compra.items.filter(compra__gt=0)
 
-    # Si no hay ítems, se puede devolver un PDF indicando "No hay ingredientes pendientes"
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
                             rightMargin=40, leftMargin=40, topMargin=60, bottomMargin=40)
@@ -344,7 +313,6 @@ def exportar_lista_compra(request):
     elements.append(Paragraph(week_text, custom_heading))
     elements.append(Spacer(1, 20))
 
-    # 5. Construir la tabla de ingredientes pendientes
     shopping_data = [["Ingrediente", "Raciones"]]
     if items_por_comprar.exists():
         for item in items_por_comprar:
@@ -371,7 +339,6 @@ def exportar_lista_compra(request):
     buffer.seek(0)
     start_day = start_date.day
     end_day = end_date.day
-    # Formatear el nombre del mes en minúsculas
     month_text = format_date(start_date, format="MMMM", locale='es').lower()
     file_name = f"lista_compra_{start_day}-{end_day}_{month_text}.pdf"
     

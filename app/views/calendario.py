@@ -65,12 +65,9 @@ def calendario_semanal(request):
     prev_week_date = start_date - timedelta(days=7)
     next_week_date = start_date + timedelta(days=7)
 
-    # Lista de tipos de comida en orden
     meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
 
-    #Para los 4 cuadrados del calendario y que se puedan pinchar
     tipos_comida = TipoComida.objects.all()
-    # Crea un diccionario {nombre: id} para facilitar la búsqueda en JS
     meal_mapping = {tc.nombre: tc.id for tc in tipos_comida}
 
     # 7) Pasamos al contexto la info necesaria
@@ -79,16 +76,14 @@ def calendario_semanal(request):
         'dia_data': dia_data,
         'prev_week_url': f'?start={prev_week_date}',  # Query string para ir a la semana anterior
         'next_week_url': f'?start={next_week_date}',  # Query string para ir a la semana siguiente
-        'meal_order': meal_order,  # <-- Importante
-        'meal_mapping': meal_mapping,  # Este diccionario se usará en JS
+        'meal_order': meal_order,  
+        'meal_mapping': meal_mapping,  
         'dias_context': dias_context,
     }
     print(context)
 
     return render(request, 'calendario/semanal.html', context)
 
-#Añadir receta al calendario desde el calendario
-#Filtrar las recetas por tipo Comida
 PENALTY_BASE = 50   # Máxima penalización
 
 def calcular_penalty(ingredientes, fecha_date, familia):
@@ -133,20 +128,16 @@ def recetas_por_tipo(request):
 
     # 1. Recetas del tipo seleccionado, excluyendo las ya asignadas en esa fecha y comida
 
-    # Obtener todas las recetas del tipo de comida seleccionado
     recetas_disponibles = Receta.objects.filter(familia=familia, tipo_comida__nombre=tipo).distinct()
 
-    # Obtener las recetas que ya están en el calendario en esa fecha y tipo de comida
     recetas_ya_agregadas = Receta.objects.filter(
         recetas_calendario__calendario__fecha=fecha,
         recetas_calendario__tipo_comida__nombre=tipo,
-        familia=familia  # Aseguramos que pertenezcan a la familia
+        familia=familia  
     ).distinct()
 
-    # Excluir las recetas ya añadidas
     recetas_filtradas = recetas_disponibles.exclude(id__in=recetas_ya_agregadas.values_list('id', flat=True))
     # 2. Calcular el saldo proteico para el día indicado
-
     calendario = Calendario.objects.filter(fecha=fecha, familia=familia).first()
     if calendario:
         objetivo_proteico = calendario.objetivo_proteico
@@ -154,16 +145,14 @@ def recetas_por_tipo(request):
         objetivo_carbohidratos  = calendario.objetivo_carbohidratos
         carbohidratos_consumidos = calendario.carbohidratos_consumidos
     else:
-        # Si no existe un calendario para ese día, usamos valores por defecto (por ejemplo, 100g de proteína)
         objetivo_proteico = 100
         proteinas_consumidas = 0
-        objetivo_carbohidratos   = 250   # valor por defecto
+        objetivo_carbohidratos   = 250  
         carbohidratos_consumidos = 0
 
     remaining_protein = objetivo_proteico - proteinas_consumidas
     remaining_carbs   = objetivo_carbohidratos - carbohidratos_consumidos
 
-    # —— Reparto equitativo entre huecos libres ——
     meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
     ocupados = set()
     if calendario:
@@ -178,14 +167,13 @@ def recetas_por_tipo(request):
 
     # 3. Parámetros y preparación
     PENALTY_PER_INGREDIENT = 50
-    ##################################################
     
     recetas_con_score = []
     fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
-    recomendaciones = []  # Aquí almacenaremos tanto individuales como pares
+    recomendaciones = []  
 
     # 4. Evaluación individual (se calcula el score para cada receta)
-    individual_scores = []  # lista de tuplas (total_score, receta)
+    individual_scores = []  
     PESO_PROTEINA = 0.7
     PESO_CARBOHIDRATO = 0.3
     for receta in recetas_filtradas:
@@ -201,12 +189,11 @@ def recetas_por_tipo(request):
             "tipo": "single"
         })
 
-    # 🔧 Filtrar solo las recetas combinables
     recetas_combinables = recetas_filtradas.filter(combinable=True)
 
     # 5. Para la generación de pares: si hay demasiadas recetas candidatas,
     # se selecciona un pool aleatorio (para incluir también recetas con menor score individual)
-    MAX_POOL = 20  # Ajusta este número según tus necesidades
+    MAX_POOL = 20
     pool_for_pairs = list(recetas_combinables)
     if len(pool_for_pairs) > MAX_POOL:
         pool_for_pairs = random.sample(pool_for_pairs, MAX_POOL)
@@ -220,9 +207,7 @@ def recetas_por_tipo(request):
         carb_score_pair    = 100 - abs(target_carbs           - combined_carbs)
         base_score_pair    = (protein_score_pair * PESO_PROTEINA) + (carb_score_pair * PESO_CARBOHIDRATO)
        
-        # Unión de ingredientes en un set
         ings_pair = set(rec1.ingredientes.all()) | set(rec2.ingredientes.all())
-        # pásalo directamente a la función
         penalty_pair     = calcular_penalty(ings_pair, fecha_date, familia)
         total_score_pair = base_score_pair - penalty_pair
 
@@ -234,30 +219,23 @@ def recetas_por_tipo(request):
             "tipo": "pair"
         })
     # 7. Una vez has llenado `recomendaciones` con todos los scores absolutos:
-    # ------------------------------------------------------------
-    # Si no hay ninguna recomendación, devolvemos lista vacía
     if not recomendaciones:
         return JsonResponse([], safe=False)
 
-    # Extraemos todos los raw scores
     raw_scores = [item["score"] for item in recomendaciones]
     min_sc, max_sc = min(raw_scores), max(raw_scores)
 
-    # Si solo hay una recomendación
     if len(recomendaciones) == 1:
         recomendaciones[0]["score"] = 100
     else:
         if max_sc == min_sc:
-            # Todos iguales => damos 100% a todas
             for item in recomendaciones:
                 item["score"] = 100
         else:
-            # Normalización min-max
             for item in recomendaciones:
                 raw = item["score"]
                 item["score"] = round((raw - min_sc) / (max_sc - min_sc) * 100, 2)
 
-    # Ordenamos y devolvemos
     recomendaciones.sort(key=lambda x: x["score"], reverse=True)
     paged = recomendaciones[offset:offset+limit]
     return JsonResponse(paged, safe=False)
@@ -272,24 +250,19 @@ def agregar_receta_calendario(request):
             receta_id = data.get("receta_id")
             tipo_comida_id = data.get("tipo_comida_id")
 
-            # Verifica que los datos sean válidos
             if not fecha or not receta_id or not tipo_comida_id:
                 return JsonResponse({"error": "Faltan datos en la solicitud"}, status=400)
 
             familia = request.user.familias.first()
 
-            # Obtener objetos desde la base de datos
             receta = get_object_or_404(Receta, id=receta_id, familia=familia)
             tipo_comida = get_object_or_404(TipoComida, id=tipo_comida_id)
 
-            # Obtener o crear la instancia de calendario para esa fecha
             calendario, created = Calendario.objects.get_or_create(fecha=fecha, familia=familia)
 
-            # Verificar si la receta ya está asignada para evitar duplicados
             if Calendario_Receta.objects.filter(calendario=calendario, receta=receta, tipo_comida=tipo_comida).exists():
                 return JsonResponse({"error": "Esta receta ya está agregada en este día y tipo de comida."}, status=400)
 
-            # Crear la relación en la tabla intermedia
             Calendario_Receta.objects.create(calendario=calendario, receta=receta, tipo_comida=tipo_comida)
 
             # 1) Obtener el lunes de la semana en la que se ha añadido la receta
@@ -300,8 +273,7 @@ def agregar_receta_calendario(request):
                 # 2) Llamar a generar_lista_compra(week_start)
                 generar_lista_compra(week_start, familia)
             except Exception as e:
-                # opcional: loggea el error, pero no lo devuelvas al cliente
-                print("⚠️ Error generando lista de compra:", e)
+                print("Error generando lista de compra:", e)
             return JsonResponse({"mensaje": "Receta agregada exitosamente."}, status=200)
 
         except Exception as e:
@@ -330,23 +302,20 @@ def eliminar_receta_calendario(request):
     if request.method == "POST":
         fecha = request.POST.get("fecha")
         receta_id = request.POST.get("receta_id")
-        tipo_comida = request.POST.get("tipo_comida")  # Se espera que se envíe el nombre del tipo de comida
+        tipo_comida = request.POST.get("tipo_comida") 
 
         if not fecha or not receta_id:
             return JsonResponse({"error": "Faltan parámetros."}, status=400)
         
         familia = request.user.familias.first()
-        # Eliminar la receta de la fecha y tipo de comida correspondiente
         eliminados, _ = Calendario_Receta.objects.filter(
             calendario__fecha=fecha, calendario__familia=familia, receta__id=receta_id, tipo_comida__nombre=tipo_comida
         ).delete()
 
-        # 1) Obtener el lunes de la semana
         from datetime import datetime, timedelta
         fecha_date = datetime.strptime(fecha, "%Y-%m-%d").date()
         week_start = fecha_date - timedelta(days=fecha_date.weekday())
 
-        # 2) Llamar a generar_lista_compra(week_start)
         generar_lista_compra(week_start, familia)
 
         if eliminados:
@@ -387,7 +356,6 @@ def actualizar_calendario_dia(request):
         "carbohidratos_consumidos": carbohidratos_consumidos
     })
 
-#Para que el degradado de los dias del calendario se actualice solo
 @require_GET
 @login_required
 def datos_dia(request, fecha):
@@ -411,7 +379,6 @@ def datos_dia(request, fecha):
     }
     return JsonResponse(data)
 
-#Exportacion pdf de las recetas de la semana
 #EXPORTACION
 @login_required
 def exportar_semana(request):
@@ -444,7 +411,6 @@ def exportar_semana(request):
     # Generar 7 días (lunes a domingo)
     dias = [start_date + timedelta(days=i) for i in range(7)]
     
-    # Tipos de comida
     meal_order = ["Desayuno", "Almuerzo", "Merienda", "Cena"]
 
     familia = request.user.familias.first()
@@ -516,17 +482,16 @@ def exportar_semana(request):
         ('FONTSIZE', (0,0), (-1,0), 10),
         ('BOTTOMPADDING', (0,0), (-1,0), 6),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Alinear en la parte superior
+        ('VALIGN', (0,0), (-1,-1), 'TOP'), 
     ])
     recipes_table = Table(recipes_table_data, colWidths=[first_col_width, second_col_width])
     recipes_table.setStyle(recipes_table_style)
 
-    # === Dividir lista de la compra en 2 subtablas para colocar lado a lado ===
     shopping_data = [["Ingrediente", "Raciones"]]
     for ing_name in sorted(shopping_dict.keys()):
         shopping_data.append([ing_name, str(shopping_dict[ing_name])])
 
-    total_items = len(shopping_data) - 1  # sin contar el header
+    total_items = len(shopping_data) - 1  
     mitad = ceil(total_items / 2)
     left_table_data = [shopping_data[0]] + shopping_data[1 : 1 + mitad]
     right_table_data = [shopping_data[0]] + shopping_data[1 + mitad :]
@@ -539,32 +504,27 @@ def exportar_semana(request):
         ('FONTSIZE', (0,0), (-1,0), 10),
         ('BOTTOMPADDING', (0,0), (-1,0), 6),
         ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('VALIGN', (0,0), (-1,-1), 'TOP'),  # Alinear parte superior
+        ('VALIGN', (0,0), (-1,-1), 'TOP'),  
     ])
 
-    # Ajustar anchos de columna para que quepan en medio doc.width cada una
     half_width = doc.width / 2
     left_subtable = Table(left_table_data, colWidths=[half_width * 0.6, half_width * 0.4])
     left_subtable.setStyle(shopping_table_style)
     right_subtable = Table(right_table_data, colWidths=[half_width * 0.6, half_width * 0.4])
     right_subtable.setStyle(shopping_table_style)
 
-    # Contenedor con 2 columnas, cada una una subtabla
     container_table = Table(
         [[left_subtable, right_subtable]],
         colWidths=[half_width, half_width]
     )
-    # Alineación vertical TOP en la tabla contenedora
     container_table_style = TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
     ])
     container_table.setStyle(container_table_style)
 
-    # === Estilos para títulos y headings ===
     custom_title = ParagraphStyle('customTitle', parent=styles['Title'], alignment=1)
     custom_heading = ParagraphStyle('customHeading', parent=styles['Heading2'], alignment=1)
 
-    # === Construir el contenido (elements) ===
     elements = []
 
     start_formatted = format_date(dias[0], format="d 'de' MMMM 'de' y", locale='es')
@@ -574,7 +534,6 @@ def exportar_semana(request):
     elements.append(Paragraph(f"{start_formatted} al {end_formatted}", custom_heading))
     elements.append(Spacer(1, 20))
 
-    # === Tabla principal (comidas por día) ===
     first_col_width = doc.width * 0.15
     other_cols_width = (doc.width - first_col_width) / len(dias)
     main_table_col_widths = [first_col_width] + [other_cols_width] * len(dias)

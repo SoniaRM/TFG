@@ -19,7 +19,6 @@
     </div>
   </div>
   <div class="row">
-    <!-- ─── COLUMNA IZQUIERDA: FILTROS ─────────────────────────────────────── -->
     <div class="col-lg-4 mb-4">
       <div class="d-flex mb-3">
         <a href="{% url 'crear_receta' %}" class="btn btn-primary">Crear Nueva Receta</a>
@@ -32,7 +31,7 @@
         <p id="no-coincidencias" class="text-danger mt-1" style="display:none">No hay coincidencias</p>
       </div>
 
-      <!-- SLIDER PROTEÍNA -->
+      <!-- PROTEÍNA -->
       <div class="mb-3">
         <label>Proteína mínima:</label>
         <div class="d-flex gap-2">
@@ -41,7 +40,7 @@
         </div>
       </div>
 
-      <!-- SLIDER CARBOHIDRATOS -->
+      <!-- CARBOHIDRATOS -->
       <div class="mb-3">
         <label>Carbohidratos mínimos:</label>
         <div class="d-flex gap-2">
@@ -75,7 +74,6 @@
       </div>
     </div>
 
-    <!-- ─── COLUMNA DERECHA: RECETAS ───────────────────────────────────────── -->
     <div class="col-lg-8">
       <p id="contador-recetas" class="text-muted mb-3">Mostrando todas las recetas</p>
       <div class="container-recetas">
@@ -106,7 +104,6 @@
 
 <script>
   document.addEventListener("DOMContentLoaded", () => {
-    // Referencias
     const tarjetas = document.querySelectorAll(".card-receta");
     const buscarRec = document.getElementById("buscar-receta");
     const sliderP = document.getElementById("rango-proteina");
@@ -122,7 +119,6 @@
     const contador = document.getElementById("contador-recetas");
     let selectedMeal = null, selectedIngs = [];
 
-    // Máximos de sliders
     let maxP = 0, maxC = 0;
     tarjetas.forEach(t => {
       maxP = Math.max(maxP, +t.querySelector(".valor-proteina").textContent);
@@ -190,7 +186,6 @@
       else if (shown === 0) contador.textContent = "No hay recetas que coincidan con los filtros";
       else contador.textContent = `${shown} receta${shown > 1 ? "s" : ""} encontradas`;
 
-      // Muestra el aviso rojo solo si hay texto en buscarRec y no hay resultados
       noMatch.style.display = buscarRec.value.trim() && shown === 0 ? "block" : "none";
     }
 
@@ -198,9 +193,7 @@
     buscarRec.oninput = aplicarFiltros;
     sliderP.oninput = () => { inputP.value = sliderP.value; aplicarFiltros(); };
     inputP.oninput = () => {
-      // 1) Clamp entre 0 y maxP
       let v = Math.max(0, Math.min(+inputP.value, maxP));
-      // 2) Reflejar en el slider y el input
       inputP.value = v;
       sliderP.value = v;
       aplicarFiltros();
@@ -225,7 +218,6 @@
       };
     });
 
-    // Click en ingredientes para seleccionar/deseleccionar
     allSpans.forEach(sp => {
       sp.onclick = () => {
         const name = sp.dataset.nombre;
@@ -255,38 +247,27 @@
       };
     });
 
-    // Botón reset — versión mejorada
     document.getElementById("btn-reset-filtros").onclick = () => {
-      // limpia búsqueda de recetas
       buscarRec.value = "";
-      // limpia búsqueda de ingredientes
       buscIng.value = "";
 
-      // resetea sliders
       sliderP.value = inputP.value = 0;
       sliderC.value = inputC.value = 0;
 
-      // resetea selección de tipo de comida
       selectedMeal = null;
       mealBtns.forEach(b => b.classList.remove("active"));
 
-      // resetea ingredientes seleccionados
       selectedIngs = [];
       contSel.innerHTML = "";
       allSpans.forEach(sp => sp.classList.remove("seleccionado"));
 
-      // vuelve a la primera página de ingredientes
       currentPage = 0;
       showPage(0);
-      // muestra el botón de paginar si hace falta
       btnVer.style.display = totalPages > 1 ? "inline-block" : "none";
 
-      // aplica todos los filtros de nuevo
       aplicarFiltros();
     };
 
-
-    // Inicializa el filtrado
     aplicarFiltros();
   });
 </script>

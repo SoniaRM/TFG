@@ -6,7 +6,6 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-  /* Rejilla de 4 columnas para los ingredientes */
   .container-recetas {
     display: grid;
     grid-template-columns: repeat(4, 1fr) !important;
@@ -51,7 +50,6 @@
 </div>
 
 <script>
-  // Botón “X” para limpiar búsqueda
   document.getElementById('clear-ingrediente').addEventListener('click', () => {
     const inp = document.getElementById('buscar-ingrediente');
     inp.value = '';
@@ -59,7 +57,6 @@
     inp.focus();
   });
 
-  // Filtro de búsqueda
   document.getElementById('buscar-ingrediente').addEventListener('input', function () {
     const q = this.value.toLowerCase().trim();
     const cards = document.querySelectorAll('.card-receta');

@@ -9,12 +9,10 @@
   <div class="row justify-content-center">
     <div class="col-12 col-md-8 col-lg-6">
       <div class="card-lista p-4">
-        <!-- Mensaje principal -->
         <h1 class="text-center mb-4">Has sido eliminado de la familia</h1>
         <p class="text-center mb-4">Ya no tienes acceso a recetas, ingredientes, calendario ni a la lista de la compra.</p>
         <p class="text-center mb-4">Elige una opción para unirte a otra familia o crear una nueva.</p>
 
-        <!-- Formulario de cambio de familia -->
         <form method="post">
           {% csrf_token %}
           {{ form.non_field_errors }}
