@@ -384,9 +384,14 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
           addedRecipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
         });
 
+      const buscarRecetaInput = document.getElementById("buscar-receta");
+      const noCoincidencias    = document.getElementById("no-coincidencias-recetas");
+
       // 2️⃣ Paginación de recetas disponibles
       let offset = 0, limit = 10;
       function loadRecipes() {
+        const filtro = buscarRecetaInput.value.toLowerCase();
+
         fetch(`/api/recetas_por_tipo/?tipo=${mealType}&fecha=${fecha}&limit=${limit}&offset=${offset}`)
           .then(res => res.json())
           .then(data => {
@@ -412,6 +417,21 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
               recipeList.appendChild(btn);
             });
             offset += data.length;
+            recipeList.querySelectorAll('.recipe-button').forEach(btn => {
+              const texto = btn.textContent.toLowerCase();
+              btn.style.display = texto.includes(filtro) ? '' : 'none';
+            });
+
+            //  ❏ Reaplicar filtro
+            const botones = recipeList.querySelectorAll(".recipe-button");
+            botones.forEach(btn => {
+              btn.style.display = btn.textContent.toLowerCase().includes(filtro) ? "" : "none";
+            });
+
+            //  ❏ Mostrar “no coincidencias” si no hay ninguno
+            const hayVisibles = Array.from(botones).some(b => b.style.display !== "none");
+            noCoincidencias.style.display = hayVisibles ? "none" : "block";
+
             verMasBtn.style.display = data.length < limit ? "none" : "block";
           })
           .catch(() => {
@@ -433,6 +453,7 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
       });
 
       // Cargar recetas disponibles para añadir (excluyendo las que ya están en el calendario)
+      /*
       fetch(`/api/recetas_por_tipo/?tipo=${mealType}&fecha=${fecha}`)
         .then(response => response.json())
         .then(data => {
@@ -464,7 +485,7 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
         })
         .catch(() => {
           recipeList.innerHTML = "<p class='text-danger'>Error al cargar recetas.</p>";
-        });
+        });*/
 
       var modalElement = document.getElementById("seleccionarRecetaModal");
       var modal = new bootstrap.Modal(modalElement);
@@ -767,8 +788,32 @@ actualizarBarraProteinas(new Date().toISOString().split('T')[0]);
             btn.style.display = "none";
           }
         });
+
+        const hayVisibles = Array.from(recipeButtons).some(btn => btn.style.display !== "none");
+        noCoincidencias.style.display = hayVisibles ? "none" : "block";
       });
     });
   </script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // (Aquí van todas tus funciones y listeners actuales…)
 
+    // ➊ Referencias que vamos a usar:
+    const modalEl = document.getElementById("seleccionarRecetaModal");
+    const buscarRecetaInput = document.getElementById("buscar-receta");
+    const noCoincidencias = document.getElementById("no-coincidencias-recetas");
+
+    // ➋ Cuando el modal se cierre, reseteamos la búsqueda:
+    modalEl.addEventListener("hidden.bs.modal", function () {
+      if (buscarRecetaInput) {
+        buscarRecetaInput.value = "";
+        // (si lanzas fetch en keyup, puedes reactivar la lista por defecto simulando un keyup)
+        buscarRecetaInput.dispatchEvent(new Event('keyup'));
+      }
+      if (noCoincidencias) {
+        noCoincidencias.style.display = "none";
+      }
+    });
+  });
+</script>
   {% endblock %}
